@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { Search, Loader2, CheckCircle2, Circle, ArrowRight, Building2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Loader2, CheckCircle2, Circle, Building2 } from 'lucide-react';
 import { api } from '../lib/api';
-import { Procedure } from '../types';
-import { REGULARIZACION_STEPS } from '../constants';
+import { Procedure, ProcedureType } from '../types';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 
@@ -10,7 +9,20 @@ const PublicConsultation = () => {
   const [idNumber, setIdNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [procedures, setProcedures] = useState<Procedure[] | null>(null);
+  const [procedureTypes, setProcedureTypes] = useState<ProcedureType[]>([]);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchTypes = async () => {
+      try {
+        const types = await api.getProcedureTypes();
+        setProcedureTypes(types);
+      } catch (err) {
+        console.error('Error fetching procedure types:', err);
+      }
+    };
+    fetchTypes();
+  }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,10 +42,16 @@ const PublicConsultation = () => {
     }
   };
 
-  const getProgress = (completedSteps?: string) => {
-    if (!completedSteps) return 0;
-    const completed = completedSteps.split(',').filter(Boolean).length;
-    return Math.round((completed / REGULARIZACION_STEPS.length) * 100);
+  const getStepsForProcedure = (proc: Procedure) => {
+    const currentType = procedureTypes.find(t => t.name === proc.procedureType);
+    return currentType?.steps ? JSON.parse(currentType.steps) : [];
+  };
+
+  const getProgress = (proc: Procedure) => {
+    if (!proc.completedSteps) return 0;
+    const steps = getStepsForProcedure(proc);
+    const completed = proc.completedSteps.split(',').filter(Boolean).length;
+    return Math.round((completed / steps.length) * 100);
   };
 
   return (
@@ -93,64 +111,69 @@ const PublicConsultation = () => {
               </div>
             ) : (
               procedures.map((proc) => {
-                const progress = getProgress(proc.completedSteps);
+                const progress = getProgress(proc);
+                const steps = getStepsForProcedure(proc);
                 const completedIndices = proc.completedSteps ? proc.completedSteps.split(',').map(Number) : [];
                 
                 return (
                   <div key={proc.id} className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
-                    <div className="p-4 md:p-8 border-b border-stone-100">
-                      <div className="flex justify-between items-start mb-4 md:mb-6">
-                        <div>
-                          <span className="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-1 block">
-                            {proc.status}
-                          </span>
-                          <h2 className="text-lg md:text-2xl font-bold text-stone-900 tracking-tight">{proc.title}</h2>
-                        </div>
-                        <div className="text-right">
-                          <span className={clsx(
-                            "text-2xl md:text-4xl font-black",
-                            progress <= 33 ? "text-[#E3000F]" : 
-                            progress <= 66 ? "text-stone-500" : "text-stone-900"
-                          )}>{progress}%</span>
-                          <span className="block text-[8px] md:text-xs font-medium text-stone-400 uppercase tracking-wider">Avance</span>
-                        </div>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="w-full bg-stone-100 h-2 md:h-4 rounded-full overflow-hidden mb-3 md:mb-4 border border-stone-200">
-                        <div 
-                          className={clsx(
-                            "h-full transition-all duration-1000 ease-out",
-                            progress <= 33 ? "bg-[#E3000F]" : 
-                            progress <= 66 ? "bg-stone-400" : "bg-stone-900"
-                          )}
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                      <p className="text-stone-600 text-[10px] md:text-sm leading-relaxed">{proc.description}</p>
-                    </div>
-
-                    {/* Steps Checklist (Visual Only for Client) */}
-                    <div className="bg-stone-50 p-4 md:p-8">
-                      <h3 className="text-[10px] md:text-sm font-bold text-stone-900 uppercase tracking-wider mb-4 md:mb-6">Estado del Proceso</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-4">
-                        {REGULARIZACION_STEPS.map((step, index) => {
-                          const isCompleted = completedIndices.includes(index);
-                          return (
-                            <div key={index} className="flex items-center gap-2 md:gap-3">
-                              {isCompleted ? (
-                                <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-emerald-500 shrink-0" />
-                              ) : (
-                                <Circle className="w-4 h-4 md:w-5 md:h-5 text-stone-300 shrink-0" />
-                              )}
-                              <span className={`text-[10px] md:text-sm ${isCompleted ? 'text-stone-900 font-medium' : 'text-stone-400'}`}>
-                                {step}
+                    {steps.length > 0 && (
+                      <>
+                        <div className="p-4 md:p-8 border-b border-stone-100">
+                          <div className="flex justify-between items-start mb-4 md:mb-6">
+                            <div>
+                              <span className="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-1 block">
+                                {proc.status}
                               </span>
+                              <h2 className="text-lg md:text-2xl font-bold text-stone-900 tracking-tight">{proc.title}</h2>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
+                            <div className="text-right">
+                              <span className={clsx(
+                                "text-2xl md:text-4xl font-black",
+                                progress <= 33 ? "text-[#E3000F]" : 
+                                progress <= 66 ? "text-stone-500" : "text-stone-900"
+                              )}>{progress}%</span>
+                              <span className="block text-[8px] md:text-xs font-medium text-stone-400 uppercase tracking-wider">Avance</span>
+                            </div>
+                          </div>
+
+                          {/* Progress Bar */}
+                          <div className="w-full bg-stone-100 h-2 md:h-4 rounded-full overflow-hidden mb-3 md:mb-4 border border-stone-200">
+                            <div 
+                              className={clsx(
+                                "h-full transition-all duration-1000 ease-out",
+                                progress <= 33 ? "bg-[#E3000F]" : 
+                                progress <= 66 ? "bg-stone-400" : "bg-stone-900"
+                              )}
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          <p className="text-stone-600 text-[10px] md:text-sm leading-relaxed">{proc.description}</p>
+                        </div>
+
+                        {/* Steps Checklist (Visual Only for Client) */}
+                        <div className="bg-stone-50 p-4 md:p-8">
+                          <h3 className="text-[10px] md:text-sm font-bold text-stone-900 uppercase tracking-wider mb-4 md:mb-6">Estado del Proceso</h3>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-4">
+                            {steps.map((step: string, index: number) => {
+                              const isCompleted = completedIndices.includes(index);
+                              return (
+                                <div key={index} className="flex items-center gap-2 md:gap-3">
+                                  {isCompleted ? (
+                                    <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-emerald-500 shrink-0" />
+                                  ) : (
+                                    <Circle className="w-4 h-4 md:w-5 md:h-5 text-stone-300 shrink-0" />
+                                  )}
+                                  <span className={`text-[10px] md:text-sm ${isCompleted ? 'text-stone-900 font-medium' : 'text-stone-400'}`}>
+                                    {step}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 );
               })

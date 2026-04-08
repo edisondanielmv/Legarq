@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
-import { Plus, Loader2, User as UserIcon, Shield, Wrench, Phone, MapPin, Mail, Search } from 'lucide-react';
+import { Plus, Loader2, User as UserIcon, Shield, Wrench, Phone, MapPin, Mail, Search, Trash2, Edit2, Key } from 'lucide-react';
 import { User } from '../../types';
 
 export default function Users() {
@@ -14,7 +14,10 @@ export default function Users() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const [showNewModal, setShowNewModal] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'client', phone: '', address: '', idNumber: '' });
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [newUser, setNewUser] = useState({ name: '', username: '', password: '', role: 'client', phone: '', address: '', idNumber: '' });
+  const [editingUser, setEditingUser] = useState<(User & { password?: string }) | null>(null);
+  const [deletingUser, setDeletingUser] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -38,7 +41,36 @@ export default function Users() {
     try {
       await api.createUser({ ...newUser, requesterRole: currentUser?.role });
       setShowNewModal(false);
-      setNewUser({ name: '', email: '', password: '', role: 'client', phone: '', address: '', idNumber: '' });
+      setNewUser({ name: '', username: '', password: '', role: 'client', phone: '', address: '', idNumber: '' });
+      await fetchUsers();
+    } catch (err: any) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setLoading(true);
+    try {
+      const { password, ...userData } = editingUser;
+      const updateData = password ? { ...userData, password } : userData;
+      await api.updateUser(updateData);
+      setShowEditModal(false);
+      setEditingUser(null);
+      await fetchUsers();
+    } catch (err: any) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (username: string) => {
+    setLoading(true);
+    try {
+      await api.deleteUser(username);
+      setDeletingUser(null);
       await fetchUsers();
     } catch (err: any) {
       setError(err.message);
@@ -48,7 +80,7 @@ export default function Users() {
 
   const filtered = users.filter(u => 
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchTerm.toLowerCase())
+    u.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getRoleIcon = (role: string) => {
@@ -94,7 +126,7 @@ export default function Users() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5" />
             <input
               type="text"
-              placeholder="Buscar por nombre o email..."
+              placeholder="Buscar por nombre o usuario..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 md:pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-[#E3000F] focus:border-[#E3000F] bg-white outline-none"
@@ -111,6 +143,7 @@ export default function Users() {
                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Contacto</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Ubicación</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Rol</th>
+                <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
@@ -130,7 +163,7 @@ export default function Users() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 text-xs text-gray-600">
-                        <Mail className="w-3 h-3 text-gray-400" /> {u.email}
+                        <UserIcon className="w-3 h-3 text-gray-400" /> {u.username}
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-600">
                         <Phone className="w-3 h-3 text-gray-400" /> {u.phone || 'S/N'}
@@ -146,6 +179,26 @@ export default function Users() {
                     <div className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-full w-fit border border-gray-100">
                       {getRoleIcon(u.role)}
                       <span className="text-xs font-bold text-gray-700">{getRoleName(u.role)}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => { setEditingUser(u); setShowEditModal(true); }}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Editar"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      {u.username !== currentUser?.username && (
+                        <button
+                          onClick={() => setDeletingUser(u.username)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -168,16 +221,32 @@ export default function Users() {
                     <p className="text-[9px] text-gray-400 uppercase mt-0.5 truncate">ID: {u.idNumber || 'N/A'}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 px-2 py-0.5 bg-gray-50 rounded-full border border-gray-100 shrink-0">
-                  {getRoleIcon(u.role)}
-                  <span className="text-[9px] font-bold text-gray-700">{getRoleName(u.role)}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { setEditingUser(u); setShowEditModal(true); }}
+                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  {u.username !== currentUser?.username && (
+                    <button
+                      onClick={() => setDeletingUser(u.username)}
+                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-gray-50 rounded-full border border-gray-100 shrink-0">
+                    {getRoleIcon(u.role)}
+                    <span className="text-[9px] font-bold text-gray-700">{getRoleName(u.role)}</span>
+                  </div>
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-500">
                 <div className="flex items-center gap-1.5 overflow-hidden">
-                  <Mail className="w-3 h-3 shrink-0" />
-                  <span className="truncate">{u.email}</span>
+                  <UserIcon className="w-3 h-3 shrink-0" />
+                  <span className="truncate">{u.username}</span>
                 </div>
                 <div className="flex items-center gap-1.5 overflow-hidden">
                   <Phone className="w-3 h-3 shrink-0" />
@@ -216,8 +285,8 @@ export default function Users() {
                 <input required type="text" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#E3000F]" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
-                <input required type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#E3000F]" />
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre de Usuario</label>
+                <input required type="text" value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#E3000F]" placeholder="admin" />
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Contraseña</label>
@@ -250,6 +319,95 @@ export default function Users() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Usuario */}
+      {showEditModal && editingUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div className="p-6 bg-gray-900 text-white">
+              <h3 className="text-xl font-bold">Editar Usuario</h3>
+              <p className="text-gray-400 text-sm mt-1">Actualice la información de {editingUser.name}.</p>
+            </div>
+            <form onSubmit={handleUpdate} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre Completo</label>
+                <input required type="text" value={editingUser.name} onChange={e => setEditingUser({...editingUser, name: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#E3000F]" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Usuario (No editable)</label>
+                <input disabled type="text" value={editingUser.username} className="w-full border border-gray-200 bg-gray-50 rounded-lg p-2.5 text-gray-500 cursor-not-allowed" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono</label>
+                <input type="text" value={editingUser.phone || ''} onChange={e => setEditingUser({...editingUser, phone: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#E3000F]" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cédula/ID</label>
+                <input type="text" value={editingUser.idNumber || ''} onChange={e => setEditingUser({...editingUser, idNumber: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#E3000F]" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Dirección</label>
+                <input type="text" value={editingUser.address || ''} onChange={e => setEditingUser({...editingUser, address: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#E3000F]" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Rol en el Sistema</label>
+                <select value={editingUser.role} onChange={e => setEditingUser({...editingUser, role: e.target.value as any})} className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#E3000F]">
+                  <option value="client">Cliente</option>
+                  <option value="tech">Técnico</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
+                  <Key className="w-3 h-3" /> Nueva Contraseña (Opcional)
+                </label>
+                <input 
+                  type="password" 
+                  value={editingUser.password || ''} 
+                  onChange={e => setEditingUser({...editingUser, password: e.target.value})} 
+                  className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-[#E3000F]" 
+                  placeholder="Dejar en blanco para no cambiar"
+                />
+              </div>
+              <div className="md:col-span-2 flex justify-end gap-3 mt-4">
+                <button type="button" onClick={() => { setShowEditModal(false); setEditingUser(null); }} className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
+                <button type="submit" disabled={loading} className="px-5 py-2.5 bg-[#E3000F] text-white font-bold rounded-lg hover:bg-red-700 shadow-lg transition-all">
+                  {loading ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Modal Confirmar Eliminación */}
+      {deletingUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+            <div className="p-6 bg-red-600 text-white text-center">
+              <Trash2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <h3 className="text-xl font-bold">¿Eliminar Usuario?</h3>
+              <p className="text-red-100 text-sm mt-2">
+                Esta acción eliminará permanentemente al usuario <span className="font-black">@{deletingUser}</span>.
+              </p>
+            </div>
+            <div className="p-6 flex gap-3">
+              <button 
+                onClick={() => setDeletingUser(null)}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => handleDelete(deletingUser)}
+                disabled={loading}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-200 disabled:opacity-50"
+              >
+                {loading ? 'Eliminando...' : 'Sí, Eliminar'}
+              </button>
+            </div>
           </div>
         </div>
       )}

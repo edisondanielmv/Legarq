@@ -12,6 +12,7 @@ import ProcedureDetails from './pages/dashboard/ProcedureDetails';
 import ProcedureTypes from './pages/dashboard/ProcedureTypes';
 import Users from './pages/dashboard/Users';
 import FinancialReports from './pages/dashboard/FinancialReports';
+import Reports from './pages/dashboard/Reports';
 import Settings from './pages/dashboard/Settings';
 
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
@@ -52,6 +53,11 @@ function AppRoutes() {
         <Route path="financial-reports" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <FinancialReports />
+          </ProtectedRoute>
+        } />
+        <Route path="reports" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Reports />
           </ProtectedRoute>
         } />
         <Route path="settings" element={

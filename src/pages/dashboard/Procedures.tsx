@@ -52,7 +52,7 @@ export default function Procedures() {
 
   const fetchProcedures = async () => {
     try {
-      const data = await api.getProcedures({ email: user?.email || '', role: user?.role || '' });
+      const data = await api.getProcedures({ username: user?.username || '', role: user?.role || '' });
       setProcedures(data);
     } catch (err: any) {
       if (err.message === 'SETUP_REQUIRED') navigate('/setup');
@@ -100,7 +100,8 @@ export default function Procedures() {
 
   const filtered = procedures.filter(p => 
     p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.clientEmail && p.clientEmail.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (p.code && p.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (p.clientUsername && p.clientUsername.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (p.clientName && p.clientName.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (p.idNumber && p.idNumber.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -163,6 +164,7 @@ export default function Procedures() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-24">Código</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Proyecto</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Cliente</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Cédula</th>
@@ -175,6 +177,11 @@ export default function Procedures() {
               {filtered.map((proc) => (
                 <tr key={proc.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-xs font-black text-[#E3000F] bg-red-50 px-2 py-1 rounded border border-red-100">
+                      {proc.code || '---'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <Link to={`/dashboard/procedures/${proc.id}`} className="flex items-center gap-3 group">
                       <div className="p-2 bg-gray-100 rounded-lg group-hover:bg-[#E3000F]/10 transition-colors">
                         <FileText className="w-4 h-4 text-gray-600 group-hover:text-[#E3000F]" />
@@ -185,7 +192,7 @@ export default function Procedures() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <UserIcon className="w-4 h-4 text-gray-400" />
-                      {proc.clientName || proc.clientEmail || 'Sin nombre'}
+                      {proc.clientName || proc.clientUsername || 'Sin nombre'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -195,7 +202,7 @@ export default function Procedures() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-600">
-                      {proc.technicianEmail ? proc.technicianEmail.split('@')[0] : <span className="text-gray-400 italic">Sin asignar</span>}
+                      {proc.technicianName || proc.technicianUsername || <span className="text-gray-400 italic">Sin asignar</span>}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -229,7 +236,12 @@ export default function Procedures() {
                     <FileText className="w-4 h-4 text-gray-600 group-hover:text-[#E3000F]" />
                   </div>
                   <div className="overflow-hidden">
-                    <h3 className="font-bold text-gray-900 text-[11px] leading-tight truncate group-hover:text-[#E3000F] transition-colors">{proc.title}</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[8px] font-black text-[#E3000F] bg-red-50 px-1 rounded border border-red-100">
+                        {proc.code || '---'}
+                      </span>
+                      <h3 className="font-bold text-gray-900 text-[11px] leading-tight truncate group-hover:text-[#E3000F] transition-colors">{proc.title}</h3>
+                    </div>
                     <p className="text-[9px] text-gray-400 uppercase mt-0.5 truncate">{proc.procedureType || 'Trámite General'}</p>
                   </div>
                 </div>
@@ -245,7 +257,7 @@ export default function Procedures() {
                 </div>
                 <div className="flex items-center gap-1.5 overflow-hidden">
                   <Briefcase className="w-3 h-3 shrink-0" />
-                  <span className="truncate max-w-[100px]">{proc.technicianEmail ? proc.technicianEmail.split('@')[0] : 'Sin asignar'}</span>
+                  <span className="truncate max-w-[100px]">{proc.technicianName || proc.technicianUsername || 'Sin asignar'}</span>
                 </div>
               </div>
 

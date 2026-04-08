@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { apiCall, APPS_SCRIPT_URL } from '../lib/api';
-import { Lock, Mail, Loader2, Code, Copy, Check } from 'lucide-react';
+import { Lock, User as UserIcon, Loader2, Code, Copy, Check } from 'lucide-react';
 import appsScriptCode from '../../APPS_SCRIPT.js?raw';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,7 +21,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const userData = await apiCall('login', { email, password });
+      const userData = await apiCall('login', { username, password });
       login(userData);
       navigate('/dashboard');
     } catch (err: any) {
@@ -66,7 +66,7 @@ export default function Login() {
             <p className="font-bold mb-1">Modo Demostración Activo</p>
             <p>La base de datos de Google Sheets no está conectada. Puede probar el sistema con:</p>
             <ul className="list-disc ml-5 mt-1">
-              <li>Admin: <strong>admin@legarconstructora.com</strong> / admin</li>
+              <li>Admin: <strong>admin</strong> / admin</li>
             </ul>
             <Link to="/setup" className="mt-2 inline-block font-bold text-[#E3000F] hover:underline">
               Configurar Google Sheets →
@@ -83,19 +83,19 @@ export default function Login() {
             
             <div>
               <label className="block text-[10px] md:text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">
-                Correo Electrónico
+                Nombre de Usuario
               </label>
               <div className="relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-4 w-4 md:h-5 md:w-5 text-gray-400" />
+                  <UserIcon className="h-4 w-4 md:h-5 md:w-5 text-gray-400" />
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="block w-full pl-9 md:pl-10 border-gray-300 rounded-lg focus:ring-[#E3000F] focus:border-[#E3000F] text-xs md:text-sm py-2 md:py-2.5 border outline-none"
-                  placeholder="usuario@legarconstructora.com"
+                  placeholder="admin"
                 />
               </div>
             </div>

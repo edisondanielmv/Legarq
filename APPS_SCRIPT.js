@@ -61,50 +61,73 @@ function initSheets() {
   
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  if (ss.getSheetByName('Usuarios')) {
-    // Check for missing columns in Tramites
-    var proceduresSheet = ss.getSheetByName('Tramites');
-    if (proceduresSheet) {
-      var procHeaders = ['id', 'title', 'clientEmail', 'status', 'description', 'createdAt', 'driveFolderId', 'driveUrl', 'technicianEmail', 'completedSteps', 'expectedValue', 'otherAgreements', 'clientName', 'idNumber', 'procedureType'];
-      var existingHeaders = proceduresSheet.getRange(1, 1, 1, proceduresSheet.getLastColumn()).getValues()[0];
-      for (var i = 0; i < procHeaders.length; i++) {
-        if (existingHeaders.indexOf(procHeaders[i]) === -1) {
-          proceduresSheet.getRange(1, existingHeaders.length + 1).setValue(procHeaders[i]);
-          existingHeaders.push(procHeaders[i]);
-        }
-      }
-    }
-    return;
+  // 1. Usuarios
+  var usersSheet = ss.getSheetByName('Usuarios');
+  if (!usersSheet) {
+    usersSheet = ss.insertSheet('Usuarios');
+    usersSheet.appendRow(['id', 'name', 'username', 'password', 'role', 'phone', 'address', 'idNumber']);
+    usersSheet.appendRow(['1', 'Administrador', 'admin', 'admin123', 'admin', '0999999999', 'Oficina Central', '1700000001']);
+    usersSheet.appendRow(['2', 'Técnico', 'tecnico', 'tech123', 'tech', '0988888888', 'Sector Norte', '1700000002']);
+    usersSheet.appendRow(['3', 'Cliente', 'cliente', 'cliente123', 'client', '0977777777', 'Av. Principal 123', '1700000003']);
   }
-  
-  var usersSheet = ss.insertSheet('Usuarios');
-  usersSheet.appendRow(['id', 'name', 'email', 'password', 'role', 'phone', 'address', 'idNumber']);
-  usersSheet.appendRow(['1', 'Administrador', 'admin@legarconstructora.com', 'admin123', 'admin', '0999999999', 'Oficina Central', '1700000001']);
-  usersSheet.appendRow(['2', 'Técnico', 'tecnico@legarconstructora.com', 'tech123', 'tech', '0988888888', 'Sector Norte', '1700000002']);
-  usersSheet.appendRow(['3', 'Cliente', 'cliente@legarconstructora.com', 'cliente123', 'client', '0977777777', 'Av. Principal 123', '1700000003']);
-  
-  var proceduresSheet = ss.insertSheet('Tramites');
-  proceduresSheet.appendRow(['id', 'title', 'clientEmail', 'status', 'description', 'createdAt', 'driveFolderId', 'driveUrl', 'technicianEmail', 'completedSteps', 'expectedValue', 'otherAgreements', 'clientName', 'idNumber', 'procedureType']);
-  
-  var financialSheet = ss.insertSheet('Finanzas');
-  financialSheet.appendRow(['id', 'procedureId', 'type', 'category', 'description', 'amount', 'date', 'fileUrl']);
-  
-  var logsSheet = ss.insertSheet('Bitacora');
-  logsSheet.appendRow(['id', 'procedureId', 'date', 'technicianEmail', 'note']);
 
+  // 2. Tramites
+  var proceduresSheet = ss.getSheetByName('Tramites');
+  var procHeaders = ['id', 'code', 'title', 'clientUsername', 'status', 'description', 'createdAt', 'driveFolderId', 'driveUrl', 'technicianUsername', 'completedSteps', 'expectedValue', 'otherAgreements', 'clientName', 'idNumber', 'procedureType'];
+  if (!proceduresSheet) {
+    proceduresSheet = ss.insertSheet('Tramites');
+    proceduresSheet.appendRow(procHeaders);
+  } else {
+    ensureColumns(proceduresSheet, procHeaders);
+  }
+
+  // 3. Finanzas
+  var financialSheet = ss.getSheetByName('Finanzas');
+  if (!financialSheet) {
+    financialSheet = ss.insertSheet('Finanzas');
+    financialSheet.appendRow(['id', 'procedureId', 'type', 'category', 'description', 'amount', 'date', 'fileUrl']);
+  }
+
+  // 4. Bitacora
+  var logsSheet = ss.getSheetByName('Bitacora');
+  if (!logsSheet) {
+    logsSheet = ss.insertSheet('Bitacora');
+    logsSheet.appendRow(['id', 'procedureId', 'date', 'technicianUsername', 'note']);
+  }
+
+  // 5. Archivos
   var filesSheet = ss.getSheetByName('Archivos');
   if (!filesSheet) {
     filesSheet = ss.insertSheet('Archivos');
     filesSheet.appendRow(['id', 'procedureId', 'name', 'driveId', 'mimeType', 'url', 'date']);
   }
 
+  // 6. Tipos de Trámite
   var typesSheet = ss.getSheetByName('TiposTramite');
+  var typesHeaders = ['id', 'name', 'steps'];
   if (!typesSheet) {
     typesSheet = ss.insertSheet('TiposTramite');
-    typesSheet.appendRow(['id', 'name']);
-    typesSheet.appendRow(['1', 'Legalización de Planos']);
-    typesSheet.appendRow(['2', 'Propiedad Horizontal']);
-    typesSheet.appendRow(['3', 'Licencia de Construcción']);
+    typesSheet.appendRow(typesHeaders);
+    typesSheet.appendRow(['1', 'Legalización de Planos', '["Revisión de documentos","Levantamiento arquitectónico","Dibujo de planos","Ingreso a municipio","Aprobación"]']);
+    typesSheet.appendRow(['2', 'Propiedad Horizontal', '["Escrituras","Planos aprobados","Cuadro de alícuotas","Ingreso a catastro","Resolución"]']);
+    typesSheet.appendRow(['3', 'Licencia de Construcción', '["Certificado de gravamen","Planos aprobados","Pago de tasas","Emisión de licencia"]']);
+  } else {
+    ensureColumns(typesSheet, typesHeaders);
+  }
+}
+
+function ensureColumns(sheet, expectedHeaders) {
+  var lastCol = sheet.getLastColumn();
+  if (lastCol === 0) {
+    sheet.appendRow(expectedHeaders);
+    return;
+  }
+  var actualHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  for (var i = 0; i < expectedHeaders.length; i++) {
+    if (actualHeaders.indexOf(expectedHeaders[i]) === -1) {
+      sheet.getRange(1, actualHeaders.length + 1).setValue(expectedHeaders[i]);
+      actualHeaders.push(expectedHeaders[i]);
+    }
   }
 }
 
@@ -142,9 +165,13 @@ function doPost(e) {
     else if (action === 'getFiles') result = getFiles(data);
     else if (action === 'getProcedureTypes') result = getProcedureTypes(data);
     else if (action === 'createProcedureType') result = createProcedureType(data);
+    else if (action === 'updateProcedureType') result = updateProcedureType(data);
+    else if (action === 'deleteProcedureType') result = deleteProcedureType(data);
     else if (action === 'updateProcedure') result = updateProcedure(data);
     else if (action === 'deleteProcedure') result = deleteProcedure(data);
+    else if (action === 'deleteUser') result = deleteUser(data);
     else if (action === 'createDriveFolder') result = createDriveFolderAction(data);
+    else if (action === 'getTechnicianActivityReport') result = getTechnicianActivityReport(data);
     else throw new Error('Acción no válida: ' + action);
     
     return response({success: true, data: result});
@@ -181,8 +208,14 @@ function getSheetData(sheetName) {
 
 function login(data) {
   var users = getSheetData('Usuarios');
+  var username = (data.username || '').toString().trim();
+  var password = (data.password || '').toString().trim();
+  
   for (var i = 0; i < users.length; i++) {
-    if (users[i].email === data.email && users[i].password === data.password) {
+    var sheetUsername = (users[i].username || '').toString().trim();
+    var sheetPassword = (users[i].password || '').toString().trim();
+    
+    if (sheetUsername === username && sheetPassword === password) {
       return users[i];
     }
   }
@@ -192,12 +225,19 @@ function login(data) {
 function updateUser(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Usuarios');
   var rows = sheet.getDataRange().getValues();
+  var headers = rows[0];
+  var username = (data.username || '').toString().trim();
+  
   for (var i = 1; i < rows.length; i++) {
-    if (rows[i][2] === data.email) {
-      sheet.getRange(i + 1, 2).setValue(data.name);
-      sheet.getRange(i + 1, 6).setValue(data.phone);
-      sheet.getRange(i + 1, 7).setValue(data.address);
-      sheet.getRange(i + 1, 8).setValue(data.idNumber);
+    var sheetUsername = (rows[i][2] || '').toString().trim();
+    if (sheetUsername === username) {
+      for (var key in data) {
+        var colIndex = headers.indexOf(key);
+        if (colIndex !== -1 && key !== 'username') {
+          sheet.getRange(i + 1, colIndex + 1).setValue(data[key]);
+        }
+      }
+      SpreadsheetApp.flush();
       return { success: true };
     }
   }
@@ -234,11 +274,26 @@ function updateFinancialItem(data) {
 
 function getProcedures(data) {
   var procedures = getSheetData('Tramites');
+  var users = getSheetData('Usuarios');
+  
+  // Mapa para búsqueda rápida de nombres
+  var userMap = {};
+  for (var i = 0; i < users.length; i++) {
+    userMap[users[i].username] = users[i].name;
+  }
+  
+  // Enriquecer trámites con el nombre del técnico
+  for (var j = 0; j < procedures.length; j++) {
+    if (procedures[j].technicianUsername) {
+      procedures[j].technicianName = userMap[procedures[j].technicianUsername] || procedures[j].technicianUsername;
+    }
+  }
+
   if (data.role === 'client') {
-    return procedures.filter(function(p) { return p.clientEmail === data.email; });
+    return procedures.filter(function(p) { return p.clientUsername === data.username; });
   }
   if (data.role === 'tech') {
-    return procedures.filter(function(p) { return p.technicianEmail === data.email; });
+    return procedures.filter(function(p) { return p.technicianUsername === data.username; });
   }
   return procedures;
 }
@@ -265,7 +320,45 @@ function createProcedure(data) {
   var id = Utilities.getUuid();
   var date = new Date().toISOString();
   
-  // Crear carpeta en Drive para el trámite
+  // Generar código automático (TR-0001, TR-0002, etc)
+  var lastRow = sheet.getLastRow();
+  var nextNum = lastRow; // Porque la fila 1 es encabezado
+  var code = 'TR-' + nextNum.toString().padStart(4, '0');
+  
+  // 1. Vincular o crear usuario cliente
+  var clientUsername = data.clientUsername || '';
+  if (!clientUsername && data.idNumber) {
+    var users = getSheetData('Usuarios');
+    var existingUser = null;
+    var searchId = (data.idNumber || '').toString().trim();
+    
+    for (var i = 0; i < users.length; i++) {
+      if ((users[i].idNumber || '').toString().trim() === searchId) {
+        existingUser = users[i];
+        break;
+      }
+    }
+    
+    if (existingUser) {
+      clientUsername = existingUser.username;
+    } else {
+      // Crear usuario automáticamente si no existe
+      clientUsername = (data.clientName || 'cliente').toLowerCase().replace(/\s+/g, '.') + '.' + data.idNumber.substring(data.idNumber.length - 4);
+      var userSheet = ss.getSheetByName('Usuarios');
+      userSheet.appendRow([
+        Utilities.getUuid(),
+        data.clientName || 'Nuevo Cliente',
+        clientUsername,
+        data.idNumber, // Password por defecto es su cédula
+        'client',
+        '', // phone
+        '', // address
+        data.idNumber
+      ]);
+    }
+  }
+
+  // 2. Crear carpeta en Drive para el trámite
   var procFolder;
   try {
     var parentFolder = getOrCreateMainFolder();
@@ -288,14 +381,15 @@ function createProcedure(data) {
   
   var dataMap = {
     'id': id,
+    'code': code,
     'title': data.title,
-    'clientEmail': data.clientEmail || '',
+    'clientUsername': clientUsername,
     'status': 'Nuevo',
-    'description': data.description,
+    'description': data.description || '',
     'createdAt': date,
     'driveFolderId': procFolder ? procFolder.getId() : '',
     'driveUrl': procFolder ? procFolder.getUrl() : '',
-    'technicianEmail': data.technicianEmail || '',
+    'technicianUsername': data.technicianUsername || '',
     'completedSteps': '',
     'expectedValue': data.expectedValue || 0,
     'otherAgreements': data.otherAgreements || '',
@@ -311,18 +405,18 @@ function createProcedure(data) {
   }
   
   sheet.appendRow(rowData);
-  return { id: id, driveUrl: procFolder ? procFolder.getUrl() : null };
+  return { id: id, driveUrl: procFolder ? procFolder.getUrl() : null, clientUsername: clientUsername };
 }
 
 function assignTechnician(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Tramites');
   var rows = sheet.getDataRange().getValues();
   var headers = rows[0];
-  var colIndex = headers.indexOf('technicianEmail');
-  if (colIndex === -1) throw new Error('Columna technicianEmail no encontrada en la hoja');
+  var colIndex = headers.indexOf('technicianUsername');
+  if (colIndex === -1) throw new Error('Columna technicianUsername no encontrada en la hoja');
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][0] === data.procedureId) {
-      sheet.getRange(i + 1, colIndex + 1).setValue(data.technicianEmail);
+      sheet.getRange(i + 1, colIndex + 1).setValue(data.technicianUsername);
       SpreadsheetApp.flush();
       return { success: true };
     }
@@ -348,11 +442,20 @@ function updateProcedureSteps(data) {
 
 function getProcedureByClientId(data) {
   var users = getSheetData('Usuarios');
-  var client = users.find(function(u) { return u.idNumber === data.idNumber; });
+  var client = null;
+  var searchId = (data.idNumber || '').toString().trim();
+  
+  for (var i = 0; i < users.length; i++) {
+    if ((users[i].idNumber || '').toString().trim() === searchId) {
+      client = users[i];
+      break;
+    }
+  }
+  
   if (!client) throw new Error('Cliente no encontrado con esa cédula');
   
   var procs = getSheetData('Tramites');
-  return procs.filter(function(p) { return p.clientEmail === client.email; });
+  return procs.filter(function(p) { return p.clientUsername === client.username; });
 }
 
 function uploadFile(data) {
@@ -426,7 +529,7 @@ function addLog(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Bitacora');
   var id = Utilities.getUuid();
   var date = new Date().toISOString();
-  sheet.appendRow([id, data.procedureId, date, data.technicianEmail, data.note]);
+  sheet.appendRow([id, data.procedureId, date, data.technicianUsername, data.note]);
   return { id: id };
 }
 
@@ -485,13 +588,54 @@ function deleteProcedure(data) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName('Tramites');
   var rows = sheet.getDataRange().getValues();
+  var id = data.id;
+  var clientUsername = '';
+  
   for (var i = 1; i < rows.length; i++) {
-    if (rows[i][0] === data.id) {
+    if (rows[i][0] === id) {
+      clientUsername = rows[i][2];
+      
+      // 1. Eliminar Bitácora asociada
+      deleteRowsByColumn('Bitacora', 1, id);
+      
+      // 2. Eliminar Finanzas asociadas
+      deleteRowsByColumn('Finanzas', 1, id);
+      
+      // 3. Eliminar Archivos asociados
+      deleteRowsByColumn('Archivos', 1, id);
+      
+      // 4. Eliminar el trámite
       sheet.deleteRow(i + 1);
+      
+      // 5. Eliminar el usuario cliente asociado (según requerimiento)
+      if (clientUsername) {
+        // Solo lo eliminamos si no tiene otros trámites (opcional, pero el usuario pidió eliminarlo)
+        // Para seguir la instrucción literal:
+        deleteRowsByColumn('Usuarios', 2, clientUsername);
+      }
+      
       return { success: true };
     }
   }
   throw new Error('Trámite no encontrado');
+}
+
+/**
+ * Elimina filas de una hoja basándose en el valor de una columna
+ * @param {string} sheetName Nombre de la hoja
+ * @param {number} colIndex Índice de la columna (0-based)
+ * @param {string} value Valor a buscar
+ */
+function deleteRowsByColumn(sheetName, colIndex, value) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return;
+  var data = sheet.getDataRange().getValues();
+  for (var i = data.length - 1; i >= 1; i--) {
+    if (data[i][colIndex].toString() === value.toString()) {
+      sheet.deleteRow(i + 1);
+    }
+  }
 }
 
 function deleteFinancialItem(data) {
@@ -531,14 +675,117 @@ function getProcedureTypes(data) {
 function createProcedureType(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('TiposTramite');
   var id = Utilities.getUuid();
-  sheet.appendRow([id, data.name]);
+  sheet.appendRow([id, data.name, data.steps || '[]']);
   return { id: id };
+}
+
+function updateProcedureType(data) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('TiposTramite');
+  var rows = sheet.getDataRange().getValues();
+  var headers = rows[0];
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === data.id) {
+      for (var key in data) {
+        if (key === 'id') continue;
+        var colIndex = headers.indexOf(key);
+        if (colIndex !== -1) {
+          sheet.getRange(i + 1, colIndex + 1).setValue(data[key]);
+        }
+      }
+      SpreadsheetApp.flush();
+      return { success: true };
+    }
+  }
+  throw new Error('Tipo de trámite no encontrado');
+}
+
+function deleteProcedureType(data) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('TiposTramite');
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === data.id) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+  throw new Error('Tipo de trámite no encontrado');
+}
+
+function getTechnicianActivityReport(data) {
+  if (data.role !== 'admin') throw new Error('No autorizado');
+  
+  var logs = getSheetData('Bitacora');
+  var procedures = getSheetData('Tramites');
+  var users = getSheetData('Usuarios');
+  
+  var technicians = users.filter(function(u) { return u.role === 'tech' || u.role === 'admin'; });
+  
+  return {
+    logs: logs,
+    procedures: procedures,
+    technicians: technicians.map(function(u) {
+      return { id: u.id, name: u.name, username: u.username };
+    })
+  };
 }
 
 function createUser(data) {
   if (data.requesterRole !== 'admin') throw new Error('No autorizado');
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Usuarios');
   var id = Utilities.getUuid();
-  sheet.appendRow([id, data.name, data.email, data.password, data.role]);
+  sheet.appendRow([
+    id, 
+    data.name, 
+    data.username, 
+    data.password, 
+    data.role, 
+    data.phone || '', 
+    data.address || '', 
+    data.idNumber || ''
+  ]);
   return { id: id };
+}
+
+function deleteUser(data) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Usuarios');
+  var rows = sheet.getDataRange().getValues();
+  var username = (data.username || '').toString().trim();
+  
+  if (username === 'admin') throw new Error('No se puede eliminar el usuario administrador principal');
+  
+  for (var i = 1; i < rows.length; i++) {
+    var sheetUsername = (rows[i][2] || '').toString().trim();
+    if (sheetUsername === username) {
+      // 1. Si es un cliente, eliminar sus trámites y todo lo asociado a ellos
+      var procsSheet = ss.getSheetByName('Tramites');
+      var procsData = procsSheet.getDataRange().getValues();
+      for (var j = procsData.length - 1; j >= 1; j--) {
+        if (procsData[j][2] === username) {
+          var procId = procsData[j][0];
+          // Eliminar cascada del trámite
+          deleteRowsByColumn('Bitacora', 1, procId);
+          deleteRowsByColumn('Finanzas', 1, procId);
+          deleteRowsByColumn('Archivos', 1, procId);
+          procsSheet.deleteRow(j + 1);
+        }
+      }
+      
+      // 2. Si es un técnico, eliminar sus registros en la bitácora
+      deleteRowsByColumn('Bitacora', 3, username);
+      
+      // 3. Limpiar asignación en trámites donde era técnico
+      var procsRows = procsSheet.getDataRange().getValues();
+      for (var k = 1; k < procsRows.length; k++) {
+        if (procsRows[k][8] === username) {
+          procsSheet.getRange(k + 1, 9).setValue(''); // Columna technicianUsername
+        }
+      }
+      
+      // 4. Eliminar el usuario
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+  throw new Error('Usuario no encontrado');
 }

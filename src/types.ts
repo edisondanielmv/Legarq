@@ -1,7 +1,7 @@
 export interface User {
   id: string;
   name: string;
-  email: string;
+  username: string;
   role: 'admin' | 'tech' | 'client';
   phone?: string;
   address?: string;
@@ -10,20 +10,22 @@ export interface User {
 
 export interface Procedure {
   id: string;
+  code?: string;
   title: string;
-  clientEmail: string;
+  clientUsername: string;
   clientName?: string;
   clientPhone?: string;
   clientAddress?: string;
   idNumber?: string;
   procedureType?: string;
   propertyNumber?: string;
-  technicianEmail?: string;
+  technicianUsername?: string;
+  technicianName?: string; // Added to show technician name in lists
   driveUrl?: string;
   status: 'Nuevo' | 'En Curso' | 'Finalizado';
   description: string;
   createdAt: string;
-  completedSteps?: string; // Comma separated list of completed step indices
+  completedSteps?: string; // Comma separated list of completed step IDs or indices
   expectedValue?: number;
   otherAgreements?: string;
 }
@@ -31,6 +33,7 @@ export interface Procedure {
 export interface ProcedureType {
   id: string;
   name: string;
+  steps?: string; // JSON string of steps or comma-separated
 }
 
 export interface FinancialItem {
@@ -42,13 +45,20 @@ export interface FinancialItem {
   amount: number;
   date: string;
   fileUrl?: string;
+  isReimbursable?: boolean;
+  reimburseTo?: string;
+}
+
+export interface Account {
+  id: string;
+  name: string;
 }
 
 export interface ProcedureLog {
   id: string;
   procedureId: string;
   date: string;
-  technicianEmail: string;
+  technicianUsername: string;
   note: string;
 }
 

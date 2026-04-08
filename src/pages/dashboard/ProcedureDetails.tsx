@@ -6,8 +6,7 @@ import { ArrowLeft, Plus, FileText, Calendar, DollarSign, User as UserIcon, Load
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import clsx from 'clsx';
-import { Procedure, ProcedureLog, FinancialItem, User, ProcedureFile, ProcedureType } from '../../types';
-import { REGULARIZACION_STEPS } from '../../constants';
+import { Procedure, ProcedureLog, FinancialItem, User, ProcedureFile, ProcedureType, Account } from '../../types';
 
 export default function ProcedureDetails() {
   const { id } = useParams<{ id: string }>();
@@ -20,7 +19,9 @@ export default function ProcedureDetails() {
   const [files, setFiles] = useState<ProcedureFile[]>([]);
   const [client, setClient] = useState<User | null>(null);
   const [procedureTypes, setProcedureTypes] = useState<ProcedureType[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const [slowLoading, setSlowLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   
@@ -35,6 +36,7 @@ export default function ProcedureDetails() {
 
   // Technician Assignment
   const [techs, setTechs] = useState<User[]>([]);
+  const [staff, setStaff] = useState<User[]>([]);
   const [assigningTech, setAssigningTech] = useState(false);
 
   // Financial Item State
@@ -60,63 +62,105 @@ export default function ProcedureDetails() {
   const [savingSteps, setSavingSteps] = useState(false);
 
   useEffect(() => {
-    fetchData();
-  }, [id]);
+    let timer: any;
+    if (currentUser) {
+      setSlowLoading(false);
+      timer = setTimeout(() => {
+        if (loading) setSlowLoading(true);
+      }, 5000);
+      fetchData();
+    }
+    return () => clearTimeout(timer);
+  }, [id, currentUser]);
 
   const fetchData = async () => {
+    if (!id || !currentUser) return;
+    setLoading(true);
+    setError(null);
+    
     try {
-      const procs = await api.getProcedures({ email: currentUser?.email || '', role: currentUser?.role || '' });
-      const proc = procs.find((p: Procedure) => p.id === id);
+      const procs = await api.getProcedures({ username: currentUser.username, role: currentUser.role });
+      if (!Array.isArray(procs)) throw new Error('La respuesta del servidor no es una lista de trámites');
+      
+      const proc = procs.find((p: Procedure) => String(p.id) === String(id));
       if (!proc) throw new Error('Trámite no encontrado o sin acceso');
-      setProcedure(proc);
-      setEditClientData(proc);
-      setEditHeaderData({ 
-        title: proc.title, 
-        procedureType: proc.procedureType || '',
-        expectedValue: Number(proc.expectedValue) || 0,
-        otherAgreements: proc.otherAgreements || ''
-      });
       
-      const [logsData, financialsData, usersData, filesData, typesData] = await Promise.all([
-        api.getLogs(id!),
-        currentUser?.role === 'admin' ? api.getFinancials(id!) : Promise.resolve([]),
-        (currentUser?.role === 'admin' || currentUser?.role === 'tech') ? api.getUsers(currentUser?.role || '') : Promise.resolve([]),
-        api.getFiles(id!),
-        api.getProcedureTypes()
-      ]);
+      let logsData: ProcedureLog[] = [];
+      let financialsData: FinancialItem[] = [];
+      let usersData: User[] = [];
+      let filesData: ProcedureFile[] = [];
+      let typesData: ProcedureType[] = [];
+      let accountsData: Account[] = [];
 
-      setLogs(logsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      setFinancials(financialsData);
-      setFiles(filesData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      setTechs(usersData.filter(u => u.role === 'tech'));
-      setProcedureTypes(typesData);
-      
-      const foundClient = usersData.find(u => u.email === proc.clientEmail);
-      if (foundClient) {
-        setClient(foundClient);
-        // Merge client info into procedure for easier access in UI
-        setProcedure({
-          ...proc,
-          clientName: foundClient.name,
-          clientPhone: foundClient.phone,
-          clientAddress: foundClient.address,
-          idNumber: foundClient.idNumber
-        });
-      } else {
-        setProcedure(proc);
+      try {
+        const results = await Promise.allSettled([
+          api.getLogs(id),
+          currentUser.role === 'admin' ? api.getFinancials(id) : Promise.resolve([]),
+          (currentUser.role === 'admin' || currentUser.role === 'tech') ? api.getUsers(currentUser.role) : Promise.resolve([]),
+          api.getFiles(id),
+          api.getProcedureTypes(),
+          api.getAccounts()
+        ]);
+
+        if (results[0].status === 'fulfilled') logsData = results[0].value as ProcedureLog[];
+        if (results[1].status === 'fulfilled') financialsData = results[1].value as FinancialItem[];
+        if (results[2].status === 'fulfilled') usersData = results[2].value as User[];
+        if (results[3].status === 'fulfilled') filesData = results[3].value as ProcedureFile[];
+        if (results[4].status === 'fulfilled') typesData = results[4].value as ProcedureType[];
+        if (results[5].status === 'fulfilled') accountsData = results[5].value as Account[];
+      } catch (e) {
+        console.error("Error fetching additional data", e);
       }
-      setEditClientData(foundClient ? {
-        clientName: foundClient.name,
-        clientEmail: foundClient.email,
-        clientPhone: foundClient.phone,
-        clientAddress: foundClient.address,
-        idNumber: foundClient.idNumber
-      } : { clientName: proc.clientName, clientEmail: proc.clientEmail });
-      setEditHeaderData({ title: proc.title, procedureType: proc.procedureType || '' });
+
+      const foundClient = Array.isArray(usersData) ? usersData.find((u: any) => u.username === proc.clientUsername) : null;
+      
+      const updatedProcedure = {
+        ...proc,
+        clientName: foundClient?.name || proc.clientName || 'Cliente',
+        clientPhone: foundClient?.phone || proc.clientPhone || '',
+        clientAddress: foundClient?.address || proc.clientAddress || '',
+        idNumber: foundClient?.idNumber || proc.idNumber || '',
+        completedSteps: proc.completedSteps || ''
+      };
+
+      setProcedure(updatedProcedure);
+      setClient(foundClient || null);
+      setLogs(Array.isArray(logsData) ? logsData.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()) : []);
+      setFinancials(Array.isArray(financialsData) ? financialsData : []);
+      setFiles(Array.isArray(filesData) ? filesData.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()) : []);
+      setTechs(Array.isArray(usersData) ? usersData.filter((u: any) => u.role === 'tech') : []);
+      setStaff(Array.isArray(usersData) ? usersData.filter((u: any) => u.role === 'tech' || u.role === 'admin') : []);
+      setProcedureTypes(Array.isArray(typesData) ? typesData : []);
+      setAccounts(Array.isArray(accountsData) ? accountsData : []);
+      
+      if (Array.isArray(accountsData) && accountsData.length > 0) {
+        const operativoAcc = accountsData.find(a => a.name.toLowerCase() === 'operativo');
+        setNewFinancial(prev => ({ 
+          ...prev, 
+          category: operativoAcc ? operativoAcc.name : accountsData[0].name 
+        }));
+      }
+      
+      setEditClientData({
+        clientName: updatedProcedure.clientName,
+        clientUsername: updatedProcedure.clientUsername,
+        clientPhone: updatedProcedure.clientPhone,
+        clientAddress: updatedProcedure.clientAddress,
+        idNumber: updatedProcedure.idNumber
+      });
+
+      setEditHeaderData({ 
+        title: updatedProcedure.title, 
+        procedureType: updatedProcedure.procedureType || '',
+        expectedValue: Number(updatedProcedure.expectedValue) || 0,
+        otherAgreements: updatedProcedure.otherAgreements || ''
+      });
     } catch (err: any) {
-      setError(err.message);
+      console.error("Error in fetchData:", err);
+      setError(err.message || 'Error al cargar los datos del trámite');
     } finally {
       setLoading(false);
+      setSlowLoading(false);
     }
   };
 
@@ -125,7 +169,7 @@ export default function ProcedureDetails() {
     if (!newNote.trim()) return;
     setAddingNote(true);
     try {
-      await api.addLog({ procedureId: id, technicianEmail: currentUser?.email, note: newNote });
+      await api.addLog({ procedureId: id, technicianUsername: currentUser?.username, note: newNote });
       setNewNote('');
       await fetchData();
     } catch (err: any) {
@@ -147,14 +191,14 @@ export default function ProcedureDetails() {
     }
   };
 
-  const handleAssignTechnician = async (techEmail: string) => {
+  const handleAssignTechnician = async (techUsername: string) => {
     setAssigningTech(true);
     // Optimistic update
     if (procedure) {
-      setProcedure({ ...procedure, technicianEmail: techEmail });
+      setProcedure({ ...procedure, technicianUsername: techUsername });
     }
     try {
-      await api.assignTechnician({ procedureId: id!, technicianEmail: techEmail });
+      await api.assignTechnician({ procedureId: id!, technicianUsername: techUsername });
       showSuccess('Técnico asignado correctamente');
       await fetchData();
     } catch (err: any) {
@@ -278,7 +322,7 @@ export default function ProcedureDetails() {
     try {
       // Update user info
       await api.updateUser({
-        email: procedure!.clientEmail,
+        username: procedure!.clientUsername,
         name: editClientData.clientName,
         phone: editClientData.clientPhone,
         address: editClientData.clientAddress,
@@ -310,7 +354,7 @@ export default function ProcedureDetails() {
         id: id!,
         title: newTitle,
         clientName: editClientData.clientName,
-        clientEmail: editClientData.clientEmail,
+        clientUsername: editClientData.clientUsername,
         clientPhone: editClientData.clientPhone,
         clientAddress: editClientData.clientAddress,
         propertyNumber: editClientData.propertyNumber,
@@ -343,7 +387,15 @@ export default function ProcedureDetails() {
       }
       setShowFinancialForm(false);
       setEditingFinancial(null);
-      setNewFinancial({ type: 'Ingreso', category: 'Abono Cliente', description: '', amount: 0 });
+      const operativoAcc = accounts.find(a => a.name.toLowerCase() === 'operativo');
+      setNewFinancial({ 
+        type: 'Ingreso', 
+        category: operativoAcc ? operativoAcc.name : (accounts.length > 0 ? accounts[0].name : 'Operativo'), 
+        description: '', 
+        amount: 0,
+        isReimbursable: false,
+        reimburseTo: ''
+      });
       await fetchData();
     } catch (err: any) {
       setError(err.message);
@@ -392,16 +444,37 @@ export default function ProcedureDetails() {
     }
   };
 
-  if (loading) return <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-[#E3000F]" /></div>;
-  if (error) return <div className="bg-red-50 text-red-600 p-4 rounded-md">{error}</div>;
-  if (!procedure) return <div>No encontrado</div>;
+  if (loading) return (
+    <div className="flex flex-col justify-center items-center h-64 gap-4">
+      <Loader2 className="w-8 h-8 animate-spin text-[#E3000F]" />
+      {slowLoading && (
+        <p className="text-gray-500 text-sm animate-pulse">
+          La conexión con Google Sheets está tardando más de lo habitual...
+        </p>
+      )}
+    </div>
+  );
+  if (error) return <div className="bg-red-50 text-red-600 p-4 rounded-md border border-red-200">{error}</div>;
+  if (!procedure) return <div className="p-4 text-gray-500 italic">Trámite no encontrado.</div>;
 
   const totalIncome = financials.filter(f => f.type === 'Ingreso').reduce((sum, f) => sum + Number(f.amount), 0);
   const totalExpense = financials.filter(f => f.type === 'Egreso').reduce((sum, f) => sum + Number(f.amount), 0);
   const balance = totalIncome - totalExpense;
 
-  const completedStepsCount = procedure.completedSteps ? procedure.completedSteps.split(',').filter(Boolean).length : 0;
-  const progressPercentage = Math.round((completedStepsCount / REGULARIZACION_STEPS.length) * 100);
+  const currentType = procedureTypes.find(t => t.name === procedure.procedureType);
+  let steps: string[] = [];
+  try {
+    if (currentType?.steps) {
+      const parsed = JSON.parse(currentType.steps);
+      steps = Array.isArray(parsed) ? parsed : [];
+    }
+  } catch (e) {
+    console.error("Error parsing steps:", e);
+    steps = [];
+  }
+
+  const completedStepsCount = (procedure.completedSteps || '').split(',').filter(Boolean).length;
+  const progressPercentage = steps.length > 0 ? Math.round((completedStepsCount / steps.length) * 100) : 0;
 
   const formatDate = (dateStr: string, formatStr: string = "d 'de' MMMM, yyyy") => {
     try {
@@ -538,6 +611,9 @@ export default function ProcedureDetails() {
                   ) : (
                     <div>
                       <div className="flex items-center gap-3 mb-1 md:mb-2">
+                        <span className="text-[10px] md:text-xs font-black text-[#E3000F] bg-red-50 px-2 py-0.5 rounded border border-red-100 uppercase tracking-wider">
+                          {procedure.code || 'SIN CÓDIGO'}
+                        </span>
                         <p className="text-[10px] md:text-sm text-gray-500 flex items-center gap-1.5">
                           <Calendar className="w-3 h-3 md:w-4 md:h-4" /> {formatDate(procedure.createdAt)}
                         </p>
@@ -588,21 +664,24 @@ export default function ProcedureDetails() {
                         {currentUser?.role === 'admin' ? (
                           <div className="relative flex items-center">
                             <select
-                              value={procedure.technicianEmail || ''}
+                              value={procedure.technicianUsername || ''}
                               onChange={(e) => handleAssignTechnician(e.target.value)}
                               disabled={assigningTech}
                               className="border-none bg-transparent focus:ring-0 text-xs md:text-sm font-bold text-gray-900 p-0 pr-6"
                             >
                               <option value="">Sin asignar</option>
                               {techs.map(t => (
-                                <option key={t.id} value={t.email}>{t.name}</option>
+                                <option key={t.id} value={t.username}>{t.name}</option>
                               ))}
                             </select>
                             {assigningTech && <Loader2 className="w-3 h-3 animate-spin text-[#E3000F] absolute right-0 pointer-events-none" />}
                           </div>
                         ) : (
                           <span className="text-xs md:text-sm font-bold text-gray-900">
-                            {techs.find(t => t.email === procedure.technicianEmail)?.name || 'Sin asignar'}
+                            {techs.length > 0 
+                              ? (techs.find(t => t.username === procedure.technicianUsername)?.name || procedure.technicianUsername || 'Sin asignar')
+                              : (procedure.technicianUsername || 'Sin asignar')
+                            }
                           </span>
                         )}
                       </div>
@@ -611,197 +690,159 @@ export default function ProcedureDetails() {
                 </div>
               </div>
             </div>
-            <div className="p-4 md:p-6">
-              <div className="pt-2">
-                <div className="flex justify-between items-end mb-2 md:mb-4">
-                  <div>
-                    <h3 className="text-[10px] md:text-sm font-bold text-gray-900 uppercase tracking-wider">Avance del Trámite</h3>
-                    <p className="text-[10px] md:text-xs text-gray-500">Pasos: {completedStepsCount} / {REGULARIZACION_STEPS.length}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className={clsx(
-                      "text-xl md:text-2xl font-black",
-                      progressPercentage <= 33 ? "text-[#E3000F]" : 
-                      progressPercentage <= 66 ? "text-gray-500" : "text-gray-900"
-                    )}>
-                      {progressPercentage}%
-                    </span>
-                  </div>
-                </div>
-                <div className="w-full bg-gray-100 h-2 md:h-3 rounded-full overflow-hidden border border-gray-200">
-                  <div 
-                    className={clsx(
-                      "h-full transition-all duration-1000 ease-out",
-                      progressPercentage <= 33 ? "bg-[#E3000F]" : 
-                      progressPercentage <= 66 ? "bg-gray-400" : "bg-stone-900"
-                    )}
-                    style={{ width: `${progressPercentage}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Workflow Steps Checklist */}
-            <div className="p-4 md:p-6 bg-gray-50 border-t border-gray-200">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest">Pasos de Regularización</h3>
-                {(currentUser?.role === 'admin' || currentUser?.role === 'tech') && (
-                  <div className="flex gap-2">
-                    {isBulkEditingSteps ? (
-                      <>
-                        <button 
-                          onClick={() => setIsBulkEditingSteps(false)}
-                          className="px-2 py-1 text-[10px] font-bold text-gray-500 hover:bg-gray-200 rounded transition-colors"
-                        >
-                          Cancelar
-                        </button>
-                        <button 
-                          onClick={handleSaveBulkSteps}
-                          disabled={savingSteps}
-                          className="px-2 py-1 text-[10px] font-bold bg-[#E3000F] text-white rounded hover:bg-red-700 transition-colors flex items-center gap-1"
-                        >
-                          {savingSteps ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                          Guardar
-                        </button>
-                      </>
-                    ) : (
-                      <button 
-                        onClick={() => {
-                          setIsBulkEditingSteps(true);
-                          setTempSteps(procedure.completedSteps ? procedure.completedSteps.split(',').filter(Boolean) : []);
-                        }}
-                        className="px-2 py-1 text-[10px] font-bold bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors flex items-center gap-1"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                        Editar
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                {REGULARIZACION_STEPS.map((step, index) => {
-                  const stepStr = index.toString();
-                  const isCompleted = isBulkEditingSteps 
-                    ? tempSteps.includes(stepStr)
-                    : procedure.completedSteps?.split(',').includes(stepStr);
-                  const canToggle = currentUser?.role === 'admin' || (currentUser?.role === 'tech' && procedure.technicianEmail === currentUser.email);
-                  
-                  return (
-                    <div 
-                      key={index} 
-                      className={clsx(
-                        "flex items-center gap-2 p-1.5 rounded-lg transition-colors",
-                        isCompleted ? "bg-green-50/50" : "hover:bg-white",
-                        isBulkEditingSteps && "cursor-pointer"
-                      )}
-                      onClick={() => isBulkEditingSteps && handleToggleStep(index)}
-                    >
-                      <button
-                        disabled={!canToggle && !isBulkEditingSteps}
-                        onClick={(e) => {
-                          if (!isBulkEditingSteps) {
-                            e.stopPropagation();
-                            handleToggleStep(index);
-                          }
-                        }}
-                        className={clsx(
-                          "shrink-0 transition-all",
-                          isCompleted ? "text-green-600" : "text-gray-300 hover:text-gray-400",
-                          (!canToggle && !isBulkEditingSteps) && "cursor-not-allowed opacity-50"
-                        )}
-                      >
-                        {isCompleted ? <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5" /> : <Circle className="w-4 h-4 md:w-5 md:h-5" />}
-                      </button>
-                      <span className={clsx(
-                        "text-[10px] md:text-xs font-medium leading-tight",
-                        isCompleted ? "text-green-800" : "text-gray-600"
-                      )}>
-                        {step}
-                      </span>
+            {steps.length > 0 && (
+              <>
+                <div className="p-4 md:p-6">
+                  <div className="pt-2">
+                    <div className="flex justify-between items-end mb-2 md:mb-4">
+                      <div>
+                        <h3 className="text-[10px] md:text-sm font-bold text-gray-900 uppercase tracking-wider">Avance del Trámite</h3>
+                        <p className="text-[10px] md:text-xs text-gray-500">Pasos: {completedStepsCount} / {steps.length}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className={clsx(
+                          "text-xl md:text-2xl font-black",
+                          progressPercentage <= 33 ? "text-[#E3000F]" : 
+                          progressPercentage <= 66 ? "text-gray-500" : "text-gray-900"
+                        )}>
+                          {progressPercentage}%
+                        </span>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+                    <div className="w-full bg-gray-100 h-2 md:h-3 rounded-full overflow-hidden border border-gray-200">
+                      <div 
+                        className={clsx(
+                          "h-full transition-all duration-1000 ease-out",
+                          progressPercentage <= 33 ? "bg-[#E3000F]" : 
+                          progressPercentage <= 66 ? "bg-gray-400" : "bg-stone-900"
+                        )}
+                        style={{ width: `${progressPercentage}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Workflow Steps Checklist */}
+                <div className="p-4 md:p-6 bg-gray-50 border-t border-gray-200">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest">Pasos de Seguimiento</h3>
+                    {(currentUser?.role === 'admin' || currentUser?.role === 'tech') && (
+                      <div className="flex gap-2">
+                        {isBulkEditingSteps ? (
+                          <>
+                            <button 
+                              onClick={() => setIsBulkEditingSteps(false)}
+                              className="px-2 py-1 text-[10px] font-bold text-gray-500 hover:bg-gray-200 rounded transition-colors"
+                            >
+                              Cancelar
+                            </button>
+                            <button 
+                              onClick={handleSaveBulkSteps}
+                              disabled={savingSteps}
+                              className="px-2 py-1 text-[10px] font-bold bg-[#E3000F] text-white rounded hover:bg-red-700 transition-colors flex items-center gap-1"
+                            >
+                              {savingSteps ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                              Guardar
+                            </button>
+                          </>
+                        ) : (
+                          <button 
+                            onClick={() => {
+                              setIsBulkEditingSteps(true);
+                              setTempSteps(procedure.completedSteps ? procedure.completedSteps.split(',').filter(Boolean) : []);
+                            }}
+                            className="px-2 py-1 text-[10px] font-bold bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors flex items-center gap-1"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                            Editar
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                    {steps.map((step: string, index: number) => {
+                      const stepStr = index.toString();
+                      const isCompleted = isBulkEditingSteps 
+                        ? tempSteps.includes(stepStr)
+                        : (procedure.completedSteps || '').split(',').includes(stepStr);
+                      const canToggle = currentUser?.role === 'admin' || (currentUser?.role === 'tech' && procedure.technicianUsername === currentUser.username);
+                      
+                      return (
+                        <div 
+                          key={index} 
+                          className={clsx(
+                            "flex items-center gap-2 p-1.5 rounded-lg transition-colors",
+                            isCompleted ? "bg-green-50/50" : "hover:bg-white",
+                            isBulkEditingSteps && "cursor-pointer"
+                          )}
+                          onClick={() => isBulkEditingSteps && handleToggleStep(index)}
+                        >
+                          <button
+                            disabled={!canToggle && !isBulkEditingSteps}
+                            onClick={(e) => {
+                              if (!isBulkEditingSteps) {
+                                e.stopPropagation();
+                                handleToggleStep(index);
+                              }
+                            }}
+                            className={clsx(
+                              "shrink-0 transition-all",
+                              isCompleted ? "text-green-600" : "text-gray-300 hover:text-gray-400",
+                              (!canToggle && !isBulkEditingSteps) && "cursor-not-allowed opacity-50"
+                            )}
+                          >
+                            {isCompleted ? <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5" /> : <Circle className="w-4 h-4 md:w-5 md:h-5" />}
+                          </button>
+                          <span className={clsx(
+                            "text-[10px] md:text-xs font-medium leading-tight",
+                            isCompleted ? "text-green-800" : "text-gray-600"
+                          )}>
+                            {step}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Documents Section */}
+          {/* Documents Section - Simplified */}
           <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-              <h3 className="font-bold text-gray-900 flex items-center gap-2 text-sm">
-                <Briefcase className="w-4 h-4 text-[#E3000F]" /> Documentación
-              </h3>
-              {procedure.driveUrl && (
+            <div className="p-4 md:p-6 flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-50 rounded-lg">
+                  <Briefcase className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-sm md:text-base">Documentación del Trámite</h3>
+                  <p className="text-[10px] md:text-xs text-gray-500">Gestione todos los archivos directamente en la carpeta compartida.</p>
+                </div>
+              </div>
+              
+              {procedure.driveUrl ? (
                 <a 
                   href={procedure.driveUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[10px] md:text-xs font-bold hover:bg-blue-700 transition-all flex items-center gap-1.5 shadow-lg shadow-blue-100"
+                  className="w-full md:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-100"
                 >
-                  <ExternalLink className="w-3 h-3" />
-                  Drive
+                  <ExternalLink className="w-4 h-4" />
+                  Abrir Carpeta en Google Drive
                 </a>
-              )}
-            </div>
-            <div className="p-4 md:p-6">
-              {!procedure.driveUrl ? (
-                <div className="text-center py-8 md:py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-                  <Briefcase className="w-8 h-8 md:w-12 md:h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-xs md:text-sm text-gray-500 font-medium mb-4">Sin carpeta de Drive vinculada.</p>
-                  {currentUser?.role === 'admin' && (
-                    <button
-                      onClick={handleCreateDriveFolder}
-                      disabled={creatingDriveFolder}
-                      className="inline-flex items-center px-4 py-2 md:px-6 md:py-3 bg-[#E3000F] text-white text-xs md:text-sm font-bold rounded-xl hover:bg-red-700 transition-all shadow-xl shadow-red-100 disabled:opacity-50"
-                    >
-                      {creatingDriveFolder ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                      Vincular Drive
-                    </button>
-                  )}
-                </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="bg-blue-50 p-3 md:p-4 rounded-xl border border-blue-100 flex items-start gap-3">
-                    <div className="p-1.5 bg-blue-100 rounded-lg shrink-0">
-                      <ExternalLink className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-blue-900">Gestión de Archivos</h4>
-                      <p className="text-[10px] md:text-xs text-blue-700">Los documentos se gestionan directamente en Google Drive.</p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {files.length === 0 ? (
-                      <div className="col-span-full py-6 text-center text-gray-400 text-[10px] italic bg-gray-50 rounded-lg">
-                        No hay archivos recientes.
-                      </div>
-                    ) : (
-                      files.map((file) => (
-                        <div key={file.id} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-100 hover:border-gray-200 transition-all group">
-                          <div className="flex items-center gap-2.5 overflow-hidden">
-                            <div className="p-1.5 bg-white rounded border border-gray-200 shrink-0">
-                              <FileText className="w-4 h-4 text-gray-400" />
-                            </div>
-                            <div className="overflow-hidden">
-                              <p className="text-xs font-bold text-gray-900 truncate">{file.name}</p>
-                              <p className="text-[8px] text-gray-400 uppercase">{file.mimeType.split('/')[1] || 'Archivo'}</p>
-                            </div>
-                          </div>
-                          <a 
-                            href={file.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="p-1.5 text-gray-400 hover:text-[#E3000F] transition-colors shrink-0"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </a>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                currentUser?.role === 'admin' && (
+                  <button
+                    onClick={handleCreateDriveFolder}
+                    disabled={creatingDriveFolder}
+                    className="w-full md:w-auto inline-flex items-center justify-center px-6 py-2.5 bg-[#E3000F] text-white text-xs font-bold rounded-xl hover:bg-red-700 transition-all shadow-xl shadow-red-100 disabled:opacity-50"
+                  >
+                    {creatingDriveFolder ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                    Vincular Carpeta de Drive
+                  </button>
+                )
               )}
             </div>
           </div>
@@ -848,7 +889,7 @@ export default function ProcedureDetails() {
                         <div className="absolute left-1.5 md:left-2.5 top-1.5 w-3 md:w-3.5 h-3 md:h-3.5 rounded-full bg-white border-2 border-[#E3000F] z-10"></div>
                         <div className="bg-gray-50 rounded-lg p-3 md:p-4 border border-gray-100 hover:border-gray-200 transition-colors">
                           <div className="flex justify-between items-center mb-1 md:mb-2">
-                            <span className="text-[10px] md:text-xs font-bold text-[#E3000F] uppercase">{log.technicianEmail.split('@')[0]}</span>
+                            <span className="text-[10px] md:text-xs font-bold text-[#E3000F] uppercase">{log.technicianUsername}</span>
                             <span className="text-[10px] md:text-xs text-gray-400">{formatDate(log.date, "d MMM, HH:mm")}</span>
                           </div>
                           <p className="text-xs md:text-sm text-gray-700 leading-relaxed">{log.note}</p>
@@ -870,7 +911,7 @@ export default function ProcedureDetails() {
               <h3 className="font-bold text-gray-900 flex items-center gap-2 text-sm">
                 <UserIcon className="w-4 h-4 text-[#E3000F]" /> Cliente
               </h3>
-              {currentUser?.role === 'admin' && (
+              {(currentUser?.role === 'admin' || (currentUser?.role === 'tech' && procedure.technicianUsername === currentUser.username)) && (
                 <button 
                   onClick={() => setIsEditingClient(!isEditingClient)}
                   className="text-gray-400 hover:text-[#E3000F] transition-colors"
@@ -935,11 +976,11 @@ export default function ProcedureDetails() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 text-gray-700">
                     <UserIcon className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400" />
-                    <span className="text-xs md:text-sm font-bold truncate">{procedure.clientName || procedure.clientEmail}</span>
+                    <span className="text-xs md:text-sm font-bold truncate">{procedure.clientName || procedure.clientUsername}</span>
                   </div>
                   <div className="flex items-center gap-3 text-gray-600">
                     <Mail className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400" />
-                    <span className="text-[10px] md:text-xs break-all">{procedure.clientEmail}</span>
+                    <span className="text-[10px] md:text-xs break-all">{procedure.clientUsername}</span>
                   </div>
                   <div className="flex items-center gap-3 text-gray-600">
                     <Phone className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400" />
@@ -972,7 +1013,15 @@ export default function ProcedureDetails() {
                 <button 
                   onClick={() => {
                     setEditingFinancial(null);
-                    setNewFinancial({ type: 'Ingreso', category: 'Abono Cliente', description: '', amount: 0 });
+                    const operativoAcc = accounts.find(a => a.name.toLowerCase() === 'operativo');
+                    setNewFinancial({ 
+                      type: 'Ingreso', 
+                      category: operativoAcc ? operativoAcc.name : (accounts.length > 0 ? accounts[0].name : 'Operativo'), 
+                      description: '', 
+                      amount: 0,
+                      isReimbursable: false,
+                      reimburseTo: ''
+                    });
                     setShowFinancialForm(!showFinancialForm);
                   }}
                   className="text-white hover:text-[#E3000F] transition-colors"
@@ -999,11 +1048,18 @@ export default function ProcedureDetails() {
                         onChange={e => setNewFinancial({...newFinancial, category: e.target.value})}
                         className="w-full text-xs border-gray-300 rounded-md p-2 border"
                       >
-                        <option value="Abono Cliente">Abono Cliente</option>
-                        <option value="Gasto Administrativo">Gasto Administrativo</option>
-                        <option value="Gasto Operativo">Gasto Operativo</option>
-                        <option value="Honorarios">Honorarios</option>
-                        <option value="Otros">Otros</option>
+                        {accounts.map(acc => (
+                          <option key={acc.id} value={acc.name}>{acc.name}</option>
+                        ))}
+                        {accounts.length === 0 && (
+                          <>
+                            <option value="Abono Cliente">Abono Cliente</option>
+                            <option value="Gasto Administrativo">Gasto Administrativo</option>
+                            <option value="Gasto Operativo">Gasto Operativo</option>
+                            <option value="Honorarios">Honorarios</option>
+                            <option value="Otros">Otros</option>
+                          </>
+                        )}
                       </select>
                     </div>
 
@@ -1030,6 +1086,32 @@ export default function ProcedureDetails() {
                         {newFinancial.fileUrl ? 'OK' : 'Respaldo'}
                         <input type="file" className="hidden" onChange={handleReceiptUpload} disabled={uploadingReceipt} />
                       </label>
+                    </div>
+
+                    <div className="bg-white p-2 rounded border border-gray-200 space-y-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input 
+                          type="checkbox"
+                          checked={newFinancial.isReimbursable}
+                          onChange={(e) => setNewFinancial({...newFinancial, isReimbursable: e.target.checked})}
+                          className="w-3 h-3 text-[#E3000F] border-gray-300 rounded focus:ring-[#E3000F]"
+                        />
+                        <span className="text-[10px] font-bold text-gray-700">¿Reembolsable?</span>
+                      </label>
+
+                      {newFinancial.isReimbursable && (
+                        <select 
+                          value={newFinancial.reimburseTo || ''}
+                          onChange={(e) => setNewFinancial({...newFinancial, reimburseTo: e.target.value})}
+                          className="w-full text-[10px] border-gray-300 rounded p-1 border bg-white"
+                          required={newFinancial.isReimbursable}
+                        >
+                          <option value="">Seleccionar Persona...</option>
+                          {staff.map(s => (
+                            <option key={s.id} value={s.name}>{s.name} ({s.role === 'admin' ? 'Admin' : 'Técnico'})</option>
+                          ))}
+                        </select>
+                      )}
                     </div>
 
                     <div className="flex gap-2">
@@ -1072,6 +1154,11 @@ export default function ProcedureDetails() {
                               <span className="text-[8px] text-gray-400 font-medium truncate">{f.category}</span>
                             </div>
                             <span className="text-[10px] font-bold text-gray-900 mt-0.5 truncate">{f.description}</span>
+                            {f.isReimbursable && (
+                              <span className="text-[8px] bg-yellow-100 text-yellow-700 px-1 rounded font-bold mt-0.5">
+                                Reembolsar a: {f.reimburseTo}
+                              </span>
+                            )}
                             <div className="flex gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button 
                                 onClick={() => {
