@@ -2,12 +2,36 @@ import { User, Procedure, FinancialItem, ProcedureLog, ProcedureFile, ProcedureT
 
 export const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbwXb4_BCCcvhiOg4ic1vq9FzbuafQ5I-MTz1LpJ1VWUg1-5rhgcXV0Y5AkocyOj0a6G5Q/exec";
 
+const cache = new Map<string, { data: any, timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+export const clearCache = () => {
+  cache.clear();
+};
+
 export const apiCall = async <T>(action: string, data: any = {}): Promise<T> => {
   const url = APPS_SCRIPT_URL;
+  console.log(`[API CALL] Action: ${action}`, data);
   
   if (!url) {
     console.warn("VITE_APPS_SCRIPT_URL no configurada. Usando modo demostración.");
     return mockApi(action, data);
+  }
+
+  // Check cache for GET requests
+  const isGetRequest = action.startsWith('get');
+  const cacheKey = `${action}-${JSON.stringify(data)}`;
+  
+  if (isGetRequest) {
+    const cached = cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log(`[CACHE HIT] ${action}`);
+      return cached.data;
+    }
+  } else {
+    // Invalidate cache on write operations
+    console.log(`[CACHE INVALIDATE] ${action}`);
+    clearCache();
   }
 
   const controller = new AbortController();
@@ -29,14 +53,21 @@ export const apiCall = async <T>(action: string, data: any = {}): Promise<T> => 
     try {
       result = JSON.parse(text);
     } catch (e) {
-      console.error("Response is not JSON:", text);
-      throw new Error("La respuesta del servidor no es válida. Verifique la configuración de Google Apps Script.");
+      console.error("Response is not JSON. Raw response:", text);
+      if (text.includes("<html") || text.includes("<!DOCTYPE")) {
+        throw new Error("El servidor de Google Apps Script devolvió una página de error (HTML). Verifique que el script esté publicado como 'Aplicación Web' y que tenga permisos de acceso para 'Cualquier persona'.");
+      }
+      throw new Error("La respuesta del servidor no es válida (no es JSON).");
     }
     
     const isSuccess = result.success === true || result.status === 'success' || result.status === 'ok';
     
     if (!isSuccess) {
       throw new Error(result.error || result.message || 'Error en la base de datos');
+    }
+    
+    if (isGetRequest) {
+      cache.set(cacheKey, { data: result.data, timestamp: Date.now() });
     }
     
     return result.data;
@@ -60,8 +91,8 @@ const mockApi = async (action: string, data: any): Promise<any> => {
   ];
 
   const mockProcedures: Procedure[] = [
-    { id: 'p1', title: 'Residencia Los Olivos', clientUsername: 'cliente', status: 'En Curso', description: 'Diseño y legalización de vivienda unifamiliar.', createdAt: new Date().toISOString() },
-    { id: 'p2', title: 'Local Comercial Centro', clientUsername: 'cliente', status: 'Nuevo', description: 'Remodelación de local para restaurante.', createdAt: new Date().toISOString() }
+    { id: 'p1', title: 'Residencia Los Olivos', clientUsername: 'cliente', status: 'En proceso', description: 'Diseño y legalización de vivienda unifamiliar.', createdAt: new Date().toISOString() },
+    { id: 'p2', title: 'Local Comercial Centro', clientUsername: 'cliente', status: 'En proceso', description: 'Remodelación de local para restaurante.', createdAt: new Date().toISOString() }
   ];
 
   switch (action) {
@@ -69,6 +100,8 @@ const mockApi = async (action: string, data: any): Promise<any> => {
       return mockUsers.find(u => u.username === data.username) || mockUsers[0];
     case 'getProcedures':
       return data.role === 'client' ? mockProcedures.filter(p => p.clientUsername === data.username) : mockProcedures;
+    case 'getProcedureByClientId':
+      return mockProcedures; // Return all for demo purposes
     case 'getLogs':
       return [{ id: 'l1', procedureId: data.procedureId, date: new Date().toISOString(), technicianUsername: 'tecnico', note: 'Visita técnica inicial realizada.' }];
     case 'getUsers':
@@ -89,7 +122,7 @@ export const api = {
   updateProcedureStatus: (data: { id: string, status: string }) => apiCall<{ success: true }>('updateProcedureStatus', data),
   assignTechnician: (data: { procedureId: string, technicianUsername: string }) => apiCall<{ success: true }>('assignTechnician', data),
   updateProcedureSteps: (data: { procedureId: string, completedSteps: string }) => apiCall<{ success: true }>('updateProcedureSteps', data),
-  getProcedureByClientId: (idNumber: string) => apiCall<Procedure[]>('getProcedureByClientId', { idNumber }),
+  getProcedureByClientId: (idNumber: string) => apiCall<{ client: User | null, procedures: Procedure[] }>('getProcedureByClientId', { idNumber }),
   getLogs: (procedureId: string) => apiCall<ProcedureLog[]>('getLogs', { procedureId }),
   addLog: (data: any) => apiCall<{ id: string }>('addLog', data),
   getUsers: (role: string) => apiCall<User[]>('getUsers', { role }),
@@ -114,4 +147,5 @@ export const api = {
   deleteUser: (username: string) => apiCall<{ success: true }>('deleteUser', { username }),
   createDriveFolder: (procedureId: string, title: string) => apiCall<{ driveUrl: string }>('createDriveFolder', { procedureId, title }),
   getTechnicianActivityReport: (role: string) => apiCall<{ logs: ProcedureLog[], procedures: Procedure[], technicians: { id: string, name: string, username: string }[] }>('getTechnicianActivityReport', { role }),
+  checkDuplicateIdNumber: (idNumber: string, excludeUsername?: string) => apiCall<{ exists: boolean; name?: string }>('checkDuplicateIdNumber', { idNumber, excludeUsername }),
 };

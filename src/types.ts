@@ -2,10 +2,11 @@ export interface User {
   id: string;
   name: string;
   username: string;
-  role: 'admin' | 'tech' | 'client';
+  role: 'admin' | 'tech' | 'client' | 'finance' | 'other' | string;
   phone?: string;
   address?: string;
   idNumber?: string;
+  permissions?: string; // JSON string of permissions like ["all", "finance", "procedures"]
 }
 
 export interface Procedure {
@@ -22,12 +23,14 @@ export interface Procedure {
   technicianUsername?: string;
   technicianName?: string; // Added to show technician name in lists
   driveUrl?: string;
-  status: 'Nuevo' | 'En Curso' | 'Finalizado';
+  driveFolderUrl?: string;
+  status: 'En proceso' | 'Finalizado';
   description: string;
   createdAt: string;
   completedSteps?: string; // Comma separated list of completed step IDs or indices
   expectedValue?: number;
   otherAgreements?: string;
+  logs?: ProcedureLog[];
 }
 
 export interface ProcedureType {
@@ -60,6 +63,7 @@ export interface ProcedureLog {
   date: string;
   technicianUsername: string;
   note: string;
+  isExternal?: boolean;
 }
 
 export interface ProcedureFile {

@@ -3,9 +3,12 @@ import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Loader2, FileText, User as UserIcon, Calendar, ClipboardList, Search, Download, Filter } from 'lucide-react';
 import { ProcedureLog, Procedure } from '../../types';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import clsx from 'clsx';
+import LoadingOverlay from '../../components/LoadingOverlay';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface ReportData {
   logs: ProcedureLog[];
@@ -17,6 +20,7 @@ export default function Reports() {
   const { user } = useAuth();
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(false);
   const [error, setError] = useState('');
   const [selectedTech, setSelectedTech] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
@@ -32,13 +36,14 @@ export default function Reports() {
 
   const fetchReport = async () => {
     try {
-      setLoading(true);
+      setFetching(true);
       const result = await api.getTechnicianActivityReport('admin');
       setData(result);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
+      setFetching(false);
     }
   };
 
@@ -71,19 +76,16 @@ export default function Reports() {
         if (isNaN(logDate.getTime())) {
           matchesDate = false;
         } else {
-          // Normalize logDate to local midnight for comparison with input dates
-          const logDateMidnight = new Date(logDate.getFullYear(), logDate.getMonth(), logDate.getDate());
+          const logTime = logDate.getTime();
           
           if (startDate) {
-            const [sYear, sMonth, sDay] = startDate.split('-').map(Number);
-            const start = new Date(sYear, sMonth - 1, sDay);
-            if (logDateMidnight < start) matchesDate = false;
+            const start = startOfDay(new Date(startDate + 'T00:00:00')).getTime();
+            if (logTime < start) matchesDate = false;
           }
           
           if (endDate) {
-            const [eYear, eMonth, eDay] = endDate.split('-').map(Number);
-            const end = new Date(eYear, eMonth - 1, eDay);
-            if (logDateMidnight > end) matchesDate = false;
+            const end = endOfDay(new Date(endDate + 'T23:59:59')).getTime();
+            if (logTime > end) matchesDate = false;
           }
         }
       }
@@ -115,8 +117,51 @@ export default function Reports() {
     };
   }).filter(Boolean) as (Procedure & { logs: ProcedureLog[] })[];
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.text('Reporte de Actividades', 14, 22);
+    
+    // Add filters info
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    let filterText = `Filtros: Técnico: ${selectedTech === 'all' ? 'Todos' : getTechName(selectedTech)}`;
+    if (startDate) filterText += ` | Desde: ${startDate}`;
+    if (endDate) filterText += ` | Hasta: ${endDate}`;
+    if (searchTerm) filterText += ` | Búsqueda: "${searchTerm}"`;
+    doc.text(filterText, 14, 30);
+    
+    // Create table data
+    const tableData = filteredLogs.map(log => [
+      format(new Date(log.date), 'dd/MM/yyyy HH:mm'),
+      getTechName(log.technicianUsername),
+      getProcedureTitle(log.procedureId),
+      log.note
+    ]);
+    
+    autoTable(doc, {
+      startY: 35,
+      head: [['Fecha', 'Técnico', 'Trámite', 'Actividad / Nota']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [227, 0, 15] }, // #E3000F
+      styles: { fontSize: 8, cellPadding: 3 },
+      columnStyles: {
+        0: { cellWidth: 30 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 40 },
+        3: { cellWidth: 'auto' }
+      }
+    });
+    
+    doc.save(`reporte_actividades_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+  };
+
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto relative">
+      {fetching && <LoadingOverlay message="Actualizando reporte..." />}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-black text-stone-900 uppercase tracking-tight">Reporte de Actividades</h2>
@@ -144,10 +189,10 @@ export default function Reports() {
             </button>
           </div>
           <button 
-            onClick={() => window.print()}
+            onClick={handleExportPDF}
             className="flex items-center gap-2 px-4 py-2 bg-stone-900 text-white rounded-lg hover:bg-stone-800 transition-all font-bold text-sm shadow-lg"
           >
-            <Download className="w-4 h-4" /> Exportar
+            <Download className="w-4 h-4" /> Exportar PDF
           </button>
         </div>
       </div>

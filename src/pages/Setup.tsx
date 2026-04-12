@@ -113,7 +113,7 @@ function initSheets() {
   var financialSheet = ss.getSheetByName('Finanzas');
   if (!financialSheet) {
     financialSheet = ss.insertSheet('Finanzas');
-    financialSheet.appendRow(['id', 'procedureId', 'type', 'category', 'description', 'amount', 'date', 'fileUrl']);
+    financialSheet.appendRow(['id', 'procedureId', 'type', 'category', 'description', 'amount', 'date', 'fileUrl', 'isReimbursable', 'reimburseTo']);
   }
 
   // 4. Bitacora
@@ -449,18 +449,93 @@ function updateProcedureSteps(data) {
 }
 
 function getProcedureByClientId(data) {
-  var users = getSheetData('Usuarios');
-  var client = null;
   var searchId = (data.idNumber || '').toString().trim();
-  for (var i = 0; i < users.length; i++) {
-    if ((users[i].idNumber || '').toString().trim() === searchId) {
-      client = users[i];
-      break;
+  if (!searchId) throw new Error('Cédula no proporcionada');
+  
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var results = [];
+  
+  // Términos de búsqueda: original, solo números, y minúsculas
+  var searchTerms = [
+    searchId, 
+    searchId.replace(/[^0-9]/g, ''), 
+    searchId.toLowerCase()
+  ].filter(function(v, i, a) { return v && a.indexOf(v) === i; });
+
+  var sheetsToSearch = ['Tramites', 'Usuarios'];
+  
+  sheetsToSearch.forEach(function(sheetName) {
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return;
+    
+    var values = sheet.getDataRange().getValues();
+    var headers = values[0];
+    
+    for (var i = 1; i < values.length; i++) {
+      var row = values[i];
+      var isMatch = false;
+      
+      for (var j = 0; j < row.length; j++) {
+        var cellVal = (row[j] || '').toString().trim();
+        var cellNorm = cellVal.replace(/[^0-9]/g, '');
+        
+        for (var t = 0; t < searchTerms.length; t++) {
+          if (cellVal === searchTerms[t] || (cellNorm === searchTerms[t] && cellNorm !== '')) {
+            isMatch = true;
+            break;
+          }
+        }
+        if (isMatch) break;
+      }
+      
+      if (isMatch) {
+        if (sheetName === 'Tramites') {
+          var obj = {};
+          for (var k = 0; k < headers.length; k++) obj[headers[k]] = row[k];
+          results.push(obj);
+        } else {
+          // Si encontramos el usuario, buscamos sus trámites por username
+          var lowerHeaders = headers.map(function(h){return h.toString().toLowerCase();});
+          var usernameIdx = lowerHeaders.indexOf('username');
+          if (usernameIdx !== -1) {
+            var username = (row[usernameIdx] || '').toString().trim();
+            var tramitesSheet = ss.getSheetByName('Tramites');
+            if (tramitesSheet) {
+              var tValues = tramitesSheet.getDataRange().getValues();
+              var tHeaders = tValues[0];
+              var tLowerHeaders = tHeaders.map(function(h){return h.toString().toLowerCase();});
+              var uIdx = tLowerHeaders.indexOf('clientusername');
+              if (uIdx !== -1) {
+                for (var r = 1; r < tValues.length; r++) {
+                  if ((tValues[r][uIdx] || '').toString().trim() === username) {
+                    var tObj = {};
+                    for (var c = 0; c < tHeaders.length; c++) tObj[tHeaders[c]] = tValues[r][c];
+                    results.push(tObj);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
+  });
+
+  // Eliminar duplicados por ID
+  var uniqueResults = [];
+  var seenIds = {};
+  results.forEach(function(r) {
+    if (r.id && !seenIds[r.id]) {
+      uniqueResults.push(r);
+      seenIds[r.id] = true;
+    }
+  });
+
+  if (uniqueResults.length === 0) {
+    throw new Error('No se encontraron trámites para la cédula: ' + searchId);
   }
-  if (!client) throw new Error('Cliente no encontrado con esa cédula');
-  var procs = getSheetData('Tramites');
-  return procs.filter(function(p) { return p.clientUsername === client.username; });
+  
+  return uniqueResults;
 }
 
 function uploadFile(data) {

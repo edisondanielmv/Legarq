@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, Compass, HardHat, ArrowRight, Code, Menu, X } from 'lucide-react';
 import CodeModal from '../components/CodeModal';
+import { motion } from 'motion/react';
 
 export default function Home() {
   const [showCodeModal, setShowCodeModal] = useState(false);
@@ -13,26 +14,29 @@ export default function Home() {
       <nav className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 md:h-20">
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center gap-2">
-                <span className="text-xl md:text-3xl font-bold tracking-tighter">
-                  LEGARQ<span className="text-[#E3000F] hidden sm:inline"> CONSTRUCTORA</span>
-                </span>
+            <div className="flex items-center gap-3">
+              <Link to="/" className="flex items-center justify-center">
+                <img 
+                  src="https://lh3.googleusercontent.com/d/1nlBpfXAIZ5TwE9vMBBp_D1-mRz2HhJnb" 
+                  alt="LEGARQ" 
+                  className="h-10 md:h-12 w-auto"
+                  referrerPolicy="no-referrer"
+                />
               </Link>
             </div>
             
             {/* Desktop Menu */}
-            <div className="hidden md:flex items-center space-x-8">
-              <Link to="/" className="text-stone-900 font-medium hover:text-[#E3000F] transition-colors">Inicio</Link>
-              <Link to="/services" className="text-stone-600 font-medium hover:text-[#E3000F] transition-colors">Servicios</Link>
+            <div className="hidden md:flex items-center space-x-10">
+              <Link to="/" className="text-stone-900 text-xs font-black uppercase tracking-widest hover:text-[#E3000F] transition-colors">Inicio</Link>
+              <Link to="/services" className="text-stone-500 text-xs font-black uppercase tracking-widest hover:text-[#E3000F] transition-colors">Servicios</Link>
               <button 
                 onClick={() => setShowCodeModal(true)}
-                className="text-stone-600 font-medium hover:text-[#E3000F] transition-colors flex items-center gap-1"
+                className="text-stone-500 text-xs font-black uppercase tracking-widest hover:text-[#E3000F] transition-colors flex items-center gap-2"
               >
                 <Code className="w-4 h-4" />
                 Código
               </button>
-              <Link to="/login" className="bg-[#1A1A1A] text-white px-6 py-2.5 rounded-md font-medium hover:bg-[#E3000F] transition-colors">
+              <Link to="/login" className="bg-[#1A1A1A] text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[#E3000F] transition-all shadow-xl shadow-gray-200 active:scale-95">
                 Acceso Sistema
               </Link>
             </div>
@@ -103,22 +107,36 @@ export default function Home() {
             referrerPolicy="no-referrer"
           />
         </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 lg:py-48 text-center md:text-left">
-          <h1 className="text-3xl md:text-6xl font-bold tracking-tight mb-4 md:mb-6">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-40 lg:py-56 text-center md:text-left">
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl md:text-7xl font-black tracking-tighter mb-6 md:mb-8 leading-[0.9]"
+          >
             LEGALIZACIÓN Y DISEÑO<br />
             <span className="text-[#E3000F]">ARQUITECTÓNICO</span>
-          </h1>
-          <p className="text-base md:text-2xl text-stone-300 max-w-2xl mb-8 md:mb-10 font-light">
-            Precisión. Innovación. Legalidad. Más de 15 años de experiencia creando espacios seguros.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center md:justify-start">
-            <Link to="/services" className="bg-[#E3000F] hover:bg-red-700 text-white px-6 py-3 md:px-8 md:py-4 rounded-lg font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-900/20">
-              Nuestros Servicios <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-lg md:text-2xl text-stone-300 max-w-2xl mb-10 md:mb-12 font-medium leading-relaxed"
+          >
+            Precisión. Innovación. Legalidad. Más de 15 años de experiencia creando espacios seguros y legales.
+          </motion.p>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start"
+          >
+            <Link to="/services" className="bg-[#E3000F] hover:bg-red-700 text-white px-10 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-2xl shadow-red-900/40 active:scale-95">
+              Nuestros Servicios <ArrowRight className="w-5 h-5" />
             </Link>
-            <Link to="/consulta" className="bg-white hover:bg-stone-100 text-[#1A1A1A] px-6 py-3 md:px-8 md:py-4 rounded-lg font-bold transition-all flex items-center justify-center gap-2 border border-stone-200">
+            <Link to="/consulta" className="bg-white/10 backdrop-blur-md hover:bg-white/20 text-white px-10 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3 border border-white/20 active:scale-95">
               Consultar mi Trámite
             </Link>
-          </div>
+          </motion.div>
         </div>
       </div>
 

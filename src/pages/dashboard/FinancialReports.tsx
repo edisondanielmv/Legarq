@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { DollarSign, Loader2, TrendingUp, TrendingDown, Wallet, Search, Filter, ArrowUpRight, ArrowDownRight, Briefcase, User as UserIcon, Mail, Plus, Edit2, Trash2, X, Check, AlertCircle, Upload, FileCheck } from 'lucide-react';
+import { DollarSign, Loader2, TrendingUp, TrendingDown, Wallet, Search, Filter, ArrowUpRight, ArrowDownRight, Briefcase, User as UserIcon, Mail, Plus, Edit2, Trash2, X, Check, AlertCircle, Upload, FileCheck, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import clsx from 'clsx';
 import { Procedure, FinancialItem, Account, User } from '../../types';
+import LoadingOverlay from '../../components/LoadingOverlay';
 
 export default function FinancialReports() {
   const [data, setData] = useState<{ procedures: Procedure[], transactions: FinancialItem[] }>({ procedures: [], transactions: [] });
@@ -15,6 +16,8 @@ export default function FinancialReports() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [reportView, setReportView] = useState<'procedures' | 'categories' | 'cashflow'>('procedures');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   
   // Modal states
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
@@ -22,6 +25,7 @@ export default function FinancialReports() {
   const [editingItem, setEditingItem] = useState<FinancialItem | null>(null);
   const [newAccountName, setNewAccountName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -45,9 +49,18 @@ export default function FinancialReports() {
     }
   };
 
+  // Filter transactions by date
+  const filteredTransactions = (data.transactions || []).filter(t => {
+    if (!t.date) return true;
+    const tDate = new Date(t.date);
+    if (startDate && tDate < new Date(startDate)) return false;
+    if (endDate && tDate > new Date(endDate + 'T23:59:59')) return false;
+    return true;
+  });
+
   // Process data for Procedure Summary
   const procedureSummary = (data.procedures || []).map(proc => {
-    const procTransactions = (data.transactions || []).filter(t => t.procedureId === proc.id);
+    const procTransactions = filteredTransactions.filter(t => t.procedureId === proc.id);
     const income = procTransactions.filter(t => t.type === 'Ingreso').reduce((sum, t) => sum + Number(t.amount), 0);
     const expense = procTransactions.filter(t => t.type === 'Egreso').reduce((sum, t) => sum + Number(t.amount), 0);
     const expected = Number(proc.expectedValue) || 0;
@@ -73,7 +86,7 @@ export default function FinancialReports() {
   });
 
   // Process data for Category Summary
-  const categorySummary = (data.transactions || []).reduce((acc: any, t) => {
+  const categorySummary = filteredTransactions.reduce((acc: any, t) => {
     const cat = t.category || 'Sin Categoría';
     if (!acc[cat]) acc[cat] = { category: cat, income: 0, expense: 0, count: 0 };
     if (t.type === 'Ingreso') acc[cat].income += Number(t.amount);
@@ -85,7 +98,7 @@ export default function FinancialReports() {
   const categoryList = Object.values(categorySummary).sort((a: any, b: any) => (b.income + b.expense) - (a.income + a.expense));
 
   // Process data for Cash Flow
-  const cashFlowSummary = (data.transactions || []).reduce((acc: any, t) => {
+  const cashFlowSummary = filteredTransactions.reduce((acc: any, t) => {
     if (!t.date) return acc;
     const date = new Date(t.date);
     if (isNaN(date.getTime())) return acc;
@@ -98,8 +111,8 @@ export default function FinancialReports() {
 
   const cashFlowList = Object.values(cashFlowSummary).sort((a: any, b: any) => b.month.localeCompare(a.month));
 
-  const totalIncome = (data.transactions || []).filter(t => t.type === 'Ingreso').reduce((sum, t) => sum + Number(t.amount), 0);
-  const totalExpense = (data.transactions || []).filter(t => t.type === 'Egreso').reduce((sum, t) => sum + Number(t.amount), 0);
+  const totalIncome = filteredTransactions.filter(t => t.type === 'Ingreso').reduce((sum, t) => sum + Number(t.amount), 0);
+  const totalExpense = filteredTransactions.filter(t => t.type === 'Egreso').reduce((sum, t) => sum + Number(t.amount), 0);
   const totalExpected = (data.procedures || []).reduce((sum, p) => sum + (Number(p.expectedValue) || 0), 0);
   const totalBalance = totalIncome - totalExpense;
 
@@ -115,16 +128,20 @@ export default function FinancialReports() {
 
   const handleDeleteTransaction = async (id: string) => {
     if (!window.confirm('¿Estás seguro de eliminar este registro?')) return;
+    setSaving(true);
     try {
       await api.deleteFinancialItem(id);
       fetchData();
     } catch (err: any) {
       alert(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleCreateAccount = async () => {
     if (!newAccountName.trim()) return;
+    setSaving(true);
     try {
       setIsSubmitting(true);
       await api.createAccount(newAccountName);
@@ -134,29 +151,51 @@ export default function FinancialReports() {
       alert(err.message);
     } finally {
       setIsSubmitting(false);
+      setSaving(false);
     }
   };
 
   const handleDeleteAccount = async (id: string) => {
     if (!window.confirm('¿Estás seguro de eliminar esta cuenta?')) return;
+    setSaving(true);
     try {
       await api.deleteAccount(id);
       fetchData();
     } catch (err: any) {
       alert(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
   if (loading) return <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-[#E3000F]" /></div>;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 relative">
+      {saving && <LoadingOverlay />}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Reportes Financieros</h1>
           <p className="text-gray-500 text-sm">Legarq Constructora - Gestión de Flujo de Efectivo</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
+            <input 
+              type="date" 
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              className="text-xs font-bold text-gray-700 bg-transparent outline-none px-2 py-1"
+              title="Fecha Inicio"
+            />
+            <span className="text-gray-300">-</span>
+            <input 
+              type="date" 
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              className="text-xs font-bold text-gray-700 bg-transparent outline-none px-2 py-1"
+              title="Fecha Fin"
+            />
+          </div>
           <button 
             onClick={() => setIsAccountModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-bold text-xs shadow-sm"
@@ -872,9 +911,10 @@ function TransactionModal({ isOpen, onClose, onSuccess, editingItem, procedures,
             <button 
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 bg-[#E3000F] text-white rounded-lg font-bold text-sm hover:bg-red-700 transition-all shadow-lg disabled:opacity-50 flex justify-center items-center"
+              className="flex-1 px-4 py-2 bg-[#E3000F] text-white rounded-lg font-bold text-sm hover:bg-red-700 transition-all shadow-lg shadow-red-100 disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingItem ? 'Guardar Cambios' : 'Registrar')}
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {editingItem ? 'Actualizar' : 'Guardar'}
             </button>
           </div>
         </form>
