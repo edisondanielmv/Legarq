@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, Compass, HardHat, ArrowRight, Code, Menu, X } from 'lucide-react';
-import CodeModal from '../components/CodeModal';
+import { Building2, Compass, HardHat, ArrowRight, Menu, X } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export default function Home() {
-  const [showCodeModal, setShowCodeModal] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
@@ -29,13 +27,6 @@ export default function Home() {
             <div className="hidden md:flex items-center space-x-10">
               <Link to="/" className="text-stone-900 text-xs font-black uppercase tracking-widest hover:text-[#E3000F] transition-colors">Inicio</Link>
               <Link to="/services" className="text-stone-500 text-xs font-black uppercase tracking-widest hover:text-[#E3000F] transition-colors">Servicios</Link>
-              <button 
-                onClick={() => setShowCodeModal(true)}
-                className="text-stone-500 text-xs font-black uppercase tracking-widest hover:text-[#E3000F] transition-colors flex items-center gap-2"
-              >
-                <Code className="w-4 h-4" />
-                Código
-              </button>
               <Link to="/login" className="bg-[#1A1A1A] text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[#E3000F] transition-all shadow-xl shadow-gray-200 active:scale-95">
                 Acceso Sistema
               </Link>
@@ -76,16 +67,6 @@ export default function Home() {
             >
               Servicios
             </Link>
-            <button 
-              onClick={() => {
-                setShowCodeModal(true);
-                setIsMenuOpen(false);
-              }}
-              className="block w-full text-left text-stone-600 font-bold text-sm hover:text-[#E3000F] flex items-center gap-2"
-            >
-              <Code className="w-4 h-4" />
-              Código Apps Script
-            </button>
             <Link 
               to="/login" 
               onClick={() => setIsMenuOpen(false)}
@@ -168,8 +149,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-
-      <CodeModal isOpen={showCodeModal} onClose={() => setShowCodeModal(false)} />
     </div>
   );
 }

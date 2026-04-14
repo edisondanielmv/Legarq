@@ -336,7 +336,7 @@ const PublicConsultation = () => {
                                             Bitácora
                                           </h3>
                                           <div className="space-y-6">
-                                            {proc.logs.filter(l => l.visibleForClient).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((log) => (
+                                            {proc.logs.filter(l => l.isExternal).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((log) => (
                                               <div key={log.id} className="relative pl-5 pb-6 last:pb-0 border-l-2 border-gray-50 last:border-l-0">
                                                 <div className="absolute left-[-5px] top-0 w-2 h-2 rounded-full bg-[#E3000F] shadow-lg shadow-red-200" />
                                                 <div className="flex flex-col gap-1.5">

@@ -29,6 +29,7 @@ export interface Procedure {
   status: 'En proceso' | 'Finalizado';
   description: string;
   createdAt: string;
+  completedAt?: string;
   completedSteps?: string; // Comma separated list of completed step IDs or indices
   expectedValue?: number;
   otherAgreements?: string;
@@ -44,7 +45,7 @@ export interface ProcedureType {
 export interface FinancialItem {
   id: string;
   procedureId?: string;
-  type: 'Ingreso' | 'Egreso';
+  type: 'Ingreso' | 'Egreso' | 'Cuenta por Cobrar';
   category: string;
   description: string;
   amount: number;

@@ -63,13 +63,15 @@ export default function FinancialReports() {
     const procTransactions = filteredTransactions.filter(t => t.procedureId === proc.id);
     const income = procTransactions.filter(t => t.type === 'Ingreso').reduce((sum, t) => sum + Number(t.amount), 0);
     const expense = procTransactions.filter(t => t.type === 'Egreso').reduce((sum, t) => sum + Number(t.amount), 0);
-    const expected = Number(proc.expectedValue) || 0;
+    const receivable = procTransactions.filter(t => t.type === 'Cuenta por Cobrar').reduce((sum, t) => sum + Number(t.amount), 0);
+    const expected = receivable || Number(proc.expectedValue) || 0;
     return {
       ...proc,
       totalIncome: income,
       totalExpense: expense,
       totalValue: expected,
       pending: Math.max(0, expected - income),
+      projectedProfit: expected - expense,
       balance: income - expense
     };
   });
@@ -113,8 +115,9 @@ export default function FinancialReports() {
 
   const totalIncome = filteredTransactions.filter(t => t.type === 'Ingreso').reduce((sum, t) => sum + Number(t.amount), 0);
   const totalExpense = filteredTransactions.filter(t => t.type === 'Egreso').reduce((sum, t) => sum + Number(t.amount), 0);
-  const totalExpected = (data.procedures || []).reduce((sum, p) => sum + (Number(p.expectedValue) || 0), 0);
+  const totalReceivable = filteredTransactions.filter(t => t.type === 'Cuenta por Cobrar').reduce((sum, t) => sum + Number(t.amount), 0);
   const totalBalance = totalIncome - totalExpense;
+  const totalExpected = totalReceivable || (data.procedures || []).reduce((sum, p) => sum + (Number(p.expectedValue) || 0), 0);
 
   const handleAddTransaction = () => {
     setEditingItem(null);
@@ -156,12 +159,15 @@ export default function FinancialReports() {
   };
 
   const handleDeleteAccount = async (id: string) => {
+    console.log('Attempting to delete account:', id);
     if (!window.confirm('¿Estás seguro de eliminar esta cuenta?')) return;
     setSaving(true);
     try {
-      await api.deleteAccount(id);
+      const result = await api.deleteAccount(id);
+      console.log('Delete account result:', result);
       fetchData();
     } catch (err: any) {
+      console.error('Error deleting account:', err);
       alert(err.message);
     } finally {
       setSaving(false);
@@ -175,8 +181,8 @@ export default function FinancialReports() {
       {saving && <LoadingOverlay />}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Reportes Financieros</h1>
-          <p className="text-gray-500 text-sm">Legarq Constructora - Gestión de Flujo de Efectivo</p>
+          <h1 className="text-xl font-black text-gray-900 uppercase tracking-tight">Reportes Financieros</h1>
+          <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Gestión de Flujo de Efectivo</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
@@ -184,7 +190,7 @@ export default function FinancialReports() {
               type="date" 
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
-              className="text-xs font-bold text-gray-700 bg-transparent outline-none px-2 py-1"
+              className="text-[10px] font-black text-gray-700 bg-transparent outline-none px-2 py-1 uppercase tracking-widest"
               title="Fecha Inicio"
             />
             <span className="text-gray-300">-</span>
@@ -192,98 +198,94 @@ export default function FinancialReports() {
               type="date" 
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
-              className="text-xs font-bold text-gray-700 bg-transparent outline-none px-2 py-1"
+              className="text-[10px] font-black text-gray-700 bg-transparent outline-none px-2 py-1 uppercase tracking-widest"
               title="Fecha Fin"
             />
           </div>
           <button 
             onClick={() => setIsAccountModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-bold text-xs shadow-sm"
+            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-black text-[9px] uppercase tracking-widest shadow-sm"
           >
-            <Wallet className="w-4 h-4" /> Gestionar Cuentas
+            <Wallet className="w-3.5 h-3.5" /> Cuentas
           </button>
           <button 
             onClick={handleAddTransaction}
-            className="flex items-center gap-2 px-4 py-2 bg-[#E3000F] text-white rounded-lg hover:bg-red-700 transition-all font-bold text-xs shadow-lg"
+            className="flex items-center gap-2 px-3 py-1.5 bg-[#E3000F] text-white rounded-lg hover:bg-red-700 transition-all font-black text-[9px] uppercase tracking-widest shadow-lg shadow-red-100"
           >
-            <Plus className="w-4 h-4" /> Nuevo Registro
+            <Plus className="w-3.5 h-3.5" /> Nuevo
           </button>
           <div className="flex bg-gray-100 p-1 rounded-lg">
             <button 
               onClick={() => setReportView('procedures')}
               className={clsx(
-                "px-4 py-2 text-xs font-bold rounded-md transition-all",
+                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all",
                 reportView === 'procedures' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
               )}
             >
-              Por Trámite
+              Trámites
             </button>
             <button 
               onClick={() => setReportView('categories')}
               className={clsx(
-                "px-4 py-2 text-xs font-bold rounded-md transition-all",
+                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all",
                 reportView === 'categories' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
               )}
             >
-              Por Cuentas
+              Cuentas
             </button>
             <button 
               onClick={() => setReportView('cashflow')}
               className={clsx(
-                "px-4 py-2 text-xs font-bold rounded-md transition-all",
+                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all",
                 reportView === 'cashflow' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
               )}
             >
-              Flujo Mensual
+              Flujo
             </button>
           </div>
         </div>
       </div>
 
     {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-2">
-            <div className="p-1.5 bg-green-50 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-green-600" />
+            <div className="p-1 bg-green-50 rounded-lg">
+              <TrendingUp className="w-4 h-4 text-green-600" />
             </div>
-            <span className="text-[9px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full uppercase">Ingresos</span>
+            <span className="text-[7px] font-black text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full uppercase tracking-widest">Ingresos</span>
           </div>
-          <p className="text-2xl font-black text-gray-900">${totalIncome.toLocaleString()}</p>
-          <p className="text-[10px] text-gray-400 mt-1">Total recaudado</p>
+          <p className="text-xl font-black text-gray-900">${totalIncome.toLocaleString()}</p>
         </div>
 
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-2">
-            <div className="p-1.5 bg-red-50 rounded-lg">
-              <TrendingDown className="w-5 h-5 text-[#E3000F]" />
+            <div className="p-1 bg-red-50 rounded-lg">
+              <TrendingDown className="w-4 h-4 text-[#E3000F]" />
             </div>
-            <span className="text-[9px] font-bold text-[#E3000F] bg-red-50 px-2 py-1 rounded-full uppercase">Egresos</span>
+            <span className="text-[7px] font-black text-[#E3000F] bg-red-50 px-1.5 py-0.5 rounded-full uppercase tracking-widest">Egresos</span>
           </div>
-          <p className="text-2xl font-black text-gray-900">${totalExpense.toLocaleString()}</p>
-          <p className="text-[10px] text-gray-400 mt-1">Total gastos registrados</p>
+          <p className="text-xl font-black text-gray-900">${totalExpense.toLocaleString()}</p>
         </div>
 
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-2">
-            <div className="p-1.5 bg-blue-50 rounded-lg">
-              <Wallet className="w-5 h-5 text-blue-600" />
+            <div className="p-1 bg-blue-50 rounded-lg">
+              <Wallet className="w-4 h-4 text-blue-600" />
             </div>
-            <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full uppercase">Saldo Neto</span>
+            <span className="text-[7px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full uppercase tracking-widest">Saldo</span>
           </div>
-          <p className="text-2xl font-black text-gray-900">${totalBalance.toLocaleString()}</p>
-          <p className="text-[10px] text-gray-400 mt-1">Efectivo en caja</p>
+          <p className="text-xl font-black text-gray-900">${totalBalance.toLocaleString()}</p>
         </div>
 
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-2">
-            <div className="p-1.5 bg-gray-50 rounded-lg">
-              <Briefcase className="w-5 h-5 text-gray-600" />
+            <div className="p-1 bg-gray-50 rounded-lg">
+              <Briefcase className="w-4 h-4 text-gray-600" />
             </div>
-            <span className="text-[9px] font-bold text-gray-600 bg-gray-50 px-2 py-1 rounded-full uppercase">Proyectado</span>
+            <span className="text-[7px] font-black text-gray-600 bg-gray-50 px-1.5 py-0.5 rounded-full uppercase tracking-widest">Proyectado</span>
           </div>
-          <p className="text-2xl font-black text-gray-900">${totalExpected.toLocaleString()}</p>
-          <p className="text-[10px] text-gray-400 mt-1">Valor total acordado</p>
+          <p className="text-xl font-black text-gray-900">${totalExpected.toLocaleString()}</p>
         </div>
       </div>
 
@@ -323,12 +325,12 @@ export default function FinancialReports() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
                     <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Trámite / Cliente</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Valor Acordado</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Ingresos</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Egresos</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Saldo</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Monto Acordado</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Entregado</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Por Cobrar</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Salido</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Utilidad</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Estado</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -352,14 +354,17 @@ export default function FinancialReports() {
                           <span className="text-sm font-bold text-green-600">${item.totalIncome.toLocaleString()}</span>
                         </td>
                         <td className="px-6 py-4 text-right">
+                          <span className="text-sm font-bold text-amber-600">${item.pending.toLocaleString()}</span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
                           <span className="text-sm font-bold text-red-600">${item.totalExpense.toLocaleString()}</span>
                         </td>
                         <td className="px-6 py-4 text-right">
                           <span className={clsx(
                             "text-sm font-bold",
-                            item.balance >= 0 ? "text-green-600" : "text-red-600"
+                            item.projectedProfit >= 0 ? "text-blue-600" : "text-red-600"
                           )}>
-                            ${item.balance.toLocaleString()}
+                            ${item.projectedProfit.toLocaleString()}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-center">
@@ -371,22 +376,6 @@ export default function FinancialReports() {
                             {item.pending <= 0 && item.totalValue > 0 ? 'Liquidado' : 
                              item.totalIncome > 0 ? 'Abonado' : 'Pendiente'}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex justify-end gap-2">
-                            <button 
-                              onClick={() => {
-                                // Find the first transaction for this procedure to edit or just open modal
-                                // Actually, it's better to show the transactions of this procedure
-                                setReportView('categories'); // Or just filter by this procedure
-                                setSearchTerm(item.title);
-                              }}
-                              className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
-                              title="Ver detalles"
-                            >
-                              <Search className="w-4 h-4" />
-                            </button>
-                          </div>
                         </td>
                       </tr>
                     ))
@@ -540,9 +529,11 @@ export default function FinancialReports() {
                           <td className="px-4 py-3 text-right">
                             <span className={clsx(
                               "text-xs font-black",
-                              t.type === 'Ingreso' ? "text-green-600" : "text-red-600"
+                              t.type === 'Ingreso' ? "text-green-600" : 
+                              t.type === 'Cuenta por Cobrar' ? "text-blue-600" : "text-red-600"
                             )}>
-                              {t.type === 'Ingreso' ? '+' : '-'}${Number(t.amount).toLocaleString()}
+                              {t.type === 'Ingreso' ? '+' : 
+                               t.type === 'Cuenta por Cobrar' ? '+' : '-'}${Number(t.amount).toLocaleString()}
                             </span>
                           </td>
                           <td className="px-4 py-3">
@@ -651,32 +642,32 @@ export default function FinancialReports() {
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            <div className="p-6 space-y-6">
+            <div className="p-4 space-y-4">
               <div className="flex gap-2">
                 <input 
                   type="text" 
                   placeholder="Nombre de la nueva cuenta..."
                   value={newAccountName}
                   onChange={(e) => setNewAccountName(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#E3000F]"
+                  className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#E3000F]"
                 />
                 <button 
                   onClick={handleCreateAccount}
                   disabled={isSubmitting || !newAccountName.trim()}
-                  className="px-4 py-2 bg-[#E3000F] text-white rounded-lg font-bold text-xs disabled:opacity-50"
+                  className="px-3 py-1.5 bg-[#E3000F] text-white rounded-lg font-bold text-[10px] disabled:opacity-50"
                 >
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Añadir'}
+                  {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Añadir'}
                 </button>
               </div>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 {accounts.map(acc => (
-                  <div key={acc.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
-                    <span className="text-sm font-bold text-gray-700">{acc.name}</span>
+                  <div key={acc.id} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg border border-gray-100">
+                    <span className="text-xs font-bold text-gray-700">{acc.name}</span>
                     <button 
                       onClick={() => handleDeleteAccount(acc.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                      className="p-1 text-gray-400 hover:text-red-600 transition-colors"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
@@ -783,37 +774,52 @@ function TransactionModal({ isOpen, onClose, onSuccess, editingItem, procedures,
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="p-4 md:p-5 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Tipo</label>
+              <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Tipo</label>
               <select 
                 value={formData.type}
-                onChange={(e) => setFormData({...formData, type: e.target.value as any})}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#E3000F] bg-white"
+                onChange={(e) => {
+                  const type = e.target.value as any;
+                  setFormData({
+                    ...formData, 
+                    type,
+                    category: type === 'Cuenta por Cobrar' ? 'Monto Acordado' : (type === 'Ingreso' ? 'Abono Cliente' : (accounts[0]?.name || 'Operativo'))
+                  });
+                }}
+                className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#E3000F] bg-white"
                 required
               >
-                <option value="Ingreso">Ingreso (+)</option>
-                <option value="Egreso">Egreso (-)</option>
+                <option value="Cuenta por Cobrar">Cuenta por Cobrar (+ Valor)</option>
+                <option value="Ingreso">Ingreso (Abono)</option>
+                <option value="Egreso">Egreso (Gasto)</option>
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Cuenta / Categoría</label>
+              <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Cuenta / Categoría</label>
               <select 
                 value={formData.category}
                 onChange={(e) => setFormData({...formData, category: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#E3000F] bg-white"
+                className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#E3000F] bg-white"
                 required
+                disabled={formData.type === 'Cuenta por Cobrar'}
               >
-                {accounts.map(acc => (
-                  <option key={acc.id} value={acc.name}>{acc.name}</option>
-                ))}
+                {formData.type === 'Cuenta por Cobrar' ? (
+                  <option value="Monto Acordado">Monto Acordado</option>
+                ) : formData.type === 'Ingreso' ? (
+                  <option value="Abono Cliente">Abono Cliente</option>
+                ) : (
+                  accounts.map(acc => (
+                    <option key={acc.id} value={acc.name}>{acc.name}</option>
+                  ))
+                )}
               </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Trámite Relacionado (Opcional)</label>
+            <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Trámite Relacionado (Opcional)</label>
             <select 
               value={formData.procedureId}
               onChange={(e) => {
@@ -824,7 +830,7 @@ function TransactionModal({ isOpen, onClose, onSuccess, editingItem, procedures,
                   category: val ? 'Operativo' : formData.category // Default to Operativo if linked to procedure
                 });
               }}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#E3000F] bg-white"
+              className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#E3000F] bg-white"
             >
               <option value="">Gasto/Ingreso General</option>
               {procedures.map(proc => (
@@ -834,61 +840,61 @@ function TransactionModal({ isOpen, onClose, onSuccess, editingItem, procedures,
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Descripción</label>
+            <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Descripción</label>
             <input 
               type="text"
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#E3000F]"
+              className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#E3000F]"
               placeholder="Ej: Pago de honorarios, Compra de materiales..."
               required
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Monto ($)</label>
+              <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Monto ($)</label>
               <input 
                 type="number"
                 value={formData.amount}
                 onChange={(e) => setFormData({...formData, amount: Number(e.target.value)})}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#E3000F]"
+                className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#E3000F]"
                 placeholder="0.00"
                 step="0.01"
                 required
               />
             </div>
             <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Respaldo</label>
+              <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Respaldo</label>
               <label className={clsx(
-                "w-full px-3 py-2 border rounded-lg text-sm flex items-center justify-center gap-2 cursor-pointer transition-all",
+                "w-full px-3 py-1.5 border rounded-lg text-xs flex items-center justify-center gap-2 cursor-pointer transition-all",
                 formData.fileUrl ? "bg-green-50 border-green-200 text-green-700" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
               )}>
-                {uploadingReceipt ? <Loader2 className="w-4 h-4 animate-spin" /> : (formData.fileUrl ? <FileCheck className="w-4 h-4" /> : <Upload className="w-4 h-4" />)}
-                <span className="font-bold text-xs">{formData.fileUrl ? 'Cargado' : 'Subir'}</span>
+                {uploadingReceipt ? <Loader2 className="w-3 h-3 animate-spin" /> : (formData.fileUrl ? <FileCheck className="w-3 h-3" /> : <Upload className="w-3 h-3" />)}
+                <span className="font-bold text-[10px]">{formData.fileUrl ? 'Cargado' : 'Subir'}</span>
                 <input type="file" className="hidden" onChange={handleReceiptUpload} disabled={uploadingReceipt} />
               </label>
             </div>
           </div>
 
-          <div className="bg-gray-50 p-4 rounded-xl space-y-3 border border-gray-100">
-            <label className="flex items-center gap-3 cursor-pointer">
+          <div className="bg-gray-50 p-3 rounded-xl space-y-2 border border-gray-100">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input 
                 type="checkbox"
                 checked={formData.isReimbursable}
                 onChange={(e) => setFormData({...formData, isReimbursable: e.target.checked})}
-                className="w-4 h-4 text-[#E3000F] border-gray-300 rounded focus:ring-[#E3000F]"
+                className="w-3.5 h-3.5 text-[#E3000F] border-gray-300 rounded focus:ring-[#E3000F]"
               />
-              <span className="text-xs font-bold text-gray-700">¿Es un gasto reembolsable?</span>
+              <span className="text-[10px] font-bold text-gray-700">¿Es un gasto reembolsable?</span>
             </label>
 
             {formData.isReimbursable && (
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Reembolsar a:</label>
+                <label className="block text-[9px] font-black text-gray-400 uppercase mb-1">Reembolsar a:</label>
                 <select 
                   value={formData.reimburseTo}
                   onChange={(e) => setFormData({...formData, reimburseTo: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#E3000F] bg-white"
+                  className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#E3000F] bg-white"
                   required={formData.isReimbursable}
                 >
                   <option value="">Seleccionar Persona...</option>
@@ -900,20 +906,20 @@ function TransactionModal({ isOpen, onClose, onSuccess, editingItem, procedures,
             )}
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-2">
             <button 
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg font-bold text-sm hover:bg-gray-50 transition-all"
+              className="flex-1 px-4 py-1.5 border border-gray-200 text-gray-700 rounded-lg font-bold text-xs hover:bg-gray-50 transition-all"
             >
               Cancelar
             </button>
             <button 
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 bg-[#E3000F] text-white rounded-lg font-bold text-sm hover:bg-red-700 transition-all shadow-lg shadow-red-100 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-1.5 bg-[#E3000F] text-white rounded-lg font-bold text-xs hover:bg-red-700 transition-all shadow-lg shadow-red-100 disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
               {editingItem ? 'Actualizar' : 'Guardar'}
             </button>
           </div>

@@ -108,7 +108,18 @@ const mockApi = async (action: string, data: any): Promise<any> => {
       return mockUsers;
     case 'getFinancials':
       return [{ id: 'f1', procedureId: data.procedureId, item: 'Honorarios Diseño', totalValue: 1500, paidAmount: 500, date: new Date().toISOString() }];
-    case 'deleteProcedure':
+    case 'getAccounts':
+      return [{ id: 'acc1', name: 'Caja Chica' }, { id: 'acc2', name: 'Banco Pichincha' }];
+    case 'getFinancialSummary':
+      return { transactions: [], procedures: mockProcedures };
+    case 'addFinancialItem':
+    case 'updateFinancialItem':
+    case 'deleteFinancialItem':
+    case 'createAccount':
+    case 'deleteAccount':
+    case 'addLog':
+    case 'updateLog':
+    case 'deleteLog':
       return { success: true };
     default:
       return { success: true };
@@ -125,6 +136,8 @@ export const api = {
   getProcedureByClientId: (idNumber: string) => apiCall<{ client: User | null, procedures: Procedure[] }>('getProcedureByClientId', { idNumber }),
   getLogs: (procedureId: string) => apiCall<ProcedureLog[]>('getLogs', { procedureId }),
   addLog: (data: any) => apiCall<{ id: string }>('addLog', data),
+  updateLog: (data: { id: string, note: string, isExternal: boolean }) => apiCall<{ success: true }>('updateLog', data),
+  deleteLog: (id: string) => apiCall<{ success: true }>('deleteLog', { id }),
   getUsers: (role: string) => apiCall<User[]>('getUsers', { role }),
   createUser: (data: any) => apiCall<{ id: string }>('createUser', data),
   updateUser: (data: Partial<User> & { username: string }) => apiCall<{ success: true }>('updateUser', data),
