@@ -85,7 +85,11 @@ export default function ProcedureDetails() {
   const fetchData = async () => {
     if (!id || !currentUser) return;
     setLoading(true);
-    setError(null);
+    setError('');
+    setProcedure(null);
+    setClient(null);
+    setLogs([]);
+    setFinancials([]);
     
     try {
       const procs = await api.getProcedures({ username: currentUser.username, role: currentUser.role });

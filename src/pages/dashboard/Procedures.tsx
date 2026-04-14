@@ -74,10 +74,14 @@ export default function Procedures() {
     e.preventDefault();
     setSaving(true);
     try {
+      // Auto-generate email if missing
+      const clientEmail = newProc.clientEmail.trim() || 
+        `${newProc.clientName.toLowerCase().replace(/\s+/g, '_')}_${Date.now().toString().slice(-4)}@legarq.com`;
+
       // Use procedureType as title, do NOT include client name
       const result = await api.createProcedure({
         clientName: newProc.clientName,
-        clientEmail: newProc.clientEmail,
+        clientEmail: clientEmail,
         procedureType: newProc.procedureType,
         title: newProc.procedureType,
       });
@@ -366,14 +370,13 @@ export default function Procedures() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Correo Electrónico</label>
+                  <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Correo Electrónico (Opcional)</label>
                   <input 
-                    required 
                     type="email" 
                     value={newProc.clientEmail} 
                     onChange={e => setNewProc({...newProc, clientEmail: e.target.value})} 
                     className="w-full bg-gray-50 border-transparent rounded-xl p-3 outline-none focus:ring-2 focus:ring-[#E3000F]/20 focus:bg-white border text-xs font-black tracking-tight transition-all" 
-                    placeholder="ejemplo@correo.com" 
+                    placeholder="ejemplo@correo.com (Se generará uno si se deja vacío)" 
                   />
                 </div>
                 <div>

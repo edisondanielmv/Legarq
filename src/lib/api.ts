@@ -91,8 +91,8 @@ const mockApi = async (action: string, data: any): Promise<any> => {
   ];
 
   const mockProcedures: Procedure[] = [
-    { id: 'p1', title: 'Residencia Los Olivos', clientUsername: 'cliente', status: 'En proceso', description: 'Diseño y legalización de vivienda unifamiliar.', createdAt: new Date().toISOString() },
-    { id: 'p2', title: 'Local Comercial Centro', clientUsername: 'cliente', status: 'En proceso', description: 'Remodelación de local para restaurante.', createdAt: new Date().toISOString() }
+    { id: 'p1', title: 'Residencia Los Olivos', clientUsername: 'cliente', clientName: 'Cliente Demo', status: 'En proceso', description: 'Diseño y legalización de vivienda unifamiliar.', createdAt: new Date().toISOString(), code: 'TR-001', procedureType: 'Regularización' },
+    { id: 'p2', title: 'Local Comercial Centro', clientUsername: 'cliente2', clientName: 'Empresa ABC', status: 'En proceso', description: 'Remodelación de local para restaurante.', createdAt: new Date().toISOString(), code: 'TR-002', procedureType: 'Permiso de Construcción' }
   ];
 
   switch (action) {
@@ -112,6 +112,15 @@ const mockApi = async (action: string, data: any): Promise<any> => {
       return [{ id: 'acc1', name: 'Caja Chica' }, { id: 'acc2', name: 'Banco Pichincha' }];
     case 'getFinancialSummary':
       return { transactions: [], procedures: mockProcedures };
+    case 'getTechnicianActivityReport':
+      return { 
+        logs: [
+          { id: 'l1', procedureId: 'p1', date: new Date().toISOString(), technicianUsername: 'tecnico', note: 'Visita técnica inicial realizada.' },
+          { id: 'l2', procedureId: 'p2', date: new Date().toISOString(), technicianUsername: 'tecnico', note: 'Revisión de planos comerciales.' }
+        ], 
+        procedures: mockProcedures, 
+        technicians: mockUsers.filter(u => u.role === 'tech' || u.role === 'admin') 
+      };
     case 'addFinancialItem':
     case 'updateFinancialItem':
     case 'deleteFinancialItem':
