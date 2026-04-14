@@ -208,40 +208,40 @@ export default function Procedures() {
                 className="hover:bg-gray-50/50 transition-colors cursor-pointer group"
                 onClick={() => navigate(`/dashboard/procedures/${proc.id}`)}
               >
-                <td className="px-8 py-6 whitespace-nowrap">
-                  <span className="text-[10px] font-mono font-black text-[#E3000F] bg-red-50 px-3 py-1.5 rounded-xl border border-red-100">
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <span className="text-[9px] font-mono font-black text-[#E3000F] bg-red-50 px-2 py-1 rounded-lg border border-red-100">
                     {proc.code || '---'}
                   </span>
                 </td>
-                <td className="px-8 py-6 whitespace-nowrap">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gray-50 rounded-2xl group-hover:bg-[#E3000F]/10 transition-colors border border-gray-100 flex items-center justify-center shrink-0">
-                      <FileText className="w-5 h-5 text-gray-400 group-hover:text-[#E3000F]" />
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gray-50 rounded-xl group-hover:bg-[#E3000F]/10 transition-colors border border-gray-100 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4 text-gray-400 group-hover:text-[#E3000F]" />
                     </div>
                     <div>
-                      <div className="text-sm font-black text-gray-900 group-hover:text-[#E3000F] transition-colors tracking-tight">{proc.title}</div>
-                      <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">{proc.procedureType}</div>
+                      <div className="text-xs font-black text-gray-900 group-hover:text-[#E3000F] transition-colors tracking-tight">{proc.title}</div>
+                      <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{proc.procedureType}</div>
                     </div>
                   </div>
                 </td>
-                <td className="px-8 py-6 whitespace-nowrap">
+                <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex flex-col">
-                    <div className="text-sm font-black text-gray-700">{proc.clientName || 'Sin nombre'}</div>
-                    <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">{proc.idNumber || 'N/A'}</div>
+                    <div className="text-xs font-black text-gray-700">{proc.clientName || 'Sin nombre'}</div>
+                    <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{proc.idNumber || 'N/A'}</div>
                   </div>
                 </td>
-                <td className="px-8 py-6 whitespace-nowrap">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-50 rounded-xl flex items-center justify-center text-[10px] font-black text-[#E3000F] border border-gray-100">
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center text-[9px] font-black text-[#E3000F] border border-gray-100">
                       {(proc.technicianName || proc.technicianUsername || '?')[0].toUpperCase()}
                     </div>
-                    <span className="text-[11px] font-black text-gray-600 uppercase tracking-tight">
+                    <span className="text-[10px] font-black text-gray-600 uppercase tracking-tight">
                       {proc.technicianName || proc.technicianUsername || 'Sin asignar'}
                     </span>
                   </div>
                 </td>
-                <td className="px-8 py-6 whitespace-nowrap">
-                  <span className={clsx("px-4 py-2 text-[9px] font-black uppercase tracking-widest rounded-full border", getStatusColor(proc.status))}>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <span className={clsx("px-3 py-1 text-[8px] font-black uppercase tracking-widest rounded-full border", getStatusColor(proc.status))}>
                     {proc.status}
                   </span>
                 </td>

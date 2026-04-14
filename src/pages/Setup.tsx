@@ -93,10 +93,10 @@ function initSheets() {
   var usersSheet = ss.getSheetByName('Usuarios');
   if (!usersSheet) {
     usersSheet = ss.insertSheet('Usuarios');
-    usersSheet.appendRow(['id', 'name', 'username', 'password', 'role', 'phone', 'address', 'idNumber']);
-    usersSheet.appendRow(['1', 'Administrador', 'admin', 'admin123', 'admin', '0999999999', 'Oficina Central', '1700000001']);
-    usersSheet.appendRow(['2', 'Técnico', 'tecnico', 'tech123', 'tech', '0988888888', 'Sector Norte', '1700000002']);
-    usersSheet.appendRow(['3', 'Cliente', 'cliente', 'cliente123', 'client', '0977777777', 'Av. Principal 123', '1700000003']);
+    usersSheet.appendRow(['id', 'name', 'username', 'password', 'role', 'phone', 'address', 'idNumber', 'email']);
+    usersSheet.appendRow(['1', 'Administrador', 'admin', 'admin123', 'admin', '0999999999', 'Oficina Central', '1700000001', 'admin@legarq.com']);
+    usersSheet.appendRow(['2', 'Técnico', 'tecnico', 'tech123', 'tech', '0988888888', 'Sector Norte', '1700000002', 'tech@legarq.com']);
+    usersSheet.appendRow(['3', 'Cliente', 'cliente', 'cliente123', 'client', '0977777777', 'Av. Principal 123', '1700000003', 'cliente@example.com']);
   }
 
   // 2. Tramites
@@ -141,6 +141,15 @@ function initSheets() {
     typesSheet.appendRow(['3', 'Licencia de Construcción', '["Certificado de gravamen","Planos aprobados","Pago de tasas","Emisión de licencia"]']);
   } else {
     ensureColumns(typesSheet, typesHeaders);
+  }
+
+  // 7. Cuentas
+  var accountsSheet = ss.getSheetByName('Cuentas');
+  if (!accountsSheet) {
+    accountsSheet = ss.insertSheet('Cuentas');
+    accountsSheet.appendRow(['id', 'name']);
+    accountsSheet.appendRow(['1', 'Caja Chica']);
+    accountsSheet.appendRow(['2', 'Banco Pichincha']);
   }
 }
 
@@ -731,7 +740,7 @@ function createUser(data) {
   if (data.requesterRole !== 'admin') throw new Error('No autorizado');
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Usuarios');
   var id = Utilities.getUuid();
-  sheet.appendRow([id, data.name, data.username, data.password, data.role, data.phone || '', data.address || '', data.idNumber || '']);
+  sheet.appendRow([id, data.name, data.username, data.password, data.role, data.phone || '', data.address || '', data.idNumber || '', data.email || '']);
   return { id: id };
 }
 `;

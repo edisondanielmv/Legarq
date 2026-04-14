@@ -232,10 +232,40 @@ function getProcedureByClientId(data) {
   return { client: clientData, procedures: unique };
 }
 
+/**
+ * LEGARQ - SISTEMA DE GESTIÓN DE TRÁMITES
+ * 
+ * INSTRUCCIONES DE DESPLIEGUE:
+ * 1. En el editor de Apps Script, haga clic en "Nueva implementación".
+ * 2. Seleccione "Aplicación web".
+ * 3. Ejecutar como: "Yo" (su cuenta de Google).
+ * 4. Quién tiene acceso: "Cualquier persona".
+ * 5. Haga clic en "Implementar" y autorice todos los permisos solicitados.
+ * 
+ * Si obtiene error "ACCESO DENEGADO: DRIVEAPP":
+ * - Asegúrese de haber aceptado los permisos de Google Drive al implementar.
+ * - Verifique que su cuenta de Google tenga espacio en Drive.
+ * - Intente ejecutar la función 'testDrive' manualmente en el editor para forzar la autorización.
+ */
+
+function testDrive() {
+  try {
+    var folder = getOrCreateMainFolder();
+    Logger.log("Conexión con Drive exitosa. Carpeta: " + folder.getName());
+    return "OK: " + folder.getUrl();
+  } catch (e) {
+    Logger.log("Error en Drive: " + e.toString());
+    return "ERROR: " + e.toString();
+  }
+}
+
 function getOrCreateMainFolder() {
-  var folders = DriveApp.getFoldersByName("LEGARQ_TRAMITES_PRINCIPAL");
-  if (folders.hasNext()) return folders.next();
-  return DriveApp.createFolder("LEGARQ_TRAMITES_PRINCIPAL");
+  var folderName = "LEGARQ_TRAMITES_PRINCIPAL";
+  var folders = DriveApp.getFoldersByName(folderName);
+  if (folders.hasNext()) {
+    return folders.next();
+  }
+  return DriveApp.createFolder(folderName);
 }
 
 function createProcedure(data) {
@@ -377,7 +407,7 @@ function deleteUser(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Usuarios');
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
-    if (rows[i][2] === data.username) { sheet.deleteRow(i + 1); return { success: true }; }
+    if (rows[i][2].toString() === data.username.toString()) { sheet.deleteRow(i + 1); return { success: true }; }
   }
   throw new Error('Usuario no encontrado');
 }
@@ -413,7 +443,7 @@ function deleteFinancialItem(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Finanzas');
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
-    if (rows[i][0] === data.id) { sheet.deleteRow(i + 1); return { success: true }; }
+    if (rows[i][0].toString() === data.id.toString()) { sheet.deleteRow(i + 1); return { success: true }; }
   }
   throw new Error('Rubro no encontrado');
 }
@@ -453,7 +483,7 @@ function deleteProcedureType(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('TiposTramite');
   var rows = sheet.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
-    if (rows[i][0] === data.id) { sheet.deleteRow(i + 1); return { success: true }; }
+    if (rows[i][0].toString() === data.id.toString()) { sheet.deleteRow(i + 1); return { success: true }; }
   }
   throw new Error('Tipo no encontrado');
 }
@@ -477,8 +507,24 @@ function updateProcedure(data) {
 function deleteProcedure(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Tramites');
   var rows = sheet.getDataRange().getValues();
+  var headers = rows[0];
+  var folderIdIdx = headers.indexOf('driveFolderId');
+  
   for (var i = 1; i < rows.length; i++) {
-    if (rows[i][0] === data.id) { 
+    if (rows[i][0].toString() === data.id.toString()) { 
+      // Delete Drive folder if exists
+      if (folderIdIdx !== -1) {
+        var folderId = rows[i][folderIdIdx];
+        if (folderId) {
+          try {
+            var folder = DriveApp.getFolderById(folderId);
+            folder.setTrashed(true);
+          } catch (e) {
+            console.error('Error deleting folder: ' + e.toString());
+          }
+        }
+      }
+
       sheet.deleteRow(i + 1); 
       // Delete related data
       deleteRowsByColumn('Finanzas', 1, data.id); // procedureId is column 1 (0-indexed is 1)
@@ -491,21 +537,28 @@ function deleteProcedure(data) {
 }
 
 function createDriveFolderAction(data) {
-  var parent = getOrCreateMainFolder();
-  var folder = parent.createFolder('Trámite: ' + data.title);
-  folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Tramites');
-  var rows = sheet.getDataRange().getValues();
-  var idx = rows[0].indexOf('driveUrl');
-  var idIdx = rows[0].indexOf('driveFolderId');
-  for (var i = 1; i < rows.length; i++) {
-    if (rows[i][0] === data.procedureId) {
-      sheet.getRange(i + 1, idIdx + 1).setValue(folder.getId());
-      sheet.getRange(i + 1, idx + 1).setValue(folder.getUrl());
-      return { driveUrl: folder.getUrl() };
+  try {
+    var parent = getOrCreateMainFolder();
+    var folder = parent.createFolder('Trámite: ' + data.title);
+    folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Tramites');
+    var rows = sheet.getDataRange().getValues();
+    var headers = rows[0];
+    var urlIdx = headers.indexOf('driveUrl');
+    var idIdx = headers.indexOf('driveFolderId');
+    
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString() === data.procedureId.toString()) {
+        if (idIdx !== -1) sheet.getRange(i + 1, idIdx + 1).setValue(folder.getId());
+        if (urlIdx !== -1) sheet.getRange(i + 1, urlIdx + 1).setValue(folder.getUrl());
+        return { driveUrl: folder.getUrl() };
+      }
     }
+    return { driveUrl: folder.getUrl() };
+  } catch (e) {
+    console.error('Error creating drive folder: ' + e.toString());
+    throw new Error('Error al crear carpeta en Drive: ' + e.toString());
   }
-  return { driveUrl: folder.getUrl() };
 }
 
 function getTechnicianActivityReport() { return { logs: getSheetData('Bitacora'), procedures: getSheetData('Tramites'), technicians: getSheetData('Usuarios').filter(function(u) { return u.role === 'tech'; }) }; }

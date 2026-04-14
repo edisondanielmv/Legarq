@@ -57,28 +57,28 @@ export default function DashboardLayout() {
 
   const SidebarContent = () => (
     <>
-      <div className="h-24 flex items-center px-6 border-b border-stone-800">
+      <div className="h-20 flex items-center px-6 border-b border-stone-800">
         <Link to="/" className="flex items-center justify-center w-full" onClick={() => setIsMobileMenuOpen(false)}>
           <img 
             src="https://lh3.googleusercontent.com/d/1nlBpfXAIZ5TwE9vMBBp_D1-mRz2HhJnb" 
             alt="LEGARQ" 
-            className="h-16 w-auto"
+            className="h-14 w-auto"
             referrerPolicy="no-referrer"
           />
         </Link>
       </div>
       
-      <div className="p-6">
-        <div className="text-sm text-stone-400 mb-1">Bienvenido,</div>
-        <div className="font-medium truncate">{user?.name}</div>
-        <div className="text-xs text-[#C5B39A] mt-1 capitalize">
+      <div className="p-4">
+        <div className="text-[10px] text-stone-400 mb-0.5 uppercase tracking-widest font-black">Bienvenido,</div>
+        <div className="text-sm font-black truncate">{user?.name}</div>
+        <div className="text-[10px] text-[#C5B39A] mt-0.5 capitalize font-black tracking-widest">
           {user?.role === 'tech' ? 'Técnico' : 
            user?.role === 'admin' ? 'Administrador' : 
            user?.role === 'finance' ? 'Finanzas' : user?.role}
         </div>
       </div>
 
-      <nav className="flex-1 px-4 space-y-2 mt-4">
+      <nav className="flex-1 px-3 space-y-1 mt-2">
         {navItems.filter(hasPermission).map((item) => {
           const isActive = location.pathname === item.href;
           return (
@@ -90,11 +90,11 @@ export default function DashboardLayout() {
                 isActive 
                   ? 'bg-[#E3000F] text-white shadow-lg shadow-red-900/20' 
                   : 'text-stone-400 hover:bg-stone-800/50 hover:text-white',
-                'group flex items-center px-4 py-3 text-xs font-black uppercase tracking-widest rounded-2xl transition-all active:scale-95'
+                'group flex items-center px-3 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-95'
               )}
             >
               <item.icon className={clsx(
-                "mr-3 flex-shrink-0 h-4 w-4 transition-colors",
+                "mr-2.5 flex-shrink-0 h-3.5 w-3.5 transition-colors",
                 isActive ? "text-white" : "text-stone-500 group-hover:text-[#E3000F]"
               )} />
               {item.name}
@@ -103,12 +103,12 @@ export default function DashboardLayout() {
         })}
       </nav>
 
-      <div className="p-6 border-t border-stone-800/50">
+      <div className="p-4 border-t border-stone-800/50">
         <button
           onClick={handleLogout}
-          className="flex items-center w-full px-4 py-3 text-xs font-black uppercase tracking-widest text-stone-400 rounded-2xl hover:bg-red-500/10 hover:text-red-500 transition-all active:scale-95"
+          className="flex items-center w-full px-3 py-2 text-[10px] font-black uppercase tracking-widest text-stone-400 rounded-xl hover:bg-red-500/10 hover:text-red-500 transition-all active:scale-95"
         >
-          <LogOut className="mr-3 h-4 w-4" />
+          <LogOut className="mr-2.5 h-3.5 w-3.5" />
           Cerrar Sesión
         </button>
       </div>
@@ -155,15 +155,15 @@ export default function DashboardLayout() {
             Modo Demostración - Datos no guardados en Google Sheets
           </div>
         )}
-        <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 h-16 md:h-20 flex items-center px-4 md:px-8 sticky top-0 z-30">
+        <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 h-14 md:h-16 flex items-center px-4 md:px-6 sticky top-0 z-30">
           <div className="flex items-center gap-3">
-            <div className="w-1 h-8 bg-[#E3000F] rounded-full hidden md:block" />
-            <h1 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight">
+            <div className="w-1 h-6 bg-[#E3000F] rounded-full hidden md:block" />
+            <h1 className="text-base md:text-xl font-black text-gray-900 tracking-tight">
               Sistema de <span className="text-[#E3000F]">Gestión</span>
             </h1>
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#FDFDFD]">
+        <main className="flex-1 overflow-y-auto p-3 md:p-6 bg-[#FDFDFD]">
           <div className="max-w-[1600px] mx-auto">
             <Outlet />
           </div>

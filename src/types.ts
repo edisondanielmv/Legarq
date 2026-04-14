@@ -2,6 +2,7 @@ export interface User {
   id: string;
   name: string;
   username: string;
+  email?: string;
   role: 'admin' | 'tech' | 'client' | 'finance' | 'other' | string;
   phone?: string;
   address?: string;
@@ -14,6 +15,7 @@ export interface Procedure {
   code?: string;
   title: string;
   clientUsername: string;
+  clientEmail?: string;
   clientName?: string;
   clientPhone?: string;
   clientAddress?: string;

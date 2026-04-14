@@ -241,49 +241,49 @@ export default function FinancialReports() {
       </div>
 
     {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-green-50 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-green-600" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-2">
+            <div className="p-1.5 bg-green-50 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-green-600" />
             </div>
-            <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full uppercase">Ingresos</span>
+            <span className="text-[9px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full uppercase">Ingresos</span>
           </div>
-          <p className="text-3xl font-black text-gray-900">${totalIncome.toLocaleString()}</p>
-          <p className="text-xs text-gray-400 mt-1">Total recaudado</p>
+          <p className="text-2xl font-black text-gray-900">${totalIncome.toLocaleString()}</p>
+          <p className="text-[10px] text-gray-400 mt-1">Total recaudado</p>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-red-50 rounded-lg">
-              <TrendingDown className="w-6 h-6 text-[#E3000F]" />
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-2">
+            <div className="p-1.5 bg-red-50 rounded-lg">
+              <TrendingDown className="w-5 h-5 text-[#E3000F]" />
             </div>
-            <span className="text-[10px] font-bold text-[#E3000F] bg-red-50 px-2 py-1 rounded-full uppercase">Egresos</span>
+            <span className="text-[9px] font-bold text-[#E3000F] bg-red-50 px-2 py-1 rounded-full uppercase">Egresos</span>
           </div>
-          <p className="text-3xl font-black text-gray-900">${totalExpense.toLocaleString()}</p>
-          <p className="text-xs text-gray-400 mt-1">Total gastos registrados</p>
+          <p className="text-2xl font-black text-gray-900">${totalExpense.toLocaleString()}</p>
+          <p className="text-[10px] text-gray-400 mt-1">Total gastos registrados</p>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <Wallet className="w-6 h-6 text-blue-600" />
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-2">
+            <div className="p-1.5 bg-blue-50 rounded-lg">
+              <Wallet className="w-5 h-5 text-blue-600" />
             </div>
-            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full uppercase">Saldo Neto</span>
+            <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full uppercase">Saldo Neto</span>
           </div>
-          <p className="text-3xl font-black text-gray-900">${totalBalance.toLocaleString()}</p>
-          <p className="text-xs text-gray-400 mt-1">Efectivo en caja</p>
+          <p className="text-2xl font-black text-gray-900">${totalBalance.toLocaleString()}</p>
+          <p className="text-[10px] text-gray-400 mt-1">Efectivo en caja</p>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-gray-50 rounded-lg">
-              <Briefcase className="w-6 h-6 text-gray-600" />
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-2">
+            <div className="p-1.5 bg-gray-50 rounded-lg">
+              <Briefcase className="w-5 h-5 text-gray-600" />
             </div>
-            <span className="text-[10px] font-bold text-gray-600 bg-gray-50 px-2 py-1 rounded-full uppercase">Proyectado</span>
+            <span className="text-[9px] font-bold text-gray-600 bg-gray-50 px-2 py-1 rounded-full uppercase">Proyectado</span>
           </div>
-          <p className="text-3xl font-black text-gray-900">${totalExpected.toLocaleString()}</p>
-          <p className="text-xs text-gray-400 mt-1">Valor total acordado</p>
+          <p className="text-2xl font-black text-gray-900">${totalExpected.toLocaleString()}</p>
+          <p className="text-[10px] text-gray-400 mt-1">Valor total acordado</p>
         </div>
       </div>
 

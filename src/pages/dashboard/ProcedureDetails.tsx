@@ -117,6 +117,7 @@ export default function ProcedureDetails() {
         clientPhone: foundClient?.phone || proc.clientPhone || '',
         clientAddress: foundClient?.address || proc.clientAddress || '',
         idNumber: foundClient?.idNumber || proc.idNumber || '',
+        clientEmail: foundClient?.email || proc.clientEmail || '',
         completedSteps: proc.completedSteps || ''
       };
 
@@ -145,7 +146,8 @@ export default function ProcedureDetails() {
         clientAddress: updatedProcedure.clientAddress,
         idNumber: updatedProcedure.idNumber,
         propertyNumber: updatedProcedure.propertyNumber,
-        driveUrl: updatedProcedure.driveUrl
+        driveUrl: updatedProcedure.driveUrl,
+        clientEmail: updatedProcedure.clientEmail
       });
 
       setEditHeaderData({ 
@@ -582,29 +584,29 @@ export default function ProcedureDetails() {
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
         <button 
           onClick={() => navigate('/dashboard')} 
-          className="flex items-center text-gray-400 hover:text-[#E3000F] transition-colors text-[10px] font-black uppercase tracking-widest group"
+          className="flex items-center text-gray-400 hover:text-[#E3000F] transition-colors text-[9px] font-black uppercase tracking-widest group"
         >
-          <ArrowLeft className="w-3 h-3 mr-2 group-hover:-translate-x-1 transition-transform" /> Volver a Trámites
+          <ArrowLeft className="w-3 h-3 mr-1.5 group-hover:-translate-x-1 transition-transform" /> Volver a Trámites
         </button>
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <a
             href={`/consulta?idNumber=${procedure?.idNumber || ''}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 md:flex-none bg-white text-gray-900 border border-gray-100 px-6 py-3 rounded-2xl flex items-center justify-center gap-3 hover:bg-gray-50 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm active:scale-95"
+            className="flex-1 md:flex-none bg-white text-gray-900 border border-gray-100 px-4 py-2 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-all font-black text-[9px] uppercase tracking-widest shadow-sm active:scale-95"
           >
-            <Eye className="w-4 h-4 text-[#E3000F]" /> Ver como Cliente
+            <Eye className="w-3.5 h-3.5 text-[#E3000F]" /> Ver como Cliente
           </a>
           {currentUser?.role === 'admin' && (
             <button 
               onClick={() => setShowDeleteConfirm(true)}
               disabled={deleting}
-              className="flex-1 md:flex-none bg-red-50 text-red-600 border border-red-100 px-6 py-3 rounded-2xl flex items-center justify-center gap-3 hover:bg-red-100 transition-all font-black text-[10px] uppercase tracking-widest active:scale-95"
+              className="flex-1 md:flex-none bg-red-50 text-red-600 border border-red-100 px-4 py-2 rounded-xl flex items-center justify-center gap-2 hover:bg-red-100 transition-all font-black text-[9px] uppercase tracking-widest active:scale-95"
             >
-              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
               Eliminar
             </button>
           )}
@@ -656,14 +658,14 @@ export default function ProcedureDetails() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Sidebar (Client Info first) */}
-        <div className="space-y-6 lg:col-span-1">
+        <div className="space-y-4 lg:col-span-1">
           {/* Client Info Card */}
-          <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-6 md:p-8 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-              <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
-                <div className="w-1.5 h-6 bg-[#E3000F] rounded-full" />
+          <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden">
+            <div className="p-4 md:p-5 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+              <h3 className="text-base font-black text-gray-900 flex items-center gap-2">
+                <div className="w-1 h-5 bg-[#E3000F] rounded-full" />
                 Cliente
               </h3>
               {(currentUser?.role === 'admin' || (currentUser?.role === 'tech' && procedure.technicianUsername === currentUser.username)) && (
@@ -676,7 +678,8 @@ export default function ProcedureDetails() {
                       clientAddress: procedure.clientAddress,
                       idNumber: procedure.idNumber,
                       propertyNumber: procedure.propertyNumber,
-                      driveUrl: procedure.driveUrl
+                      driveUrl: procedure.driveUrl,
+                      clientEmail: procedure.clientEmail
                     });
                     setIsEditingClient(!isEditingClient);
                   }}
@@ -686,139 +689,145 @@ export default function ProcedureDetails() {
                 </button>
               )}
             </div>
-            <div className="p-6 md:p-8">
+            <div className="p-4 md:p-6">
               {isEditingClient ? (
-                <form onSubmit={handleUpdateClient} className="space-y-4">
+                <form onSubmit={handleUpdateClient} className="space-y-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Nombre Completo</label>
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Nombre Completo</label>
                     <input 
                       type="text" 
                       value={editClientData.clientName || ''} 
                       onChange={e => setEditClientData({...editClientData, clientName: e.target.value})}
-                      className="w-full text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-xl p-2.5 focus:ring-2 focus:ring-[#E3000F]/20 outline-none"
+                      className="w-full text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl p-2 focus:ring-2 focus:ring-[#E3000F]/20 outline-none"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Correo Electrónico</label>
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Correo Electrónico</label>
                     <input 
                       type="email" 
-                      value={editClientData.clientUsername || ''} 
-                      onChange={e => setEditClientData({...editClientData, clientUsername: e.target.value})}
-                      className="w-full text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-xl p-2.5 focus:ring-2 focus:ring-[#E3000F]/20 outline-none"
+                      value={editClientData.clientEmail || ''} 
+                      onChange={e => setEditClientData({...editClientData, clientEmail: e.target.value})}
+                      className="w-full text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl p-2 focus:ring-2 focus:ring-[#E3000F]/20 outline-none"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Teléfono</label>
-                    <input 
-                      type="text" 
-                      value={editClientData.clientPhone || ''} 
-                      onChange={e => setEditClientData({...editClientData, clientPhone: e.target.value})}
-                      className="w-full text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-xl p-2.5 focus:ring-2 focus:ring-[#E3000F]/20 outline-none"
-                    />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Teléfono</label>
+                      <input 
+                        type="text" 
+                        value={editClientData.clientPhone || ''} 
+                        onChange={e => setEditClientData({...editClientData, clientPhone: e.target.value})}
+                        className="w-full text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl p-2 focus:ring-2 focus:ring-[#E3000F]/20 outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Cédula</label>
+                      <input 
+                        type="text" 
+                        value={editClientData.idNumber || ''} 
+                        onChange={e => setEditClientData({...editClientData, idNumber: e.target.value})}
+                        className="w-full text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl p-2 focus:ring-2 focus:ring-[#E3000F]/20 outline-none"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Dirección</label>
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Dirección</label>
                     <input 
                       type="text" 
                       value={editClientData.clientAddress || ''} 
                       onChange={e => setEditClientData({...editClientData, clientAddress: e.target.value})}
-                      className="w-full text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-xl p-2.5 focus:ring-2 focus:ring-[#E3000F]/20 outline-none"
+                      className="w-full text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl p-2 focus:ring-2 focus:ring-[#E3000F]/20 outline-none"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cédula</label>
-                    <input 
-                      type="text" 
-                      value={editClientData.idNumber || ''} 
-                      onChange={e => setEditClientData({...editClientData, idNumber: e.target.value})}
-                      className="w-full text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-xl p-2.5 focus:ring-2 focus:ring-[#E3000F]/20 outline-none"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Número de Predio</label>
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Número de Predio</label>
                     <input 
                       type="text" 
                       value={editClientData.propertyNumber || ''} 
                       onChange={e => setEditClientData({...editClientData, propertyNumber: e.target.value})}
-                      className="w-full text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-xl p-2.5 focus:ring-2 focus:ring-[#E3000F]/20 outline-none"
+                      className="w-full text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-xl p-2 focus:ring-2 focus:ring-[#E3000F]/20 outline-none"
                     />
                   </div>
                   <button 
                     type="submit"
                     disabled={saving}
-                    className="w-full bg-[#1A1A1A] text-white py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-[#E3000F] transition-all active:scale-95 shadow-lg shadow-gray-200"
+                    className="w-full bg-[#1A1A1A] text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#E3000F] transition-all active:scale-95 shadow-lg shadow-gray-200"
                   >
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <Save className="w-4 h-4 mr-2 inline" />}
-                    Guardar Cambios
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <Save className="w-3.5 h-3.5 mr-1.5 inline" />}
+                    {saving ? '' : 'Guardar Cambios'}
                   </button>
                 </form>
               ) : (
-                <div className="space-y-6">
-                  <div className="flex items-start gap-4">
-                    <div className="p-2.5 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
-                      <UserIcon className="w-5 h-5 text-[#E3000F]" />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-gray-50 rounded-xl border border-gray-100 shadow-sm">
+                        <UserIcon className="w-4 h-4 text-[#E3000F]" />
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-0.5">Nombre Completo</span>
+                        <span className="text-xs font-black text-gray-900 leading-tight block">{procedure.clientName || procedure.clientUsername}</span>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Nombre Completo</span>
-                      <span className="text-sm font-black text-gray-900 leading-tight block">{procedure.clientName || procedure.clientUsername}</span>
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-gray-50 rounded-xl border border-gray-100 shadow-sm">
+                        <Mail className="w-4 h-4 text-[#E3000F]" />
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-0.5">Correo Electrónico</span>
+                        <span className="text-xs font-black text-gray-900 leading-tight block break-all">{procedure.clientUsername}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-gray-50 rounded-xl border border-gray-100 shadow-sm">
+                        <Phone className="w-4 h-4 text-[#E3000F]" />
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-0.5">Teléfono</span>
+                        <span className="text-xs font-black text-gray-900 leading-tight block">{procedure.clientPhone || 'No registrado'}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-gray-50 rounded-xl border border-gray-100 shadow-sm">
+                        <MapPin className="w-4 h-4 text-[#E3000F]" />
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-0.5">Dirección</span>
+                        <span className="text-xs font-black text-gray-900 leading-tight block">{procedure.clientAddress || 'No registrada'}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-4">
-                    <div className="p-2.5 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
-                      <Mail className="w-5 h-5 text-[#E3000F]" />
-                    </div>
-                    <div className="flex-1">
-                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Correo Electrónico</span>
-                      <span className="text-sm font-black text-gray-900 leading-tight block break-all">{procedure.clientUsername}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4">
-                    <div className="p-2.5 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
-                      <Phone className="w-5 h-5 text-[#E3000F]" />
-                    </div>
-                    <div className="flex-1">
-                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Teléfono</span>
-                      <span className="text-sm font-black text-gray-900 leading-tight block">{procedure.clientPhone || 'No registrado'}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4">
-                    <div className="p-2.5 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm">
-                      <MapPin className="w-5 h-5 text-[#E3000F]" />
-                    </div>
-                    <div className="flex-1">
-                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">Dirección</span>
-                      <span className="text-sm font-black text-gray-900 leading-tight block">{procedure.clientAddress || 'No registrada'}</span>
-                    </div>
-                  </div>
-                  <div className="pt-6 border-t border-gray-100 grid grid-cols-2 gap-6">
+                  <div className="pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">N° Cédula</span>
-                      <span className="text-xs font-black text-gray-900 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">{procedure.idNumber || 'N/A'}</span>
+                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-0.5">N° Cédula</span>
+                      <span className="text-[10px] font-black text-gray-900 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">{procedure.idNumber || 'N/A'}</span>
                     </div>
                     <div>
-                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">N° Predio</span>
-                      <span className="text-xs font-black text-gray-900 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">{procedure.propertyNumber || 'N/A'}</span>
+                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-0.5">N° Predio</span>
+                      <span className="text-[10px] font-black text-gray-900 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">{procedure.propertyNumber || 'N/A'}</span>
                     </div>
                   </div>
-                  <div className="pt-6 border-t border-gray-100">
+                  <div className="pt-4 border-t border-gray-100">
                     {procedure.driveUrl || procedure.driveFolderUrl ? (
-                      <a 
-                        href={procedure.driveUrl || procedure.driveFolderUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="w-full bg-blue-50 text-blue-600 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-100 transition-all flex items-center justify-center gap-2 border border-blue-100"
-                      >
-                        <Folder className="w-4 h-4" />
-                        Carpeta Virtual
-                      </a>
+                      currentUser?.role !== 'client' && (
+                        <a 
+                          href={procedure.driveUrl || procedure.driveFolderUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="w-full bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-100 transition-all flex items-center justify-center gap-2 border border-blue-100"
+                        >
+                          <Folder className="w-3.5 h-3.5" />
+                          Carpeta Virtual
+                        </a>
+                      )
                     ) : (
                       currentUser?.role === 'admin' && (
                         <button
                           onClick={handleCreateDriveFolder}
                           disabled={creatingDriveFolder}
-                          className="w-full inline-flex items-center justify-center px-6 py-3 bg-gray-50 text-gray-600 text-[10px] font-black uppercase tracking-widest rounded-2xl border border-gray-200 hover:bg-gray-100 transition-all disabled:opacity-50"
+                          className="w-full inline-flex items-center justify-center px-4 py-2 bg-gray-50 text-gray-600 text-[9px] font-black uppercase tracking-widest rounded-xl border border-gray-200 hover:bg-gray-100 transition-all disabled:opacity-50"
                         >
-                          {creatingDriveFolder ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                          {creatingDriveFolder ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Plus className="w-3.5 h-3.5 mr-1.5" />}
                           Crear Carpeta Virtual
                         </button>
                       )
