@@ -92,10 +92,13 @@ function doPost(e) {
       case 'getProcedureByClientId': result = getProcedureByClientId(data); break;
       case 'getLogs': result = getLogs(data); break;
       case 'addLog': result = addLog(data); break;
+      case 'updateLog': result = updateLog(data); break;
+      case 'deleteLog': result = deleteLog(data); break;
       case 'getUsers': result = getUsers(data); break;
       case 'createUser': result = createUser(data); break;
       case 'updateUser': result = updateUser(data); break;
       case 'deleteUser': result = deleteUser(data); break;
+      case 'createDriveFolder': result = createDriveFolder(data); break;
       case 'getFinancials': result = getFinancials(data); break;
       case 'addFinancialItem': result = addFinancialItem(data); break;
       case 'updateFinancialItem': result = updateFinancialItem(data); break;
@@ -272,23 +275,59 @@ function updateProcedure(data) {
 }
 
 function deleteProcedure(data) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Tramites');
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Tramites');
   var rows = sheet.getDataRange().getValues();
   var headers = rows[0];
+  var idIdx = headers.indexOf('id');
+  var clientUsernameIdx = headers.indexOf('clientUsername');
   var folderIdIdx = headers.indexOf('driveFolderId');
   
+  var clientUsernameToDelete = null;
+
   for (var i = 1; i < rows.length; i++) {
-    if (rows[i][0].toString() === data.id.toString()) { 
+    if (rows[i][idIdx].toString() === data.id.toString()) { 
+      clientUsernameToDelete = rows[i][clientUsernameIdx];
+      
+      // Borrar carpeta de Drive si existe
       if (folderIdIdx !== -1) {
         var folderId = rows[i][folderIdIdx];
         if (folderId) {
           try { DriveApp.getFolderById(folderId).setTrashed(true); } catch (e) {}
         }
       }
+      
       sheet.deleteRow(i + 1); 
+      
+      // Limpiar tablas relacionadas
       deleteRowsByColumn('Finanzas', 1, data.id);
       deleteRowsByColumn('Bitacora', 1, data.id);
       deleteRowsByColumn('Archivos', 1, data.id);
+      
+      // Verificar si el cliente tiene otros trámites
+      if (clientUsernameToDelete) {
+        var remainingProcedures = getSheetData('Tramites');
+        var hasOtherProcs = remainingProcedures.some(function(p) { 
+          return p.clientUsername === clientUsernameToDelete; 
+        });
+        
+        if (!hasOtherProcs) {
+          // Si no tiene más trámites, verificar si es un rol 'client' y borrarlo
+          var usersSheet = ss.getSheetByName('Usuarios');
+          var usersData = usersSheet.getDataRange().getValues();
+          var userHeaders = usersData[0];
+          var uUsernameIdx = userHeaders.indexOf('username');
+          var uRoleIdx = userHeaders.indexOf('role');
+          
+          for (var j = 1; j < usersData.length; j++) {
+            if (usersData[j][uUsernameIdx] === clientUsernameToDelete && usersData[j][uRoleIdx] === 'client') {
+              usersSheet.deleteRow(j + 1);
+              break;
+            }
+          }
+        }
+      }
+      
       return { success: true }; 
     }
   }
@@ -368,6 +407,36 @@ function addLog(data) {
   return { id: id };
 }
 
+function updateLog(data) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Bitacora');
+  var rows = sheet.getDataRange().getValues();
+  var headers = rows[0];
+  var idIdx = headers.indexOf('id');
+  var noteIdx = headers.indexOf('note');
+  var isExternalIdx = headers.indexOf('isExternal');
+  
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][idIdx].toString() === data.id.toString()) {
+      sheet.getRange(i + 1, noteIdx + 1).setValue(data.note);
+      sheet.getRange(i + 1, isExternalIdx + 1).setValue(data.isExternal);
+      return { success: true };
+    }
+  }
+  throw new Error('Log no encontrado');
+}
+
+function deleteLog(data) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Bitacora');
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0].toString() === data.id.toString()) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+  throw new Error('Log no encontrado');
+}
+
 function getLogs(data) { 
   return getSheetData('Bitacora').filter(function(l) { return l.procedureId === data.procedureId; }); 
 }
@@ -416,6 +485,27 @@ function deleteUser(data) {
     if (sheetUser === inputUser) { sheet.deleteRow(i + 1); return { success: true }; }
   }
   throw new Error('Usuario no encontrado');
+}
+
+function createDriveFolder(data) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Tramites');
+  var rows = sheet.getDataRange().getValues();
+  var headers = rows[0];
+  var folderIdIdx = headers.indexOf('driveFolderId');
+  var folderUrlIdx = headers.indexOf('driveUrl');
+  
+  var parent = getOrCreateMainFolder();
+  var folder = parent.createFolder('Trámite: ' + data.title);
+  folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0].toString() === data.procedureId.toString()) {
+      sheet.getRange(i + 1, folderIdIdx + 1).setValue(folder.getId());
+      sheet.getRange(i + 1, folderUrlIdx + 1).setValue(folder.getUrl());
+      return { driveUrl: folder.getUrl() };
+    }
+  }
+  return { driveUrl: folder.getUrl() };
 }
 
 function getFinancials(data) { 

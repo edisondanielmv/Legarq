@@ -246,11 +246,19 @@ export default function Procedures() {
                   </div>
                 </td>
                 <td className="px-6 py-2 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-gray-50 rounded-md flex items-center justify-center text-[8px] font-black text-[#E3000F] border border-gray-100">
+                  <div className={clsx(
+                    "flex items-center gap-2 px-3 py-1 rounded-xl border transition-all",
+                    proc.technicianUsername 
+                      ? "bg-emerald-50 border-emerald-100 text-emerald-700" 
+                      : "bg-red-50 border-red-100 text-red-700"
+                  )}>
+                    <div className={clsx(
+                      "w-6 h-6 rounded-md flex items-center justify-center text-[8px] font-black border",
+                      proc.technicianUsername ? "bg-white border-emerald-200" : "bg-white border-red-200"
+                    )}>
                       {(proc.technicianName || proc.technicianUsername || '?')[0].toUpperCase()}
                     </div>
-                    <span className="text-[9px] font-black text-gray-600 uppercase tracking-tight">
+                    <span className="text-[9px] font-black uppercase tracking-tight">
                       {proc.technicianName || proc.technicianUsername || 'Sin asignar'}
                     </span>
                   </div>
@@ -313,12 +321,20 @@ export default function Procedures() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 overflow-hidden">
-                  <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100 shrink-0">
-                    <Briefcase className="w-3.5 h-3.5 text-gray-400" />
+                  <div className={clsx(
+                    "w-8 h-8 rounded-lg flex items-center justify-center border shrink-0",
+                    proc.technicianUsername ? "bg-emerald-50 border-emerald-100" : "bg-red-50 border-red-100"
+                  )}>
+                    <Briefcase className={clsx("w-3.5 h-3.5", proc.technicianUsername ? "text-emerald-600" : "text-red-600")} />
                   </div>
                   <div className="flex flex-col overflow-hidden">
                     <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Técnico</span>
-                    <span className="text-[9px] font-black text-gray-700 truncate">{proc.technicianName || proc.technicianUsername || 'Sin asignar'}</span>
+                    <span className={clsx(
+                      "text-[9px] font-black truncate",
+                      proc.technicianUsername ? "text-emerald-700" : "text-red-700"
+                    )}>
+                      {proc.technicianName || proc.technicianUsername || 'Sin asignar'}
+                    </span>
                   </div>
                 </div>
               </div>

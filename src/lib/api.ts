@@ -170,4 +170,5 @@ export const api = {
   createDriveFolder: (procedureId: string, title: string) => apiCall<{ driveUrl: string }>('createDriveFolder', { procedureId, title }),
   getTechnicianActivityReport: (role: string) => apiCall<{ logs: ProcedureLog[], procedures: Procedure[], technicians: { id: string, name: string, username: string }[] }>('getTechnicianActivityReport', { role }),
   checkDuplicateIdNumber: (idNumber: string, excludeUsername?: string) => apiCall<{ exists: boolean; name?: string }>('checkDuplicateIdNumber', { idNumber, excludeUsername }),
+  clearCache,
 };

@@ -149,6 +149,77 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-[#1A1A1A] text-white py-16 md:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+            <div className="space-y-6">
+              <img 
+                src="https://lh3.googleusercontent.com/d/1nlBpfXAIZ5TwE9vMBBp_D1-mRz2HhJnb" 
+                alt="LEGARQ" 
+                className="h-12 w-auto brightness-0 invert"
+                referrerPolicy="no-referrer"
+              />
+              <p className="text-stone-400 text-sm leading-relaxed">
+                Expertos en legalización municipal, diseño arquitectónico y construcción de alta calidad en Ecuador.
+              </p>
+            </div>
+            
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-[0.2em] mb-6 text-[#E3000F]">Contacto</h4>
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                    <Building2 className="w-4 h-4 text-stone-400" />
+                  </div>
+                  <span className="text-stone-400 text-sm">Quito, Cayambe - Ecuador</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                    <ArrowRight className="w-4 h-4 text-stone-400" />
+                  </div>
+                  <a href="mailto:info@legarqconstructora.com" className="text-stone-400 text-sm hover:text-white transition-colors">info@legarqconstructora.com</a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-[0.2em] mb-6 text-[#E3000F]">Atención Directa</h4>
+              <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
+                <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mb-2">Llámanos o escríbenos:</p>
+                <a 
+                  href="https://wa.me/593984663791" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xl font-black hover:text-[#E3000F] transition-colors block mb-1"
+                >
+                  0984663791
+                </a>
+                <p className="text-[10px] text-emerald-500 font-black uppercase tracking-widest flex items-center gap-2">
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> Disponible en WhatsApp
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-[0.2em] mb-6 text-[#E3000F]">Sistema</h4>
+              <Link to="/login" className="inline-flex items-center gap-2 text-stone-400 hover:text-white transition-colors text-sm font-bold">
+                Acceso Administrativo <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+          
+          <div className="mt-16 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-stone-500 text-[10px] font-black uppercase tracking-widest">
+              © {new Date().getFullYear()} Legarq Constructora. Todos los derechos reservados.
+            </p>
+            <div className="flex gap-6">
+              <span className="text-stone-600 text-[9px] font-black uppercase tracking-widest">Quito - Cayambe</span>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

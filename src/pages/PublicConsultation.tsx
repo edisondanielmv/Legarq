@@ -369,11 +369,40 @@ const PublicConsultation = () => {
         </AnimatePresence>
       </main>
 
-      <footer className="max-w-4xl mx-auto py-10 px-6 text-center">
-        <div className="w-8 h-0.5 bg-gray-100 mx-auto mb-6 rounded-full" />
-        <p className="text-gray-400 text-[9px] font-bold uppercase tracking-[0.3em]">
-          © {new Date().getFullYear()} Legarq Constructora
-        </p>
+      <footer className="max-w-4xl mx-auto py-12 px-6">
+        <div className="w-12 h-1 bg-gray-100 mx-auto mb-10 rounded-full" />
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 text-center md:text-left">
+          <div className="space-y-3">
+            <h4 className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Ubicación</h4>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">Quito, Cayambe - Ecuador</p>
+          </div>
+          
+          <div className="space-y-3">
+            <h4 className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Contacto Directo</h4>
+            <a href="mailto:info@legarqconstructora.com" className="text-[11px] font-bold text-[#E3000F] uppercase tracking-tight block hover:underline">info@legarqconstructora.com</a>
+            <div className="flex flex-col items-center md:items-start gap-1">
+              <a href="https://wa.me/593984663791" target="_blank" rel="noopener noreferrer" className="text-sm font-black text-gray-900 hover:text-[#E3000F] transition-colors">0984663791</a>
+              <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> WhatsApp Disponible
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Horario</h4>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">Lunes a Viernes: 08:30 - 17:30</p>
+          </div>
+        </div>
+
+        <div className="pt-8 border-t border-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-gray-300 text-[9px] font-black uppercase tracking-[0.3em]">
+            © {new Date().getFullYear()} Legarq Constructora
+          </p>
+          <div className="flex gap-4">
+            <Link to="/login" className="text-[9px] font-black text-gray-300 hover:text-gray-900 uppercase tracking-widest transition-colors">Acceso Sistema</Link>
+          </div>
+        </div>
       </footer>
     </div>
   );

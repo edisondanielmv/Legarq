@@ -84,12 +84,20 @@ export default function ProcedureDetails() {
 
   const fetchData = async () => {
     if (!id || !currentUser) return;
+    
+    // Clear cache to ensure we get the latest data when switching procedures
+    api.clearCache();
+    
     setLoading(true);
     setError('');
     setProcedure(null);
     setClient(null);
     setLogs([]);
     setFinancials([]);
+    setIsEditingClient(false);
+    setIsEditingHeader(false);
+    setEditClientData({});
+    setEditHeaderData({ title: '', procedureType: '', expectedValue: 0, otherAgreements: '' });
     
     try {
       const procs = await api.getProcedures({ username: currentUser.username, role: currentUser.role });

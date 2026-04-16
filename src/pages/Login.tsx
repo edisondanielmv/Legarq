@@ -113,14 +113,30 @@ export default function Login() {
             </div>
           </form>
 
-          <div className="mt-10 pt-8 border-t border-gray-50 text-center">
-            <p className="text-[10px] md:text-xs text-gray-400 font-bold uppercase tracking-widest mb-3">¿Desea consultar su trámite?</p>
-            <Link 
-              to="/consulta" 
-              className="inline-flex items-center gap-2 text-[#E3000F] font-black hover:text-red-700 text-xs md:text-sm uppercase tracking-[0.15em] transition-colors"
-            >
-              Consultar con Cédula
-            </Link>
+          <div className="mt-10 pt-8 border-t border-gray-50 text-center space-y-6">
+            <div>
+              <p className="text-[10px] md:text-xs text-gray-400 font-bold uppercase tracking-widest mb-3">¿Desea consultar su trámite?</p>
+              <Link 
+                to="/consulta" 
+                className="inline-flex items-center gap-2 text-[#E3000F] font-black hover:text-red-700 text-xs md:text-sm uppercase tracking-[0.15em] transition-colors"
+              >
+                Consultar con Cédula
+              </Link>
+            </div>
+
+            <div className="pt-6 border-t border-gray-50 flex flex-col items-center gap-2">
+              <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest">Soporte Técnico</p>
+              <div className="flex items-center gap-4">
+                <a href="https://wa.me/593984663791" target="_blank" rel="noopener noreferrer" className="text-[11px] font-black text-gray-900 hover:text-[#E3000F] transition-colors">
+                  0984663791
+                </a>
+                <span className="w-1 h-1 bg-gray-200 rounded-full" />
+                <a href="mailto:info@legarqconstructora.com" className="text-[11px] font-black text-gray-900 hover:text-[#E3000F] transition-colors">
+                  info@legarqconstructora.com
+                </a>
+              </div>
+              <p className="text-[8px] text-emerald-500 font-black uppercase tracking-widest">Quito - Cayambe</p>
+            </div>
           </div>
         </div>
       </div>
