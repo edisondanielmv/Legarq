@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Database, Copy, CheckCircle, Settings, Loader2 } from 'lucide-react';
+import { Database, Copy, CheckCircle, Settings, Hourglass } from 'lucide-react';
 import { useState } from 'react';
 import { apiCall } from '../lib/api';
 import { BACKEND_SCRIPT } from '../constants/backendCode';
@@ -131,7 +131,7 @@ export default function Setup() {
                       disabled={testing}
                       className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                     >
-                      {testing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Database className="w-4 h-4 mr-2" />}
+                      {testing ? <Hourglass className="w-4 h-4 animate-pulse mr-2" /> : <Database className="w-4 h-4 mr-2" />}
                       Probar Conexión
                     </button>
                     {testResult && (

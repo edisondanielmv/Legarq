@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
-import { ArrowLeft, Plus, FileText, Calendar, DollarSign, User as UserIcon, Loader2, Phone, MapPin, Mail, Save, Edit2, CheckCircle2, XCircle, Upload, ExternalLink, Download, Trash2, Circle, Briefcase, Eye, Check, ArrowUpRight, ArrowDownRight, Folder, MessageSquare, Hash, Clock } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Calendar, DollarSign, User as UserIcon, Hourglass, Phone, MapPin, Mail, Save, Edit2, CheckCircle2, XCircle, Upload, ExternalLink, Download, Trash2, Circle, Briefcase, Eye, Check, ArrowUpRight, ArrowDownRight, Folder, MessageSquare, Hash, Clock } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import clsx from 'clsx';
@@ -100,7 +100,7 @@ export default function ProcedureDetails() {
     setEditHeaderData({ title: '', procedureType: '', expectedValue: 0, otherAgreements: '' });
     
     try {
-      const procs = await api.getProcedures({ username: currentUser.username, role: currentUser.role });
+      const procs = await api.getProcedures({ username: currentUser?.username || '', role: currentUser?.role || '' });
       if (!Array.isArray(procs)) throw new Error('La respuesta del servidor no es una lista de trámites');
       
       const proc = procs.find((p: Procedure) => String(p.id) === String(id));
@@ -133,7 +133,7 @@ export default function ProcedureDetails() {
         console.error("Error fetching additional data", e);
       }
 
-      const foundClient = Array.isArray(usersData) ? usersData.find((u: any) => u.username === proc.clientUsername) : null;
+      const foundClient = Array.isArray(usersData) ? usersData.find((u: any) => u?.username === proc.clientUsername) : null;
       
       const updatedProcedure = {
         ...proc,
@@ -150,13 +150,13 @@ export default function ProcedureDetails() {
       setLogs(Array.isArray(logsData) ? logsData.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()) : []);
       setFinancials(Array.isArray(financialsData) ? financialsData : []);
       setFiles(Array.isArray(filesData) ? filesData.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()) : []);
-      setTechs(Array.isArray(usersData) ? usersData.filter((u: any) => u.role === 'tech') : []);
-      setStaff(Array.isArray(usersData) ? usersData.filter((u: any) => u.role === 'tech' || u.role === 'admin') : []);
+      setTechs(Array.isArray(usersData) ? usersData.filter((u: any) => u?.role === 'tech') : []);
+      setStaff(Array.isArray(usersData) ? usersData.filter((u: any) => u?.role === 'tech' || u?.role === 'admin') : []);
       setProcedureTypes(Array.isArray(typesData) ? typesData : []);
       setAccounts(Array.isArray(accountsData) ? accountsData : []);
       
       if (Array.isArray(accountsData) && accountsData.length > 0) {
-        const operativoAcc = accountsData.find(a => a.name.toLowerCase() === 'operativo');
+        const operativoAcc = accountsData.find(a => (a?.name || '').toLowerCase() === 'operativo');
         setNewFinancial(prev => ({ 
           ...prev, 
           category: operativoAcc ? operativoAcc.name : accountsData[0].name 
@@ -543,7 +543,7 @@ export default function ProcedureDetails() {
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center h-96 gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-[#E3000F]" />
+        <Hourglass className="w-10 h-10 animate-pulse text-[#E3000F]" />
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest animate-pulse">Cargando detalles...</p>
         {slowLoading && (
           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest animate-pulse">
@@ -644,7 +644,7 @@ export default function ProcedureDetails() {
               disabled={deleting}
               className="flex-1 md:flex-none bg-red-50 text-red-600 border border-red-100 px-3 py-1.5 rounded-lg flex items-center justify-center gap-2 hover:bg-red-100 transition-all font-black text-[8px] uppercase tracking-widest active:scale-95"
             >
-              {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+              {deleting ? <Hourglass className="w-3 h-3 animate-pulse" /> : <Trash2 className="w-3 h-3" />}
               Eliminar
             </button>
           )}
@@ -688,7 +688,7 @@ export default function ProcedureDetails() {
                   disabled={deleting}
                   className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-200 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sí, Eliminar'}
+                  {deleting ? <Hourglass className="w-4 h-4 animate-pulse" /> : 'Sí, Eliminar'}
                 </button>
               </div>
             </div>
@@ -706,7 +706,7 @@ export default function ProcedureDetails() {
                 <div className="w-1 h-5 bg-[#E3000F] rounded-full" />
                 Cliente
               </h3>
-              {(currentUser?.role === 'admin' || (currentUser?.role === 'tech' && procedure.technicianUsername === currentUser.username)) && (
+              {(currentUser?.role === 'admin' || (currentUser?.role === 'tech' && procedure.technicianUsername === currentUser?.username)) && (
                 <button 
                   onClick={() => {
                     setEditClientData({
@@ -791,7 +791,7 @@ export default function ProcedureDetails() {
                     disabled={saving}
                     className="w-full bg-[#1A1A1A] text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#E3000F] transition-all active:scale-95 shadow-lg shadow-gray-200"
                   >
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <Save className="w-3.5 h-3.5 mr-1.5 inline" />}
+                    {saving ? <Hourglass className="w-4 h-4 animate-pulse mx-auto" /> : <Save className="w-3.5 h-3.5 mr-1.5 inline" />}
                     {saving ? '' : 'Guardar Cambios'}
                   </button>
                 </form>
@@ -865,7 +865,7 @@ export default function ProcedureDetails() {
                           disabled={creatingDriveFolder}
                           className="w-full inline-flex items-center justify-center px-4 py-2 bg-gray-50 text-gray-600 text-[9px] font-black uppercase tracking-widest rounded-xl border border-gray-200 hover:bg-gray-100 transition-all disabled:opacity-50"
                         >
-                          {creatingDriveFolder ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Plus className="w-3.5 h-3.5 mr-1.5" />}
+                          {creatingDriveFolder ? <Hourglass className="w-3.5 h-3.5 animate-pulse mr-1.5" /> : <Plus className="w-3.5 h-3.5 mr-1.5" />}
                           Crear Carpeta Virtual
                         </button>
                       )
@@ -1011,7 +1011,7 @@ export default function ProcedureDetails() {
                         disabled={saving}
                         className="flex-1 px-3 py-2 bg-[#1A1A1A] text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-[#E3000F] transition-colors shadow-lg shadow-gray-200 disabled:opacity-50 flex items-center justify-center gap-2"
                       >
-                        {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                        {saving ? <Hourglass className="w-3 h-3 animate-pulse" /> : <Save className="w-3 h-3" />}
                         Guardar
                       </button>
                     </div>
@@ -1215,7 +1215,7 @@ export default function ProcedureDetails() {
                     <div className="flex gap-2 ml-auto">
                       <button onClick={() => setIsEditingHeader(false)} className="px-3 py-1.5 text-gray-500 font-bold hover:bg-gray-100 rounded-lg transition-colors text-[9px] uppercase tracking-widest">Cancelar</button>
                       <button onClick={handleUpdateHeader} disabled={saving} className="px-4 py-1.5 bg-[#E3000F] text-white font-bold rounded-lg hover:bg-red-700 shadow-lg shadow-red-100 transition-all flex items-center gap-2 text-[9px] uppercase tracking-widest">
-                        {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                        {saving ? <Hourglass className="w-3 h-3 animate-pulse" /> : <Save className="w-3 h-3" />}
                         Guardar
                       </button>
                     </div>
@@ -1257,15 +1257,15 @@ export default function ProcedureDetails() {
                               >
                                 <option value="">Sin asignar</option>
                                 {techs.map(t => (
-                                  <option key={t.id} value={t.username}>{t.name}</option>
+                                  <option key={t.id} value={t?.username}>{t?.name}</option>
                                 ))}
                               </select>
-                              {saving && <Loader2 className="w-2.5 h-2.5 animate-spin text-[#E3000F] absolute right-0 pointer-events-none" />}
+                              {saving && <Hourglass className="w-2.5 h-2.5 animate-pulse text-[#E3000F] absolute right-0 pointer-events-none" />}
                             </div>
                           ) : (
                             <span className="text-[10px] font-black text-gray-900">
                               {techs.length > 0 
-                                ? (techs.find(t => t.username === procedure.technicianUsername)?.name || procedure.technicianUsername || 'Sin asignar')
+                                ? (techs.find(t => t?.username === procedure.technicianUsername)?.name || procedure.technicianUsername || 'Sin asignar')
                                 : (procedure.technicianUsername || 'Sin asignar')
                               }
                             </span>
@@ -1311,7 +1311,7 @@ export default function ProcedureDetails() {
                           disabled={saving || (tempSteps.join(',') === (procedure.completedSteps || ''))}
                           className="px-3 py-1.5 text-[8px] font-black bg-[#E3000F] text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1.5 uppercase tracking-widest shadow-lg shadow-red-100 disabled:opacity-50"
                         >
-                          {saving ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Save className="w-2.5 h-2.5" />}
+                          {saving ? <Hourglass className="w-2.5 h-2.5 animate-pulse" /> : <Save className="w-2.5 h-2.5" />}
                           Guardar Avance
                         </button>
                       </div>
@@ -1321,7 +1321,7 @@ export default function ProcedureDetails() {
                     {steps.map((step: string, index: number) => {
                       const stepStr = index.toString();
                       const isCompleted = tempSteps.includes(stepStr);
-                      const canToggle = currentUser?.role === 'admin' || (currentUser?.role === 'tech' && procedure.technicianUsername === currentUser.username);
+                      const canToggle = currentUser?.role === 'admin' || (currentUser?.role === 'tech' && procedure.technicianUsername === currentUser?.username);
                       
                       return (
                         <div 
@@ -1410,7 +1410,7 @@ export default function ProcedureDetails() {
                         disabled={addingNote}
                         className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 text-[9px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-gray-200 text-white bg-[#1A1A1A] hover:bg-[#E3000F] transition-all disabled:opacity-50 active:scale-95"
                       >
-                        {addingNote ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5 mr-1.5" />}
+                        {addingNote ? <Hourglass className="w-3.5 h-3.5 animate-pulse" /> : <Plus className="w-3.5 h-3.5 mr-1.5" />}
                         Agregar Entrada
                       </button>
                     </div>
@@ -1454,7 +1454,7 @@ export default function ProcedureDetails() {
                                   disabled={savingLog}
                                   className="px-3 py-1 bg-[#E3000F] text-white rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-1"
                                 >
-                                  {savingLog ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Save className="w-2.5 h-2.5" />}
+                                  {savingLog ? <Hourglass className="w-2.5 h-2.5 animate-pulse" /> : <Save className="w-2.5 h-2.5" />}
                                   Guardar
                                 </button>
                               </div>

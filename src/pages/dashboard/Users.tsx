@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
-import { Plus, Loader2, User as UserIcon, Shield, Wrench, Phone, MapPin, Mail, Search, Trash2, Edit2, Key, CheckCircle2, Info } from 'lucide-react';
+import { Plus, Hourglass, User as UserIcon, Shield, Wrench, Phone, MapPin, Mail, Search, Trash2, Edit2, Key, CheckCircle2, Info } from 'lucide-react';
 import { User } from '../../types';
 import LoadingOverlay from '../../components/LoadingOverlay';
 
@@ -117,8 +117,8 @@ export default function Users() {
 
   const filtered = users.filter(u => 
     u.role !== 'client' && (
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.username.toLowerCase().includes(searchTerm.toLowerCase())
+      (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.username || '').toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
 
@@ -141,7 +141,7 @@ export default function Users() {
   if (loading && users.length === 0) {
     return (
       <div className="flex flex-col justify-center items-center h-96 gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-[#E3000F]" />
+        <Hourglass className="w-10 h-10 animate-pulse text-[#E3000F]" />
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest animate-pulse">Cargando directorio...</p>
       </div>
     );
@@ -393,7 +393,7 @@ export default function Users() {
               <div className="flex justify-end gap-4 pt-4">
                 <button type="button" onClick={() => setShowNewModal(false)} className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors">Cancelar</button>
                 <button type="submit" disabled={saving} className="px-8 py-4 bg-[#1A1A1A] text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-[#E3000F] shadow-xl shadow-gray-200 transition-all flex items-center gap-3 active:scale-95">
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {saving && <Hourglass className="w-4 h-4 animate-pulse text-white" />}
                   Registrar Usuario
                 </button>
               </div>
@@ -480,7 +480,7 @@ export default function Users() {
               <div className="flex justify-end gap-4 pt-4">
                 <button type="button" onClick={() => { setShowEditModal(false); setEditingUser(null); }} className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors">Cancelar</button>
                 <button type="submit" disabled={saving} className="px-8 py-4 bg-[#1A1A1A] text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-[#E3000F] shadow-xl shadow-gray-200 transition-all flex items-center gap-3 active:scale-95">
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {saving && <Hourglass className="w-4 h-4 animate-pulse text-white" />}
                   Guardar Cambios
                 </button>
               </div>

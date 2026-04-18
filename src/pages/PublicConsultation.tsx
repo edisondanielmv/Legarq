@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, CheckCircle2, Circle, Building2, ArrowRight, Info, FileText, Calendar, MapPin, Hash, ExternalLink, Home, User, Phone, MessageSquare, ChevronDown, ChevronUp, Eye, ArrowLeft } from 'lucide-react';
+import { Search, Hourglass, CheckCircle2, Circle, Building2, ArrowRight, Info, FileText, Calendar, MapPin, Hash, ExternalLink, Home, User, Phone, MessageSquare, ChevronDown, ChevronUp, Eye, ArrowLeft } from 'lucide-react';
 import { api } from '../lib/api';
 import { Procedure, ProcedureType } from '../types';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
@@ -113,11 +113,11 @@ const PublicConsultation = () => {
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 py-2 px-6 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <Link to="/" className="flex items-center gap-2 group">
+          <Link to="/" className="flex items-center gap-2 group bg-white p-2 rounded-xl">
             <img 
               src="https://lh3.googleusercontent.com/d/1nlBpfXAIZ5TwE9vMBBp_D1-mRz2HhJnb" 
               alt="LEGARQ" 
-              className="h-12 w-auto group-hover:scale-105 transition-transform"
+              className="h-12 w-auto group-hover:scale-105 transition-transform object-contain"
               referrerPolicy="no-referrer"
             />
           </Link>
@@ -165,7 +165,7 @@ const PublicConsultation = () => {
                 disabled={loading}
                 className="bg-[#1A1A1A] hover:bg-[#E3000F] text-white px-8 py-3.5 md:py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all disabled:opacity-50 text-[10px] uppercase tracking-widest shadow-xl shadow-gray-200 active:scale-95"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                {loading ? <Hourglass className="w-4 h-4 animate-pulse text-[#E3000F]" /> : (
                   <>
                     Consultar <ArrowRight className="w-4 h-4" />
                   </>

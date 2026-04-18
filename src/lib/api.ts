@@ -3,30 +3,66 @@ import { User, Procedure, FinancialItem, ProcedureLog, ProcedureFile, ProcedureT
 export const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbwXb4_BCCcvhiOg4ic1vq9FzbuafQ5I-MTz1LpJ1VWUg1-5rhgcXV0Y5AkocyOj0a6G5Q/exec";
 
 const cache = new Map<string, { data: any, timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_KEY_PREFIX = 'legarq_cache_';
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+// Helper to get from session storage
+const getFromSession = (key: string) => {
+  try {
+    const item = sessionStorage.getItem(CACHE_KEY_PREFIX + key);
+    if (!item) return null;
+    const { data, timestamp } = JSON.parse(item);
+    if (Date.now() - timestamp < CACHE_TTL) return data;
+    return null;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Helper to save to session storage
+const saveToSession = (key: string, data: any) => {
+  try {
+    sessionStorage.setItem(CACHE_KEY_PREFIX + key, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch (e) {
+    // Session storage might be full
+  }
+};
 
 export const clearCache = () => {
   cache.clear();
+  // Clear session storage items for our app
+  Object.keys(sessionStorage).forEach(key => {
+    if (key.startsWith(CACHE_KEY_PREFIX)) {
+      sessionStorage.removeItem(key);
+    }
+  });
 };
 
 export const apiCall = async <T>(action: string, data: any = {}): Promise<T> => {
   const url = APPS_SCRIPT_URL;
-  console.log(`[API CALL] Action: ${action}`, data);
+  const isGetRequest = action.startsWith('get');
+  const cacheKey = `${action}-${JSON.stringify(data)}`;
   
   if (!url) {
     console.warn("VITE_APPS_SCRIPT_URL no configurada. Usando modo demostración.");
     return mockApi(action, data);
   }
 
-  // Check cache for GET requests
-  const isGetRequest = action.startsWith('get');
-  const cacheKey = `${action}-${JSON.stringify(data)}`;
-  
+  // 1. Check memory cache first (fastest)
   if (isGetRequest) {
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log(`[CACHE HIT] ${action}`);
+      console.log(`[MEM CACHE HIT] ${action}`);
       return cached.data;
+    }
+    
+    // 2. Check session storage (persists through refresh)
+    const sessionData = getFromSession(cacheKey);
+    if (sessionData) {
+      console.log(`[SESSION CACHE HIT] ${action} - Revalidating in background`);
+      // Background revalidation
+      backgroundFetch(action, data, cacheKey);
+      return sessionData;
     }
   } else {
     // Invalidate cache on write operations
@@ -34,8 +70,30 @@ export const apiCall = async <T>(action: string, data: any = {}): Promise<T> => 
     clearCache();
   }
 
+  return performFetch<T>(action, data, cacheKey);
+};
+
+// Background fetch to refresh cache without blocking the UI
+const backgroundFetch = async (action: string, data: any, cacheKey: string) => {
+  try {
+    const result = await performFetch(action, data, cacheKey, true);
+    console.log(`[BACKGROUND REVALIDATED] ${action}`);
+  } catch (e) {
+    console.error(`[BACKGROUND REVALIDATE FAILED] ${action}`, e);
+  }
+};
+
+const performFetch = async <T>(action: string, data: any, cacheKey: string, silent = false): Promise<T> => {
+  const rawUrl = APPS_SCRIPT_URL;
+  const url = rawUrl?.trim();
+
+  if (!url || !url.startsWith('http')) {
+    if (!silent) throw new Error("La URL de Apps Script no es válida. Verifique la configuración en Settings > Secrets.");
+    return null as any;
+  }
+
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
 
   try {
     const response = await fetch(url, {
@@ -53,31 +111,47 @@ export const apiCall = async <T>(action: string, data: any = {}): Promise<T> => 
     try {
       result = JSON.parse(text);
     } catch (e) {
-      console.error("Response is not JSON. Raw response:", text);
-      if (text.includes("<html") || text.includes("<!DOCTYPE")) {
-        throw new Error("El servidor de Google Apps Script devolvió una página de error (HTML). Verifique que el script esté publicado como 'Aplicación Web' y que tenga permisos de acceso para 'Cualquier persona'.");
+      if (!silent) {
+        console.error("Response is not JSON. Raw response length:", text.length);
+        if (text.includes("<html") || text.includes("<!DOCTYPE")) {
+          throw new Error("El servidor de Google Apps Script devolvió una página de error (HTML). Verifique que el script esté publicado como 'Aplicación Web' y que tenga acceso para 'Cualquier persona'.");
+        }
+        throw new Error("La respuesta del servidor no es válida (JSON Error).");
       }
-      throw new Error("La respuesta del servidor no es válida (no es JSON).");
+      return null as any;
     }
     
     const isSuccess = result.success === true || result.status === 'success' || result.status === 'ok';
     
     if (!isSuccess) {
-      throw new Error(result.error || result.message || 'Error en la base de datos');
+      if (!silent) throw new Error(result.error || result.message || 'Error en la base de datos');
+      return null as any;
     }
     
+    const isGetRequest = action.startsWith('get');
     if (isGetRequest) {
       cache.set(cacheKey, { data: result.data, timestamp: Date.now() });
+      saveToSession(cacheKey, result.data);
     }
     
     return result.data;
   } catch (error: any) {
     clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw new Error("La conexión con Google Sheets tardó demasiado (más de 30 segundos).");
+    if (!silent) {
+      if (error.name === 'AbortError') {
+        throw new Error("La conexión con Google Sheets tardó demasiado (más de 60 segundos).");
+      }
+      
+      console.error("Fetch Error:", error);
+      
+      // Handle the generic "Failed to fetch" which usually means network or CORS issue
+      if (error.message === 'Failed to fetch' || error.message?.includes('network')) {
+        throw new Error("No se pudo conectar con el servidor. Verifique su conexión a internet y que la URL de Apps Script sea correcta y esté publicada.");
+      }
+      
+      throw new Error(error.message || "Error de conexión con Google Sheets");
     }
-    console.error("API Error:", error);
-    throw new Error(error.message || "Error de conexión con Google Sheets");
+    return null as any;
   }
 };
 

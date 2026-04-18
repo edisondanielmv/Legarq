@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Plus, Loader2, Trash2, Briefcase, Edit2, Save, X, ListChecks } from 'lucide-react';
+import { Plus, Hourglass, Trash2, Briefcase, Edit2, Save, X, ListChecks } from 'lucide-react';
 import { ProcedureType } from '../../types';
 
 export default function ProcedureTypes() {
@@ -96,7 +96,7 @@ export default function ProcedureTypes() {
   if (loading && types.length === 0) {
     return (
       <div className="flex flex-col justify-center items-center h-96 gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-[#E3000F]" />
+        <Hourglass className="w-10 h-10 animate-pulse text-[#E3000F]" />
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest animate-pulse">Cargando servicios...</p>
       </div>
     );
@@ -255,7 +255,7 @@ export default function ProcedureTypes() {
                   disabled={saving} 
                   className="px-6 py-2 bg-[#1A1A1A] text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-[#E3000F] shadow-md shadow-gray-200 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50"
                 >
-                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  {saving ? <Hourglass className="w-3.5 h-3.5 animate-pulse" /> : <Save className="w-3.5 h-3.5" />}
                   Guardar
                 </button>
               </div>

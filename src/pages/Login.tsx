@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { apiCall, APPS_SCRIPT_URL } from '../lib/api';
-import { Lock, User as UserIcon, Loader2 } from 'lucide-react';
+import { Lock, User as UserIcon, Hourglass } from 'lucide-react';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -34,12 +34,14 @@ export default function Login() {
     <div className="min-h-screen bg-stone-50 flex flex-col justify-center py-8 md:py-12 px-4 sm:px-6 lg:px-8 relative">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <div className="flex justify-center mb-4">
-          <img 
-            src="https://lh3.googleusercontent.com/d/1nlBpfXAIZ5TwE9vMBBp_D1-mRz2HhJnb" 
-            alt="LEGARQ" 
-            className="h-20 w-auto"
-            referrerPolicy="no-referrer"
-          />
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+            <img 
+              src="https://lh3.googleusercontent.com/d/1nlBpfXAIZ5TwE9vMBBp_D1-mRz2HhJnb" 
+              alt="LEGARQ" 
+              className="h-20 w-auto object-contain"
+              referrerPolicy="no-referrer"
+            />
+          </div>
         </div>
         <p className="mt-4 text-xs md:text-sm text-gray-600 font-medium">
           Sistema de Gestión de Trámites
@@ -108,7 +110,7 @@ export default function Login() {
                 disabled={loading}
                 className="w-full flex justify-center py-4 px-4 border border-transparent rounded-2xl shadow-xl shadow-red-900/20 text-xs md:text-sm font-black uppercase tracking-[0.2em] text-white bg-[#1A1A1A] hover:bg-[#E3000F] focus:outline-none transition-all disabled:opacity-50 active:scale-95"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Ingresar al Sistema'}
+                {loading ? <Hourglass className="w-5 h-5 animate-pulse text-white" /> : 'Ingresar al Sistema'}
               </button>
             </div>
           </form>

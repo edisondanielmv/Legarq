@@ -287,7 +287,8 @@ function deleteProcedure(data) {
 
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][idIdx].toString() === data.id.toString()) { 
-      clientUsernameToDelete = rows[i][clientUsernameIdx];
+      // Capturar el username ANTES de borrar la fila
+      clientUsernameToDelete = (rows[i][clientUsernameIdx] || "").toString().trim().toLowerCase();
       
       // Borrar carpeta de Drive si existe
       if (folderIdIdx !== -1) {
@@ -308,21 +309,26 @@ function deleteProcedure(data) {
       if (clientUsernameToDelete) {
         var remainingProcedures = getSheetData('Tramites');
         var hasOtherProcs = remainingProcedures.some(function(p) { 
-          return p.clientUsername === clientUsernameToDelete; 
+          var pUser = (p.clientUsername || "").toString().trim().toLowerCase();
+          return pUser === clientUsernameToDelete; 
         });
         
+        // Si NO tiene otros trámites, lo borramos de la tabla Usuarios (SOLO si es rol 'client')
         if (!hasOtherProcs) {
-          // Si no tiene más trámites, verificar si es un rol 'client' y borrarlo
           var usersSheet = ss.getSheetByName('Usuarios');
           var usersData = usersSheet.getDataRange().getValues();
           var userHeaders = usersData[0];
           var uUsernameIdx = userHeaders.indexOf('username');
           var uRoleIdx = userHeaders.indexOf('role');
           
-          for (var j = 1; j < usersData.length; j++) {
-            if (usersData[j][uUsernameIdx] === clientUsernameToDelete && usersData[j][uRoleIdx] === 'client') {
-              usersSheet.deleteRow(j + 1);
-              break;
+          if (uUsernameIdx !== -1 && uRoleIdx !== -1) {
+            for (var j = usersData.length - 1; j >= 1; j--) {
+              var sheetUser = (usersData[j][uUsernameIdx] || "").toString().trim().toLowerCase();
+              var sheetRole = (usersData[j][uRoleIdx] || "").toString().trim().toLowerCase();
+              
+              if (sheetUser === clientUsernameToDelete && sheetRole === 'client') {
+                usersSheet.deleteRow(j + 1);
+              }
             }
           }
         }
@@ -332,6 +338,41 @@ function deleteProcedure(data) {
     }
   }
   throw new Error('Trámite no encontrado');
+}
+
+/**
+ * Función de utilidad para limpiar clientes que se quedaron huérfanos sin trámites.
+ * Se puede ejecutar manualmente desde el editor de Apps Script.
+ */
+function cleanOrphanedClients() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var procedures = getSheetData('Tramites');
+  var usersSheet = ss.getSheetByName('Usuarios');
+  var usersData = usersSheet.getDataRange().getValues();
+  var headers = usersData[0];
+  var uUsernameIdx = headers.indexOf('username');
+  var uRoleIdx = headers.indexOf('role');
+  
+  if (uUsernameIdx === -1 || uRoleIdx === -1) return "No se encontraron las columnas necesarias";
+  
+  var deletedCount = 0;
+  // Recorrer de abajo hacia arriba para poder borrar filas sin alterar los índices de las siguientes
+  for (var i = usersData.length - 1; i >= 1; i--) {
+    var role = (usersData[i][uRoleIdx] || "").toString().trim().toLowerCase();
+    var username = (usersData[i][uUsernameIdx] || "").toString().trim().toLowerCase();
+    
+    if (role === 'client') {
+      var hasProc = procedures.some(function(p) {
+        return (p.clientUsername || "").toString().trim().toLowerCase() === username;
+      });
+      
+      if (!hasProc) {
+        usersSheet.deleteRow(i + 1);
+        deletedCount++;
+      }
+    }
+  }
+  return "Se eliminaron " + deletedCount + " clientes huérfanos.";
 }
 
 function updateProcedureStatus(data) {
@@ -370,11 +411,21 @@ function getProcedureByClientId(data) {
   
   var clientData = null;
   var users = getSheetData('Usuarios');
-  var searchTerms = [searchId, searchId.replace(/[^0-9]/g, '')].filter(Boolean);
+  // Búsqueda flexible: original, solo números, y trim de cada uno
+  var searchTerms = [
+    searchId, 
+    searchId.replace(/[^0-9]/g, ''),
+    searchId.toLowerCase()
+  ].filter(function(v, i, a) { return v && a.indexOf(v) === i; });
   
   var client = users.find(function(u) {
     var uId = (u.idNumber || '').toString().trim();
-    return searchTerms.some(function(t) { return uId === t || uId.replace(/[^0-9]/g, '') === t; });
+    var uUser = (u.username || '').toString().trim().toLowerCase();
+    return searchTerms.some(function(t) { 
+      return uId === t || 
+             uId.replace(/[^0-9]/g, '') === t || 
+             uUser === t; 
+    });
   });
   
   if (client) {
@@ -386,7 +437,12 @@ function getProcedureByClientId(data) {
   var filteredProcedures = procedures.filter(function(p) {
     if (clientData && p.clientUsername === clientData.username) return true;
     var pId = (p.idNumber || '').toString().trim();
-    return searchTerms.some(function(t) { return pId === t || pId.replace(/[^0-9]/g, '') === t; });
+    var pCode = (p.code || '').toString().trim().toLowerCase();
+    return searchTerms.some(function(t) { 
+      return pId === t || 
+             pId.replace(/[^0-9]/g, '') === t || 
+             pCode === t; 
+    });
   });
 
   var allLogs = getSheetData('Bitacora');
@@ -396,7 +452,7 @@ function getProcedureByClientId(data) {
     });
   });
 
-  if (filteredProcedures.length === 0 && !clientData) throw new Error('No se encontraron datos para la cédula: ' + searchId);
+  // En lugar de lanzar error, devolvemos resultados vacíos para que el frontend lo maneje con "Sin resultados"
   return { client: clientData, procedures: filteredProcedures };
 }
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { Loader2, FileText, User as UserIcon, Calendar, ClipboardList, Search, Download, Filter } from 'lucide-react';
+import { Hourglass, FileText, User as UserIcon, Calendar, ClipboardList, Search, Download, Filter } from 'lucide-react';
 import { ProcedureLog, Procedure } from '../../types';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -57,7 +57,7 @@ export default function Reports() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-[#E3000F]" />
+        <Hourglass className="w-8 h-8 animate-pulse text-[#E3000F]" />
       </div>
     );
   }
@@ -101,21 +101,21 @@ export default function Reports() {
     const procedure = data.procedures.find(p => p.id === log.procedureId);
     const matchesSearch = 
       log.note.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (procedure?.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (procedure?.clientName?.toLowerCase().includes(searchTerm.toLowerCase()));
+      ((procedure?.title || '').toLowerCase().includes(searchTerm.toLowerCase())) ||
+      ((procedure?.clientName || procedure?.clientUsername || '').toLowerCase().includes(searchTerm.toLowerCase()));
     
     return matchesTech && matchesDate && matchesSearch;
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) || [];
 
   const getProcedureTitle = (id: string) => {
-    return data?.procedures.find(p => p.id === id)?.title || 'Trámite Desconocido';
+    return data?.procedures?.find(p => p.id === id)?.title || 'Trámite Desconocido';
   };
 
   const getTechName = (username: string) => {
-    return data?.technicians.find(t => t.username === username)?.name || username;
+    return data?.technicians?.find(t => t?.username === username)?.name || username;
   };
 
-  const groupedByProcedure = data?.procedures.map(proc => {
+  const groupedByProcedure = (data?.procedures || []).map(proc => {
     const procLogs = filteredLogs.filter(l => l.procedureId === proc.id);
     if (procLogs.length === 0 && searchTerm) return null; // Filter out if searching and no logs match
     return {
@@ -146,7 +146,7 @@ export default function Reports() {
         const procLogs = filteredLogs.filter(l => l.procedureId === proc.id);
         const matchesSearch = 
           proc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (proc.clientName || proc.clientUsername).toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (proc.clientName || proc.clientUsername || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
           (proc.code || '').toLowerCase().includes(searchTerm.toLowerCase());
         
         // If there are technician or date filters, only show procedures with matching logs
@@ -335,7 +335,7 @@ export default function Reports() {
               >
                 <option value="all">Todos los Técnicos</option>
                 {data?.technicians.map(tech => (
-                  <option key={tech.id} value={tech.username}>{tech.name}</option>
+                  <option key={tech.id} value={tech?.username || ''}>{tech?.name || 'Nombre Desconocido'}</option>
                 ))}
               </select>
             </div>
@@ -359,6 +359,7 @@ export default function Reports() {
               <tbody className="divide-y divide-gray-50">
                 {filteredLogs.map((log) => {
                   const proc = data?.procedures.find(p => p.id === log.procedureId);
+                  const techName = getTechName(log.technicianUsername || '');
                   return (
                     <tr key={log.id} className="hover:bg-gray-50/30 transition-colors group">
                       <td className="px-6 py-3 whitespace-nowrap">
@@ -372,9 +373,9 @@ export default function Reports() {
                       <td className="px-6 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 bg-gray-100 rounded-lg flex items-center justify-center text-[8px] font-black text-gray-600 uppercase border border-gray-200">
-                            {getTechName(log.technicianUsername).substring(0, 2)}
+                            {techName.substring(0, 2)}
                           </div>
-                          <span className="text-[9px] font-black text-gray-900 uppercase tracking-widest">{getTechName(log.technicianUsername)}</span>
+                          <span className="text-[9px] font-black text-gray-900 uppercase tracking-widest">{techName}</span>
                         </div>
                       </td>
                       <td className="px-6 py-3">
@@ -482,7 +483,7 @@ export default function Reports() {
                   const procLogs = filteredLogs.filter(l => l.procedureId === p.id);
                   const matchesSearch = 
                     p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    (p.clientName || p.clientUsername).toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (p.clientName || p.clientUsername || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                     (p.code || '').toLowerCase().includes(searchTerm.toLowerCase());
                   
                   // If there are technician or date filters, only show procedures with matching logs

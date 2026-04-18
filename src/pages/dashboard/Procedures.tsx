@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
-import { Plus, Search, Loader2, FileText, User as UserIcon, Calendar, Briefcase, ExternalLink, CheckCircle2, Eye, Hash, ArrowRight, X, Clock } from 'lucide-react';
+import { Plus, Search, Hourglass, FileText, User as UserIcon, Calendar, Briefcase, ExternalLink, CheckCircle2, Eye, Hash, ArrowRight, X, Clock, FolderOpen } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 import clsx from 'clsx';
 import { Procedure, User, ProcedureType } from '../../types';
@@ -107,7 +107,7 @@ export default function Procedures() {
   };
 
   const filtered = procedures.filter(p => 
-    p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (p.code && p.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (p.clientUsername && p.clientUsername.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (p.clientName && p.clientName.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -131,7 +131,7 @@ export default function Procedures() {
   if (loading && procedures.length === 0) {
     return (
       <div className="flex flex-col justify-center items-center h-96 gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-[#E3000F]" />
+        <Hourglass className="w-10 h-10 animate-pulse text-[#E3000F]" />
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest animate-pulse">Cargando trámites...</p>
       </div>
     );
@@ -214,6 +214,7 @@ export default function Procedures() {
               <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Técnico</th>
               <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Días</th>
               <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Estado</th>
+              <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Carpeta</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -273,6 +274,24 @@ export default function Procedures() {
                     {proc.status}
                   </span>
                 </td>
+                <td className="px-6 py-2 whitespace-nowrap">
+                  {proc.driveUrl ? (
+                    <a
+                      href={proc.driveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all border border-blue-100 shadow-sm group/folder"
+                      title="Abrir Carpeta Virtual"
+                    >
+                      <FolderOpen className="w-4 h-4 group-hover/folder:scale-110 transition-transform" />
+                    </a>
+                  ) : (
+                    <div className="w-8 h-8 bg-gray-50 text-gray-300 rounded-lg flex items-center justify-center border border-gray-100 cursor-not-allowed" title="Carpeta no disponible">
+                      <FolderOpen className="w-4 h-4" />
+                    </div>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -282,8 +301,12 @@ export default function Procedures() {
       {/* Mobile Card View */}
       <div className="md:hidden space-y-3">
         {filtered.map((proc) => (
-          <div key={proc.id} className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden group active:scale-[0.98] transition-all">
-            <Link to={`/dashboard/procedures/${proc.id}`} className="block p-4">
+          <div 
+            key={proc.id} 
+            className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden group active:scale-[0.98] transition-all cursor-pointer"
+            onClick={() => navigate(`/dashboard/procedures/${proc.id}`)}
+          >
+            <div className="p-4">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex flex-col gap-1">
                   <span className={clsx(
@@ -300,6 +323,17 @@ export default function Procedures() {
                   <div className="flex items-center gap-1.5 text-[8px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100 uppercase tracking-widest w-fit mt-1">
                     <Clock className="w-3 h-3" /> {calculateDaysElapsed(proc.createdAt, proc.completedAt)} días
                   </div>
+                  {proc.driveUrl && (
+                    <a
+                      href={proc.driveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1.5 text-[8px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 uppercase tracking-widest w-fit mt-1"
+                    >
+                      <FolderOpen className="w-3 h-3" /> Carpeta Virtual
+                    </a>
+                  )}
                 </div>
                 <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
                   <ArrowRight className="w-4 h-4 text-gray-400" />
@@ -338,7 +372,7 @@ export default function Procedures() {
                   </div>
                 </div>
               </div>
-            </Link>
+            </div>
           </div>
         ))}
       </div>
@@ -418,7 +452,7 @@ export default function Procedures() {
                   disabled={saving} 
                   className="px-6 py-3 bg-[#1A1A1A] text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-[#E3000F] shadow-xl shadow-gray-200 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50"
                 >
-                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                  {saving ? <Hourglass className="w-3.5 h-3.5 animate-pulse" /> : <Plus className="w-3.5 h-3.5" />}
                   Crear Trámite
                 </button>
               </div>

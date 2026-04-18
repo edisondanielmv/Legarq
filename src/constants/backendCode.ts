@@ -49,19 +49,28 @@ function setup() {
   
   sheets.forEach(function(name) {
     var sheet = ss.getSheetByName(name);
+    var headers = [];
+    if (name === 'Usuarios') headers = ['id', 'name', 'username', 'password', 'role', 'phone', 'address', 'idNumber', 'email'];
+    if (name === 'Tramites') headers = ['id', 'code', 'title', 'clientUsername', 'status', 'description', 'createdAt', 'driveFolderId', 'driveUrl', 'technicianUsername', 'completedSteps', 'expectedValue', 'otherAgreements', 'clientName', 'idNumber', 'procedureType'];
+    if (name === 'Bitacora') headers = ['id', 'procedureId', 'timestamp', 'technicianUsername', 'note', 'isExternal'];
+    if (name === 'Finanzas') headers = ['id', 'procedureId', 'date', 'amount', 'type', 'description', 'category'];
+    if (name === 'Archivos') headers = ['id', 'procedureId', 'name', 'fileId', 'mimeType', 'url', 'createdAt'];
+    if (name === 'TiposTramite') headers = ['id', 'name', 'steps'];
+
     if (!sheet) {
       sheet = ss.insertSheet(name);
-      var headers = [];
-      if (name === 'Usuarios') headers = ['id', 'name', 'username', 'password', 'role', 'phone', 'address', 'idNumber', 'email'];
-      if (name === 'Tramites') headers = ['id', 'title', 'clientUsername', 'status', 'description', 'createdAt', 'driveFolderId', 'driveUrl', 'technicianUsername', 'completedSteps', 'expectedValue', 'otherAgreements', 'clientName', 'idNumber', 'procedureType'];
-      if (name === 'Bitacora') headers = ['id', 'procedureId', 'timestamp', 'technicianUsername', 'note', 'isExternal'];
-      if (name === 'Finanzas') headers = ['id', 'procedureId', 'date', 'amount', 'type', 'description', 'category'];
-      if (name === 'Archivos') headers = ['id', 'procedureId', 'name', 'fileId', 'mimeType', 'url', 'createdAt'];
-      if (name === 'TiposTramite') headers = ['id', 'name', 'steps'];
-      
       if (headers.length > 0) {
         sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
         sheet.setFrozenRows(1);
+      }
+    } else if (headers.length > 0) {
+      // Check if headers match, if not, update them (safely)
+      var existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      var missingHeaders = headers.filter(function(h) { return existingHeaders.indexOf(h) === -1; });
+      
+      if (missingHeaders.length > 0) {
+        var newHeaders = existingHeaders.concat(missingHeaders);
+        sheet.getRange(1, 1, 1, newHeaders.length).setValues([newHeaders]);
       }
     }
   });
@@ -89,7 +98,7 @@ function getSheetData(name) {
   var result = [];
   for (var i = 1; i < data.length; i++) {
     var obj = {};
-    for (var j = 0; j < headers.j; j++) {
+    for (var j = 0; j < headers.length; j++) {
       obj[headers[j]] = data[i][j];
     }
     result.push(obj);
@@ -134,6 +143,11 @@ function createProcedure(data) {
   var sheet = ss.getSheetByName('Tramites');
   var id = Utilities.getUuid();
   var date = new Date().toISOString();
+  
+  // Generate unique code
+  var lastRow = sheet.getLastRow();
+  var nextNum = lastRow; // Since row 1 is headers, if lastRow is 1, next is 1
+  var code = 'TR-' + nextNum.toString().padStart(4, '0');
   
   var clientUsername = data.clientUsername || '';
   if (!clientUsername && data.idNumber) {
@@ -183,6 +197,7 @@ function createProcedure(data) {
   
   var dataMap = {
     'id': id,
+    'code': code,
     'title': data.title,
     'clientUsername': clientUsername,
     'status': 'Nuevo',
@@ -207,7 +222,7 @@ function createProcedure(data) {
   }
   
   sheet.appendRow(rowData);
-  return { id: id, driveUrl: procFolder ? procFolder.getUrl() : '' };
+  return { id: id, code: code, driveUrl: procFolder ? procFolder.getUrl() : '' };
 }
 
 function updateProcedureStatus(data) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { DollarSign, Loader2, TrendingUp, TrendingDown, Wallet, Search, Filter, ArrowUpRight, ArrowDownRight, Briefcase, User as UserIcon, Mail, Plus, Edit2, Trash2, X, Check, AlertCircle, Upload, FileCheck, Settings } from 'lucide-react';
+import { DollarSign, Hourglass, TrendingUp, TrendingDown, Wallet, Search, Filter, ArrowUpRight, ArrowDownRight, Briefcase, User as UserIcon, Mail, Plus, Edit2, Trash2, X, Check, AlertCircle, Upload, FileCheck, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import clsx from 'clsx';
@@ -78,8 +78,8 @@ export default function FinancialReports() {
 
   const filteredProcedures = procedureSummary.filter(item => {
     const matchesSearch = 
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.clientUsername.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.clientUsername || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.procedureType || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     if (filterType === 'pending') return matchesSearch && item.pending > 0;
@@ -145,13 +145,14 @@ export default function FinancialReports() {
   const handleCreateAccount = async () => {
     if (!newAccountName.trim()) return;
     setSaving(true);
+    setError('');
     try {
       setIsSubmitting(true);
       await api.createAccount(newAccountName);
       setNewAccountName('');
-      fetchData();
+      await fetchData();
     } catch (err: any) {
-      alert(err.message);
+      setError(err.message || 'Error al crear la cuenta');
     } finally {
       setIsSubmitting(false);
       setSaving(false);
@@ -159,22 +160,19 @@ export default function FinancialReports() {
   };
 
   const handleDeleteAccount = async (id: string) => {
-    console.log('Attempting to delete account:', id);
-    if (!window.confirm('¿Estás seguro de eliminar esta cuenta?')) return;
     setSaving(true);
+    setError('');
     try {
-      const result = await api.deleteAccount(id);
-      console.log('Delete account result:', result);
-      fetchData();
+      await api.deleteAccount(id);
+      await fetchData();
     } catch (err: any) {
-      console.error('Error deleting account:', err);
-      alert(err.message);
+      setError(err.message || 'Error al eliminar la cuenta');
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-[#E3000F]" /></div>;
+  if (loading) return <div className="flex justify-center items-center h-64"><Hourglass className="w-8 h-8 animate-pulse text-[#E3000F]" /></div>;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 relative">
@@ -495,9 +493,9 @@ export default function FinancialReports() {
                     <tbody className="divide-y divide-gray-100">
                       {(data.transactions || [])
                         .filter(t => 
-                          t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          t.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (data.procedures.find(p => p.id === t.procedureId)?.title || '').toLowerCase().includes(searchTerm.toLowerCase())
+                          (t.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (t.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (data.procedures?.find(p => p.id === t.procedureId)?.title || '').toLowerCase().includes(searchTerm.toLowerCase())
                         )
                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         .map(t => (
@@ -643,6 +641,11 @@ export default function FinancialReports() {
               </button>
             </div>
             <div className="p-4 space-y-4">
+              {error && (
+                <div className="p-2 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2 text-red-600 text-[10px] font-bold uppercase">
+                  <AlertCircle className="w-3 h-3" /> {error}
+                </div>
+              )}
               <div className="flex gap-2">
                 <input 
                   type="text" 
@@ -656,7 +659,7 @@ export default function FinancialReports() {
                   disabled={isSubmitting || !newAccountName.trim()}
                   className="px-3 py-1.5 bg-[#E3000F] text-white rounded-lg font-bold text-[10px] disabled:opacity-50"
                 >
-                  {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Añadir'}
+                  {isSubmitting ? <Hourglass className="w-3 h-3 animate-pulse" /> : 'Añadir'}
                 </button>
               </div>
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
@@ -870,7 +873,7 @@ function TransactionModal({ isOpen, onClose, onSuccess, editingItem, procedures,
                 "w-full px-3 py-1.5 border rounded-lg text-xs flex items-center justify-center gap-2 cursor-pointer transition-all",
                 formData.fileUrl ? "bg-green-50 border-green-200 text-green-700" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
               )}>
-                {uploadingReceipt ? <Loader2 className="w-3 h-3 animate-spin" /> : (formData.fileUrl ? <FileCheck className="w-3 h-3" /> : <Upload className="w-3 h-3" />)}
+                {uploadingReceipt ? <Hourglass className="w-3 h-3 animate-pulse" /> : (formData.fileUrl ? <FileCheck className="w-3 h-3" /> : <Upload className="w-3 h-3" />)}
                 <span className="font-bold text-[10px]">{formData.fileUrl ? 'Cargado' : 'Subir'}</span>
                 <input type="file" className="hidden" onChange={handleReceiptUpload} disabled={uploadingReceipt} />
               </label>
@@ -919,7 +922,7 @@ function TransactionModal({ isOpen, onClose, onSuccess, editingItem, procedures,
               disabled={isSubmitting}
               className="flex-1 px-4 py-1.5 bg-[#E3000F] text-white rounded-lg font-bold text-xs hover:bg-red-700 transition-all shadow-lg shadow-red-100 disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+              {isSubmitting ? <Hourglass className="w-3 h-3 animate-pulse" /> : <Check className="w-3 h-3" />}
               {editingItem ? 'Actualizar' : 'Guardar'}
             </button>
           </div>
