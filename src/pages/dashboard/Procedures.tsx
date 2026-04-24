@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
-import { Plus, Search, Hourglass, FileText, User as UserIcon, Calendar, Briefcase, ExternalLink, CheckCircle2, Eye, Hash, ArrowRight, X, Clock, FolderOpen } from 'lucide-react';
+import { Plus, Search, Hourglass, FileText, User as UserIcon, Calendar, Briefcase, ExternalLink, CheckCircle2, Eye, Hash, ArrowRight, X, Clock, FolderOpen, Upload } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 import clsx from 'clsx';
 import { Procedure, User, ProcedureType } from '../../types';
 import LoadingOverlay from '../../components/LoadingOverlay';
+import { BulkUpload } from '../../components/BulkUpload';
 
 export default function Procedures() {
   const { user } = useAuth();
@@ -167,12 +168,19 @@ export default function Procedures() {
             <Eye className="w-3.5 h-3.5 text-[#E3000F]" /> Simular Consulta
           </a>
           {user?.role === 'admin' && (
-            <button
-              onClick={() => setShowNewModal(true)}
-              className="flex-1 md:flex-none bg-[#1A1A1A] text-white px-4 py-2 rounded-xl flex items-center justify-center gap-2 hover:bg-[#E3000F] transition-all shadow-xl shadow-gray-200 font-black text-[9px] uppercase tracking-widest active:scale-95"
-            >
-              <Plus className="w-3.5 h-3.5" /> Nuevo Trámite
-            </button>
+            <div className="flex items-center gap-2">
+              <BulkUpload 
+                onSuccess={fetchProcedures} 
+                procedureTypes={procedureTypes} 
+                technicians={users.filter(u => u.role === 'tech')} 
+              />
+              <button
+                onClick={() => setShowNewModal(true)}
+                className="flex-1 md:flex-none bg-[#1A1A1A] text-white px-4 py-2 rounded-xl flex items-center justify-center gap-2 hover:bg-[#E3000F] transition-all shadow-xl shadow-gray-200 font-black text-[9px] uppercase tracking-widest active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" /> Nuevo Trámite
+              </button>
+            </div>
           )}
         </div>
       </div>

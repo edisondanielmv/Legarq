@@ -34,16 +34,25 @@ export default function FinancialReports() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [summary, accs, usersData] = await Promise.all([
-        api.getFinancialSummary(),
-        api.getAccounts(),
-        api.getUsers('admin')
+      setError('');
+      
+      const [summary, allProcedures, accs, usersData] = await Promise.all([
+        api.getFinancialSummary().catch(() => ({ transactions: [], procedures: [] })),
+        api.getProcedures({ username: '', role: 'admin' }).catch(() => []),
+        api.getAccounts().catch(() => []),
+        api.getUsers('admin').catch(() => [])
       ]);
-      setData(summary);
-      setAccounts(accs);
+      
+      // Merge data
+      setData({
+        transactions: summary?.transactions || [],
+        procedures: allProcedures.length > 0 ? allProcedures : (summary?.procedures || [])
+      });
+      
+      setAccounts(accs || []);
       setStaff(Array.isArray(usersData) ? usersData.filter((u: any) => u.role === 'admin' || u.role === 'tech') : []);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Error al cargar los datos financieros');
     } finally {
       setLoading(false);
     }
@@ -51,20 +60,68 @@ export default function FinancialReports() {
 
   // Filter transactions by date
   const filteredTransactions = (data.transactions || []).filter(t => {
+    if (t.isDeleted) return false;
     if (!t.date) return true;
+    
+    // Clean and parse date
     const tDate = new Date(t.date);
-    if (startDate && tDate < new Date(startDate)) return false;
-    if (endDate && tDate > new Date(endDate + 'T23:59:59')) return false;
+    if (isNaN(tDate.getTime())) return true; // Include if date is invalid but exists
+    
+    if (startDate) {
+      const start = new Date(startDate);
+      if (!isNaN(start.getTime()) && tDate < start) return false;
+    }
+    if (endDate) {
+      const end = new Date(endDate + 'T23:59:59');
+      if (!isNaN(end.getTime()) && tDate > end) return false;
+    }
     return true;
   });
 
+  // Helper to parse currency safely
+  const parseAmount = (val: any) => {
+    if (typeof val === 'number') return val;
+    if (!val) return 0;
+    let str = String(val).trim();
+    if (str.includes(',') && str.includes('.')) {
+      if (str.indexOf(',') > str.indexOf('.')) {
+        str = str.replace(/\./g, '').replace(',', '.');
+      } else {
+        str = str.replace(/,/g, '');
+      }
+    } else if (str.includes(',')) {
+      str = str.replace(',', '.');
+    }
+    const cleaned = str.replace(/[^-0.9.]/g, '');
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
   // Process data for Procedure Summary
   const procedureSummary = (data.procedures || []).map(proc => {
-    const procTransactions = filteredTransactions.filter(t => t.procedureId === proc.id);
-    const income = procTransactions.filter(t => t.type === 'Ingreso').reduce((sum, t) => sum + Number(t.amount), 0);
-    const expense = procTransactions.filter(t => t.type === 'Egreso').reduce((sum, t) => sum + Number(t.amount), 0);
-    const receivable = procTransactions.filter(t => t.type === 'Cuenta por Cobrar').reduce((sum, t) => sum + Number(t.amount), 0);
-    const expected = receivable || Number(proc.expectedValue) || 0;
+    // Flexible ID matching (string/number)
+    const procTransactions = filteredTransactions.filter(t => String(t.procedureId).trim() === String(proc.id).trim());
+    
+    const income = procTransactions.filter(t => {
+      const type = (t.type || '').trim().toLowerCase();
+      return type === 'ingreso' || type === 'abono';
+    }).reduce((sum, t) => sum + parseAmount(t.amount), 0);
+    
+    const expense = procTransactions.filter(t => {
+      const type = (t.type || '').trim().toLowerCase();
+      return type === 'egreso' || type === 'gasto';
+    }).reduce((sum, t) => sum + parseAmount(t.amount), 0);
+    
+    const receivable = procTransactions.filter(t => {
+      const type = (t.type || '').trim().toLowerCase();
+      return type === 'cuenta por cobrar' || type === 'por cobrar';
+    }).reduce((sum, t) => sum + parseAmount(t.amount), 0);
+    
+    // Prioritize the agreed value field if it exists, otherwise use total receivable transactions
+    const rawVal = proc.expectedValue;
+    const procExpectedValue = parseAmount(rawVal);
+    const expected = procExpectedValue || receivable || 0;
+    
     return {
       ...proc,
       totalIncome: income,
@@ -91,8 +148,9 @@ export default function FinancialReports() {
   const categorySummary = filteredTransactions.reduce((acc: any, t) => {
     const cat = t.category || 'Sin Categoría';
     if (!acc[cat]) acc[cat] = { category: cat, income: 0, expense: 0, count: 0 };
-    if (t.type === 'Ingreso') acc[cat].income += Number(t.amount);
-    else acc[cat].expense += Number(t.amount);
+    const amt = parseAmount(t.amount);
+    if (t.type === 'Ingreso') acc[cat].income += amt;
+    else acc[cat].expense += amt;
     acc[cat].count++;
     return acc;
   }, {});
@@ -106,18 +164,25 @@ export default function FinancialReports() {
     if (isNaN(date.getTime())) return acc;
     const monthKey = format(date, 'yyyy-MM');
     if (!acc[monthKey]) acc[monthKey] = { month: monthKey, income: 0, expense: 0 };
-    if (t.type === 'Ingreso') acc[monthKey].income += Number(t.amount);
-    else acc[monthKey].expense += Number(t.amount);
+    const amt = parseAmount(t.amount);
+    if (t.type === 'Ingreso') acc[monthKey].income += amt;
+    else acc[monthKey].expense += amt;
     return acc;
   }, {});
 
   const cashFlowList = Object.values(cashFlowSummary).sort((a: any, b: any) => b.month.localeCompare(a.month));
 
-  const totalIncome = filteredTransactions.filter(t => t.type === 'Ingreso').reduce((sum, t) => sum + Number(t.amount), 0);
-  const totalExpense = filteredTransactions.filter(t => t.type === 'Egreso').reduce((sum, t) => sum + Number(t.amount), 0);
-  const totalReceivable = filteredTransactions.filter(t => t.type === 'Cuenta por Cobrar').reduce((sum, t) => sum + Number(t.amount), 0);
+  const totalIncome = filteredTransactions.filter(t => {
+    const type = (t.type || '').trim().toLowerCase();
+    return type === 'ingreso' || type === 'abono';
+  }).reduce((sum, t) => sum + parseAmount(t.amount), 0);
+  
+  const totalExpense = filteredTransactions.filter(t => {
+    const type = (t.type || '').trim().toLowerCase();
+    return type === 'egreso' || type === 'gasto';
+  }).reduce((sum, t) => sum + parseAmount(t.amount), 0);
   const totalBalance = totalIncome - totalExpense;
-  const totalExpected = totalReceivable || (data.procedures || []).reduce((sum, p) => sum + (Number(p.expectedValue) || 0), 0);
+  const totalExpected = (data.procedures || []).reduce((sum, p) => sum + parseAmount(p.expectedValue), 0);
 
   const handleAddTransaction = () => {
     setEditingItem(null);
@@ -183,6 +248,11 @@ export default function FinancialReports() {
           <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Gestión de Flujo de Efectivo</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {error && (
+            <div className="mr-4 px-3 py-1 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2 text-red-600 text-[9px] font-bold uppercase">
+              <AlertCircle className="w-3.5 h-3.5" /> {error}
+            </div>
+          )}
           <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
             <input 
               type="date" 
@@ -495,7 +565,7 @@ export default function FinancialReports() {
                         .filter(t => 
                           (t.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (t.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (data.procedures?.find(p => p.id === t.procedureId)?.title || '').toLowerCase().includes(searchTerm.toLowerCase())
+                          (data.procedures?.find(p => String(p.id) === String(t.procedureId))?.title || '').toLowerCase().includes(searchTerm.toLowerCase())
                         )
                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         .map(t => (
@@ -531,7 +601,7 @@ export default function FinancialReports() {
                               t.type === 'Cuenta por Cobrar' ? "text-blue-600" : "text-red-600"
                             )}>
                               {t.type === 'Ingreso' ? '+' : 
-                               t.type === 'Cuenta por Cobrar' ? '+' : '-'}${Number(t.amount).toLocaleString()}
+                               t.type === 'Cuenta por Cobrar' ? '+' : '-'}${parseAmount(t.amount).toLocaleString()}
                             </span>
                           </td>
                           <td className="px-4 py-3">

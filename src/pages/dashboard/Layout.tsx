@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LayoutDashboard, Users, LogOut, FileText, DollarSign, Settings, Menu, X, ClipboardList, Eye } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, FileText, DollarSign, Settings, Menu, X, ClipboardList, Eye, Database } from 'lucide-react';
 import clsx from 'clsx';
 import { APPS_SCRIPT_URL } from '../../lib/api';
 
@@ -24,6 +24,7 @@ export default function DashboardLayout() {
     { name: 'Usuarios', href: '/dashboard/users', icon: Users, roles: ['admin'] },
     { name: 'Reporte Actividades', href: '/dashboard/reports?view=list', icon: ClipboardList, roles: ['admin'] },
     { name: 'Reportes Finanzas', href: '/dashboard/financial-reports', icon: DollarSign, roles: ['admin'] },
+    { name: 'Base de Datos', href: '/dashboard/database', icon: Database, roles: ['admin'] },
     { name: 'Configuración', href: '/dashboard/settings', icon: Settings, roles: ['admin'] },
   ];
 

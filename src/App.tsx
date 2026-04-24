@@ -14,6 +14,7 @@ import Users from './pages/dashboard/Users';
 import FinancialReports from './pages/dashboard/FinancialReports';
 import Reports from './pages/dashboard/Reports';
 import Settings from './pages/dashboard/Settings';
+import DatabaseEditor from './pages/dashboard/DatabaseEditor';
 
 const ProtectedRoute = ({ children, allowedRoles, requiredPermission }: { children: React.ReactNode, allowedRoles?: string[], requiredPermission?: string }) => {
   const { user } = useAuth();
@@ -65,6 +66,11 @@ function AppRoutes() {
         <Route path="users" element={
           <ProtectedRoute allowedRoles={['admin']} requiredPermission="users">
             <Users />
+          </ProtectedRoute>
+        } />
+        <Route path="database" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <DatabaseEditor />
           </ProtectedRoute>
         } />
         <Route path="financial-reports" element={

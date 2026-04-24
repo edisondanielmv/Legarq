@@ -217,6 +217,7 @@ export const api = {
   assignTechnician: (data: { procedureId: string, technicianUsername: string }) => apiCall<{ success: true }>('assignTechnician', data),
   updateProcedureSteps: (data: { procedureId: string, completedSteps: string }) => apiCall<{ success: true }>('updateProcedureSteps', data),
   getProcedureByClientId: (idNumber: string) => apiCall<{ client: User | null, procedures: Procedure[] }>('getProcedureByClientId', { idNumber }),
+  bulkCreate: (data: any[]) => apiCall<{ success: any[], errors: any[] }>('bulkCreateProcedures', data),
   getLogs: (procedureId: string) => apiCall<ProcedureLog[]>('getLogs', { procedureId }),
   addLog: (data: any) => apiCall<{ id: string }>('addLog', data),
   updateLog: (data: { id: string, note: string, isExternal: boolean }) => apiCall<{ success: true }>('updateLog', data),
@@ -244,5 +245,7 @@ export const api = {
   createDriveFolder: (procedureId: string, title: string) => apiCall<{ driveUrl: string }>('createDriveFolder', { procedureId, title }),
   getTechnicianActivityReport: (role: string) => apiCall<{ logs: ProcedureLog[], procedures: Procedure[], technicians: { id: string, name: string, username: string }[] }>('getTechnicianActivityReport', { role }),
   checkDuplicateIdNumber: (idNumber: string, excludeUsername?: string) => apiCall<{ exists: boolean; name?: string }>('checkDuplicateIdNumber', { idNumber, excludeUsername }),
+  getAllTableData: () => apiCall<any>('getAllTableData'),
+  batchUpdateTable: (tableName: string, updates: any[]) => apiCall<{ success: boolean }>('batchUpdateTable', { tableName, updates }),
   clearCache,
 };
