@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
-import { Plus, Search, Hourglass, FileText, User as UserIcon, Calendar, Briefcase, ExternalLink, CheckCircle2, Eye, Hash, ArrowRight, X, Clock, FolderOpen, Upload } from 'lucide-react';
+import { Plus, Search, Hourglass, FileText, User as UserIcon, Calendar, Briefcase, ExternalLink, CheckCircle2, Eye, Hash, ArrowRight, X, Clock, FolderOpen, Upload, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 import clsx from 'clsx';
 import { Procedure, User, ProcedureType } from '../../types';
@@ -19,6 +19,7 @@ export default function Procedures() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
 
   const [showNewModal, setShowNewModal] = useState(false);
@@ -107,6 +108,68 @@ export default function Procedures() {
     }
   };
 
+  const handleDelete = async (e: React.MouseEvent, id: string, code: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Si ya estamos procesando, no permitir otro click
+    if (saving) return;
+
+    // Primer click: Pedir confirmación visual
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      // Resetear confirmación tras 3 segundos
+      setTimeout(() => setConfirmDeleteId(null), 3000);
+      return;
+    }
+
+    console.log(`[FRONTEND] Ejecutando ELIMINACIÓN CONFIRMADA: ID=${id}, CODE=${code}`);
+    setSaving(true);
+    setConfirmDeleteId(null);
+    setError('');
+    
+    try {
+      await api.deleteProcedure(id);
+      showSuccess(`Trámite ${code} eliminado.`);
+      await fetchProcedures();
+    } catch (err: any) {
+      console.error(`[FRONTEND] Error al eliminar trámite ${code}:`, err);
+      
+      if (code) {
+        try {
+          await api.deleteProcedure(code);
+          showSuccess(`Trámite ${code} eliminado (vía código).`);
+          await fetchProcedures();
+          return;
+        } catch (retryErr) {}
+      }
+      
+      setError(`Error: ${err.message || 'No se pudo eliminar'}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleForceDeleteByCode = async () => {
+    const code = window.prompt("Ingrese el CÓDIGO del trámite que desea eliminar (ej. TR-0001):");
+    if (!code) return;
+    
+    if (!window.confirm(`¿FORZAR ELIMINACIÓN del trámite ${code}? Se borrarán todos los datos asociados.`)) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await api.deleteProcedure(code);
+      showSuccess(`Trámite ${code} eliminado forzosamente.`);
+      await fetchProcedures();
+    } catch (err: any) {
+      setError(`Error en eliminación forzada: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const filtered = procedures.filter(p => 
     (p.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (p.code && p.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -169,6 +232,13 @@ export default function Procedures() {
           </a>
           {user?.role === 'admin' && (
             <div className="flex items-center gap-2">
+              <button
+                onClick={handleForceDeleteByCode}
+                className="flex-1 md:flex-none bg-red-50 text-red-600 border border-red-100 px-4 py-2 rounded-xl flex items-center justify-center gap-2 hover:bg-red-600 hover:text-white transition-all font-black text-[9px] uppercase tracking-widest shadow-sm active:scale-95"
+                title="Método alternativo para eliminar por código"
+              >
+                <Hash className="w-3.5 h-3.5" /> Eliminar por Código
+              </button>
               <BulkUpload 
                 onSuccess={fetchProcedures} 
                 procedureTypes={procedureTypes} 
@@ -223,6 +293,7 @@ export default function Procedures() {
               <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Días</th>
               <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Estado</th>
               <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Carpeta</th>
+              {user?.role === 'admin' && <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Acciones</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -300,6 +371,32 @@ export default function Procedures() {
                     </div>
                   )}
                 </td>
+                {user?.role === 'admin' && (
+                  <td className="px-6 py-2 whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={(e) => handleDelete(e, proc.id, proc.code || '')}
+                      disabled={saving}
+                      className={clsx(
+                        "h-8 min-w-[32px] px-2 rounded-lg flex items-center justify-center transition-all border shadow-sm group/delete font-black text-[8px] uppercase tracking-tighter",
+                        saving 
+                          ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" 
+                          : confirmDeleteId === proc.id
+                            ? "bg-red-600 text-white border-red-600 animate-pulse"
+                            : "bg-red-50 text-red-600 border-red-100 hover:bg-red-600 hover:text-white"
+                      )}
+                      title={confirmDeleteId === proc.id ? "Haga clic de nuevo para confirmar" : "Eliminar Trámite"}
+                    >
+                      {saving ? (
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                      ) : confirmDeleteId === proc.id ? (
+                        "¿CONFIRMAR?"
+                      ) : (
+                        <Trash2 className="w-4 h-4 group-hover/delete:scale-110 transition-transform" />
+                      )}
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -341,6 +438,21 @@ export default function Procedures() {
                     >
                       <FolderOpen className="w-3 h-3" /> Carpeta Virtual
                     </a>
+                  )}
+                  {user?.role === 'admin' && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleDelete(e, proc.id, proc.code || '')}
+                      className={clsx(
+                        "flex items-center gap-1.5 text-[8px] font-black px-2 py-0.5 rounded-md border uppercase tracking-widest w-fit mt-1",
+                        confirmDeleteId === proc.id
+                          ? "bg-red-600 text-white border-red-600"
+                          : "bg-red-50 text-red-600 border-red-100"
+                      )}
+                    >
+                      {confirmDeleteId === proc.id ? <AlertCircle className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />}
+                      {confirmDeleteId === proc.id ? "¡CONFIRMAR ELIMINACIÓN!" : "Eliminar"}
+                    </button>
                   )}
                 </div>
                 <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">

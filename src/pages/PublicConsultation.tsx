@@ -275,84 +275,33 @@ const PublicConsultation = () => {
                               >
                                 <div className="pt-8 mt-8 border-t border-gray-50">
                                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                                    <div className="lg:col-span-2">
-                                      {/* Progress Bar */}
-                                      <div className="mb-8">
-                                        <div className="flex justify-between items-end mb-3">
-                                          <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Progreso del Trámite</span>
-                                          <span className="text-2xl font-black text-gray-900">{progress}%</span>
-                                        </div>
-                                        <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden border border-white shadow-inner">
-                                          <motion.div 
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${progress}%` }}
-                                            transition={{ duration: 1, ease: "circOut" }}
-                                            className={clsx(
-                                              "h-full rounded-full relative",
-                                              progress === 100 ? "bg-emerald-500" : "bg-[#E3000F]"
-                                            )}
-                                          />
-                                        </div>
-                                      </div>
-
-                                      {/* Steps List */}
-                                      {steps.length > 0 && (
-                                        <div className="bg-gray-50/50 rounded-[24px] p-6 md:p-8 border border-gray-100">
-                                          <h3 className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
-                                            <div className="w-4 h-1 bg-[#E3000F] rounded-full" />
-                                            Hoja de Ruta
-                                          </h3>
-                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            {steps.map((step: string, index: number) => {
-                                              const isCompleted = completedIndices.includes(index);
-                                              return (
-                                                <div key={index} className="flex items-start gap-3 group/step">
-                                                  <div className={clsx(
-                                                    "w-5 h-5 rounded-lg flex items-center justify-center shrink-0 transition-all",
-                                                    isCompleted ? "bg-emerald-500 text-white shadow-lg shadow-emerald-200" : "bg-white text-gray-200 border border-gray-100"
-                                                  )}>
-                                                    {isCompleted ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />}
+                                      {/* Bitácora (Moved to full width if steps are removed or keep layout) */}
+                                      <div className="lg:col-span-3">
+                                        {/* External Logs (Bitácora) */}
+                                        {proc.logs && proc.logs.length > 0 && (
+                                          <div className="bg-white rounded-[24px] p-6 border border-gray-100 shadow-sm">
+                                            <h3 className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+                                              <MessageSquare className="w-4 h-4 text-[#E3000F]" />
+                                              Bitácora de Actualizaciones
+                                            </h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                                              {proc.logs.filter(l => l.isExternal).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((log) => (
+                                                <div key={log.id} className="relative pl-5 pb-6 last:pb-0 border-l-2 border-gray-50 last:border-l-0">
+                                                  <div className="absolute left-[-5px] top-0 w-2 h-2 rounded-full bg-[#E3000F] shadow-lg shadow-red-200" />
+                                                  <div className="flex flex-col gap-1.5">
+                                                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                                      {new Date(log.date).toLocaleDateString()}
+                                                    </span>
+                                                    <p className="text-[11px] font-bold text-gray-600 leading-relaxed">
+                                                      {log.note}
+                                                    </p>
                                                   </div>
-                                                  <span className={clsx(
-                                                    "text-[11px] font-black uppercase tracking-tight leading-tight pt-0.5 transition-colors",
-                                                    isCompleted ? "text-gray-900" : "text-gray-400"
-                                                  )}>
-                                                    {step}
-                                                  </span>
                                                 </div>
-                                              );
-                                            })}
+                                              ))}
+                                            </div>
                                           </div>
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    <div className="space-y-6">
-                                      {/* External Logs (Bitácora) */}
-                                      {proc.logs && proc.logs.length > 0 && (
-                                        <div className="bg-white rounded-[24px] p-6 border border-gray-100 shadow-sm">
-                                          <h3 className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
-                                            <MessageSquare className="w-4 h-4 text-[#E3000F]" />
-                                            Bitácora
-                                          </h3>
-                                          <div className="space-y-6">
-                                            {proc.logs.filter(l => l.isExternal).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((log) => (
-                                              <div key={log.id} className="relative pl-5 pb-6 last:pb-0 border-l-2 border-gray-50 last:border-l-0">
-                                                <div className="absolute left-[-5px] top-0 w-2 h-2 rounded-full bg-[#E3000F] shadow-lg shadow-red-200" />
-                                                <div className="flex flex-col gap-1.5">
-                                                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                                                    {new Date(log.date).toLocaleDateString()}
-                                                  </span>
-                                                  <p className="text-[11px] font-bold text-gray-600 leading-relaxed">
-                                                    {log.note}
-                                                  </p>
-                                                </div>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
+                                        )}
+                                      </div>
                                   </div>
                                 </div>
                               </motion.div>

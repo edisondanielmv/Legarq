@@ -6,8 +6,8 @@ import {
   ArrowLeft, Save, Edit2, CheckCircle2, XCircle, Plus, Trash2, 
   User as UserIcon, Calendar, DollarSign, FileText, Hourglass, 
   Phone, MapPin, Mail, Folder, MessageSquare, Clock, ArrowUpRight, 
-  ArrowDownRight, Circle, Check, AlertCircle, RefreshCw, Eye,
-  ClipboardList, Users, ShieldAlert, Briefcase
+  ArrowDownRight, Circle, Check, AlertCircle, RefreshCw, Eye, Home,
+  ClipboardList, Users, ShieldAlert, Briefcase, X
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -50,7 +50,8 @@ export default function ProcedureDetails() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'info' | 'bitacora' | 'finanzas' | 'archivos'>('info');
+  const [activeTab, setActiveTab] = useState<'cliente' | 'tramite' | 'inmueble' | 'bitacora' | 'finanzas' | 'archivos'>('tramite');
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const hasChanges = useMemo(() => {
     if (!draft || !original.procedure) return false;
@@ -106,16 +107,35 @@ export default function ProcedureDetails() {
     setError(null);
     try {
       const procs = await api.getProcedures({ username: currentUser.username, role: currentUser.role });
-      const proc = procs.find((p: Procedure) => String(p.id) === String(id));
-      if (!proc) throw new Error('Expediente no encontrado');
+      
+      if (!procs || procs.length === 0) {
+        console.warn("No procedures found for user:", currentUser.username);
+      }
+
+      // Mejoramos la búsqueda del trámite para evitar problemas de tipos o espacios
+      const searchId = (id || '').toString().trim();
+      const proc = procs.find((p: Procedure) => 
+        String(p.id).trim() === searchId || 
+        String(p.code).trim().toLowerCase() === searchId.toLowerCase()
+      );
+      
+      if (!proc) {
+        console.error("Procedure not found for search term:", searchId);
+        console.log("Available IDs:", procs.map(p => p.id));
+        console.log("Available Codes:", procs.map(p => p.code));
+        setLoading(false);
+        return;
+      }
+
+      const cleanId = String(proc.id).trim();
 
       const [logs, financials, users, types, accounts, files] = await Promise.all([
-        api.getLogs(id),
-        currentUser.role === 'admin' ? api.getFinancials(id) : Promise.resolve([]),
+        api.getLogs(cleanId),
+        currentUser.role === 'admin' ? api.getFinancials(cleanId) : Promise.resolve([]),
         api.getUsers(currentUser.role),
         api.getProcedureTypes(),
         api.getAccounts(),
-        api.getFiles(id)
+        api.getFiles(cleanId)
       ]);
 
       const clientUser = users.find((u: User) => u.username === proc.clientUsername) || null;
@@ -141,13 +161,14 @@ export default function ProcedureDetails() {
   };
 
   const handleGlobalSave = async () => {
-    if (!draft || !id) return;
+    if (!draft || !original.procedure || !original.procedure.id) return;
     setSaving(true);
     setError(null);
+    const realId = original.procedure.id;
     try {
       // 1. Update Procedure & Sync Client Info in Procedure table
       const procedureChanges = {
-        id,
+        id: realId,
         title: draft.procedure.title,
         status: draft.procedure.status,
         technicianUsername: draft.procedure.technicianUsername,
@@ -179,7 +200,7 @@ export default function ProcedureDetails() {
       const logsToUpdate = draft.logs.filter(l => !l.isNew && !l.isDeleted && l.id && JSON.stringify(l) !== JSON.stringify(original.logs.find(ol => ol.id === l.id)));
 
       for (const logId of logsToDelete) await api.deleteLog(logId);
-      for (const log of logsToCreate) await api.addLog({ procedureId: id, note: log.note!, isExternal: !!log.isExternal, technicianUsername: currentUser?.username });
+      for (const log of logsToCreate) await api.addLog({ procedureId: realId, note: log.note!, isExternal: !!log.isExternal, technicianUsername: currentUser?.username });
       if (logsToUpdate.length > 0) {
         await api.batchUpdateTable('Bitacora', logsToUpdate.map(l => ({ id: l.id!, changes: { note: l.note, isExternal: l.isExternal } })));
       }
@@ -190,7 +211,7 @@ export default function ProcedureDetails() {
       const finsToUpdate = draft.financials.filter(f => !f.isNew && !f.isDeleted && f.id && JSON.stringify(f) !== JSON.stringify(original.financials.find(of => of.id === f.id)));
 
       for (const finId of finsToDelete) await api.deleteFinancialItem(finId);
-      for (const fin of finsToCreate) await api.addFinancialItem({ ...fin as any, procedureId: id });
+      for (const fin of finsToCreate) await api.addFinancialItem({ ...fin as any, procedureId: realId });
       if (finsToUpdate.length > 0) {
         await api.batchUpdateTable('Finanzas', finsToUpdate.map(f => ({ id: f.id!, changes: { description: f.description, amount: f.amount, type: f.type, category: f.category, isReimbursable: f.isReimbursable, reimburseTo: f.reimburseTo } })));
       }
@@ -200,6 +221,66 @@ export default function ProcedureDetails() {
       await fetchData();
     } catch (err: any) {
       setError("Error al guardar cambios: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteProcedure = async () => {
+    if (!original.procedure || !original.procedure.id) {
+      alert("Error: No se puede identificar el trámite para eliminar.");
+      return;
+    }
+
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      setTimeout(() => setConfirmDelete(false), 4000);
+      return;
+    }
+
+    setSaving(true);
+    setConfirmDelete(false);
+    try {
+      console.log(`[FRONTEND] Eliminando trámite. ID=${original.procedure.id}, CODE=${original.procedure.code}`);
+      await api.deleteProcedure(original.procedure.id);
+      console.log("[FRONTEND] Eliminación por ID exitosa.");
+      navigate('/dashboard');
+    } catch (err: any) {
+      console.error("[FRONTEND] Error al eliminar por ID:", err);
+      
+      // Retry by code
+      if (original.procedure.code) {
+        try {
+          console.log(`[FRONTEND] Reintentando por CODE=${original.procedure.code}`);
+          await api.deleteProcedure(original.procedure.code);
+          console.log("[FRONTEND] Eliminación por Código exitosa.");
+          navigate('/dashboard');
+          return;
+        } catch (retryErr: any) {
+          console.error("[FRONTEND] Reintento fallido:", retryErr);
+        }
+      }
+      
+      setError("Error crítico al eliminar trámite: " + err.message);
+      alert("Error al eliminar: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteFile = async (e: React.MouseEvent, fileId: string, fileName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm(`¿Está seguro de eliminar el archivo ${fileName}?`)) return;
+    
+    setSaving(true);
+    try {
+      await api.deleteFile(fileId);
+      setFiles(prev => prev.filter(f => f.id !== fileId));
+      setSuccess("Archivo eliminado correctamente");
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError("Error al eliminar archivo: " + err.message);
     } finally {
       setSaving(false);
     }
@@ -250,13 +331,16 @@ export default function ProcedureDetails() {
   );
 
   const calculateProgress = () => {
-    const currentType = procedureTypes.find(t => t.name === draft.procedure.procedureType);
+    if (!draft || !draft.procedure || !draft.procedure.procedureType) return 0;
+    const procType = (draft.procedure.procedureType || '').toString().trim().toLowerCase();
+    const currentType = procedureTypes.find(t => t.name.toString().trim().toLowerCase() === procType);
     if (!currentType) return 0;
     try {
-      const steps = JSON.parse(currentType.steps);
-      if (!Array.isArray(steps) || steps.length === 0) return 0;
-      const completedCount = (draft.procedure.completedSteps || '').split(',').filter(Boolean).length;
-      return Math.round((completedCount / steps.length) * 100);
+      const stepsList = JSON.parse(currentType.steps);
+      if (!Array.isArray(stepsList) || stepsList.length === 0) return 0;
+      const completedStepsStr = (draft.procedure.completedSteps || '').toString();
+      const completedCount = completedStepsStr.split(',').filter(Boolean).length;
+      return Math.round((completedCount / stepsList.length) * 100);
     } catch(e) { return 0; }
   };
 
@@ -264,7 +348,22 @@ export default function ProcedureDetails() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-32">
-      {saving && <LoadingOverlay message="Guardando expediente..." />}
+      {saving && <LoadingOverlay message="Procesando... Por favor espere." />}
+
+      {error && (
+        <div className="bg-red-50 border border-red-100 text-red-600 px-6 py-4 rounded-3xl flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center shrink-0">
+            <X className="w-5 h-5 text-red-600" />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest mb-1">Error Detectado</p>
+            <p className="text-xs font-medium leading-relaxed">{error}</p>
+          </div>
+          <button onClick={() => setError(null)} className="ml-auto p-2 hover:bg-red-100 rounded-lg transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Header Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm">
@@ -319,6 +418,32 @@ export default function ProcedureDetails() {
             </select>
           )}
 
+          {currentUser?.role === 'admin' && (
+            <button
+              type="button"
+              onClick={handleDeleteProcedure}
+              disabled={saving}
+              className={clsx(
+                "px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border shadow-sm",
+                saving 
+                  ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" 
+                  : confirmDelete
+                    ? "bg-red-600 text-white border-red-600 animate-pulse"
+                    : "bg-red-50 text-red-600 border-red-100 hover:bg-red-600 hover:text-white"
+              )}
+              title={confirmDelete ? "Haga clic de nuevo para confirmar eliminación total" : "Eliminar Trámite Permanentemente"}
+            >
+              {saving ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : confirmDelete ? (
+                <AlertCircle className="w-4 h-4" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+              <span>{confirmDelete ? "¡CONFIRMAR ELIMINACIÓN!" : "Eliminar"}</span>
+            </button>
+          )}
+
           <a 
             href={`/consulta?idNumber=${draft.client.idNumber || draft.client.username}`} 
             target="_blank" 
@@ -334,7 +459,9 @@ export default function ProcedureDetails() {
         {/* Left Column: Sidebar Tabs & Client Quick Info */}
         <div className="lg:col-span-1 space-y-4">
           <div className="bg-white p-2 rounded-[28px] border border-gray-100 shadow-sm flex flex-col gap-1">
-             <TabButton label="Información General" icon={Briefcase} active={activeTab === 'info'} onClick={() => setActiveTab('info')} />
+             <TabButton label="Información Trámite" icon={Briefcase} active={activeTab === 'tramite'} onClick={() => setActiveTab('tramite')} />
+             <TabButton label="Información Cliente" icon={UserIcon} active={activeTab === 'cliente'} onClick={() => setActiveTab('cliente')} />
+             <TabButton label="Información Inmueble" icon={Home} active={activeTab === 'inmueble'} onClick={() => setActiveTab('inmueble')} />
              <TabButton label="Bitácora" icon={ClipboardList} active={activeTab === 'bitacora'} onClick={() => setActiveTab('bitacora')} count={draft.logs.length} />
              <TabButton label="Finanzas" icon={DollarSign} active={activeTab === 'finanzas'} onClick={() => setActiveTab('finanzas')} count={draft.financials.length} />
              <TabButton label="Archivos Drive" icon={Folder} active={activeTab === 'archivos'} onClick={() => setActiveTab('archivos')} />
@@ -362,19 +489,19 @@ export default function ProcedureDetails() {
                 </div>
                 <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-gray-400">
                   <span>Abonado</span>
-                  <span className="text-emerald-600">${draft.financials.filter(f => f.type === 'Ingreso' && !f.isDeleted).reduce((sum, f) => sum + Number(f.amount), 0)}</span>
+                  <span className="text-emerald-600">${draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-gray-400">
                   <span>Gastos</span>
-                  <span className="text-red-500">${draft.financials.filter(f => f.type === 'Egreso' && !f.isDeleted).reduce((sum, f) => sum + Number(f.amount), 0)}</span>
+                  <span className="text-red-500">${draft.financials.filter(f => !f.isDeleted && (f.type === 'Egreso' || f.type === 'Gasto')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0).toLocaleString()}</span>
                 </div>
                 <div className="h-px bg-gray-200 w-full" />
                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
                   <span className="text-gray-400">Saldo Pendiente</span>
                   <span className={clsx(
-                    (draft.procedure.expectedValue || 0) - draft.financials.filter(f => f.type === 'Ingreso' && !f.isDeleted).reduce((sum, f) => sum + Number(f.amount), 0) > 0 ? "text-[#E3000F]" : "text-emerald-600"
+                    (typeof draft.procedure.expectedValue === 'number' ? draft.procedure.expectedValue : parseFloat(String(draft.procedure.expectedValue || 0))) - draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0) > 0 ? "text-[#E3000F]" : "text-emerald-600"
                   )}>
-                    ${(draft.procedure.expectedValue || 0) - draft.financials.filter(f => f.type === 'Ingreso' && !f.isDeleted).reduce((sum, f) => sum + Number(f.amount), 0)}
+                    ${((typeof draft.procedure.expectedValue === 'number' ? draft.procedure.expectedValue : parseFloat(String(draft.procedure.expectedValue || 0))) - draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0)).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -385,7 +512,7 @@ export default function ProcedureDetails() {
         {/* Main Center Content */}
         <div className="lg:col-span-3 space-y-6">
           <AnimatePresence mode="wait">
-            {activeTab === 'info' && (
+            {activeTab === 'tramite' && (
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
                 <Section title="Información del Trámite">
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -427,18 +554,19 @@ export default function ProcedureDetails() {
                         return (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {stepsList.map((step: string, index: number) => {
-                              const isCompleted = (draft.procedure.completedSteps || '').split(',').filter(Boolean).includes(step);
+                              const stepIdx = index.toString();
+                              const current = (draft.procedure.completedSteps || '').toString().split(',').filter(Boolean);
+                              const isCompleted = current.includes(stepIdx);
                               return (
                                 <div 
                                   key={index}
                                   onClick={() => {
-                                    const current = (draft.procedure.completedSteps || '').split(',').filter(Boolean);
                                     const updated = isCompleted 
-                                      ? current.filter(s => s !== step)
-                                      : [...current, step];
+                                      ? current.filter(s => s !== stepIdx)
+                                      : [...current, stepIdx];
                                     setDraft({
                                       ...draft,
-                                      procedure: { ...draft.procedure, completedSteps: updated.join(',') }
+                                      procedure: { ...draft.procedure, completedSteps: updated.sort((a,b) => Number(a)-Number(b)).join(',') }
                                     });
                                   }}
                                   className={clsx(
@@ -466,7 +594,11 @@ export default function ProcedureDetails() {
                     })()}
                   </div>
                 </Section>
+              </motion.div>
+            )}
 
+            {activeTab === 'cliente' && (
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
                 <Section title="Información del Cliente">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Field label="Nombre del Cliente">
@@ -481,14 +613,6 @@ export default function ProcedureDetails() {
                         value={draft.client.idNumber || ''}
                         onChange={e => setDraft({...draft, client: {...draft.client, idNumber: e.target.value}})}
                         className="w-full bg-gray-50 border-gray-100 rounded-xl p-3 text-xs font-black outline-none focus:ring-2 focus:ring-red-500/20"
-                      />
-                    </Field>
-                    <Field label="Número de Predio / Clave">
-                      <input 
-                        value={draft.procedure.propertyNumber || ''}
-                        onChange={e => setDraft({...draft, procedure: {...draft.procedure, propertyNumber: e.target.value}})}
-                        className="w-full bg-gray-50 border-gray-100 rounded-xl p-3 text-xs font-black outline-none focus:ring-2 focus:ring-red-500/20"
-                        placeholder="00-00-00-00"
                       />
                     </Field>
                     <Field label="Teléfono / WhatsApp">
@@ -511,6 +635,23 @@ export default function ProcedureDetails() {
                         value={draft.client.address || ''}
                         onChange={e => setDraft({...draft, client: {...draft.client, address: e.target.value}})}
                         className="w-full bg-gray-50 border-gray-100 rounded-xl p-3 text-xs font-black outline-none focus:ring-2 focus:ring-red-500/20"
+                      />
+                    </Field>
+                  </div>
+                </Section>
+              </motion.div>
+            )}
+
+            {activeTab === 'inmueble' && (
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                <Section title="Información del Inmueble">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Field label="Número de Predio / Clave">
+                      <input 
+                        value={draft.procedure.propertyNumber || ''}
+                        onChange={e => setDraft({...draft, procedure: {...draft.procedure, propertyNumber: e.target.value}})}
+                        className="w-full bg-gray-50 border-gray-100 rounded-xl p-3 text-xs font-black outline-none focus:ring-2 focus:ring-red-500/20"
+                        placeholder="00-00-00-00"
                       />
                     </Field>
                   </div>
@@ -637,20 +778,20 @@ export default function ProcedureDetails() {
                    />
                    <StatCard 
                      label="Abonado" 
-                     value={draft.financials.filter(f => f.type === 'Ingreso' && !f.isDeleted).reduce((sum, f) => sum + Number(f.amount), 0)} 
+                     value={draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0)} 
                      color="emerald" 
                      icon={ArrowUpRight} 
                    />
                    <StatCard 
                      label="Gastos" 
-                     value={draft.financials.filter(f => f.type === 'Egreso' && !f.isDeleted).reduce((sum, f) => sum + Number(f.amount), 0)} 
+                     value={draft.financials.filter(f => !f.isDeleted && (f.type === 'Egreso' || f.type === 'Gasto')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0)} 
                      color="red" 
                      icon={ArrowDownRight} 
                    />
                    <StatCard 
                      label="S. Pendiente" 
-                     value={(draft.procedure.expectedValue || 0) - draft.financials.filter(f => f.type === 'Ingreso' && !f.isDeleted).reduce((sum, f) => sum + Number(f.amount), 0)} 
-                     color={(draft.procedure.expectedValue || 0) - draft.financials.filter(f => f.type === 'Ingreso' && !f.isDeleted).reduce((sum, f) => sum + Number(f.amount), 0) > 0 ? "orange" : "emerald"} 
+                     value={(typeof draft.procedure.expectedValue === 'number' ? draft.procedure.expectedValue : parseFloat(String(draft.procedure.expectedValue || 0))) - draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0)} 
+                     color={(typeof draft.procedure.expectedValue === 'number' ? draft.procedure.expectedValue : parseFloat(String(draft.procedure.expectedValue || 0))) - draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0) > 0 ? "orange" : "emerald"} 
                      icon={DollarSign} 
                      highlight
                    />
@@ -781,15 +922,26 @@ export default function ProcedureDetails() {
                  {files.length > 0 && (
                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                       {files.map(file => (
-                        <a key={file.id} href={file.url} target="_blank" className="p-4 bg-white rounded-2xl border border-gray-100 hover:border-blue-200 group transition-all flex items-center gap-3 shadow-sm">
-                           <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center group-hover:bg-blue-50 transition-colors">
-                              <FileText className="w-5 h-5 text-gray-400 group-hover:text-blue-500" />
-                           </div>
-                           <div className="overflow-hidden">
-                              <p className="text-[10px] font-black text-gray-900 truncate uppercase tracking-tight">{file.name}</p>
-                              <p className="text-[8px] font-medium text-gray-400 uppercase tracking-widest">{format(new Date(file.date), "dd MMM, yyyy")}</p>
-                           </div>
-                        </a>
+                        <div key={file.id} className="relative group/card">
+                          <a href={file.url} target="_blank" className="p-4 bg-white rounded-2xl border border-gray-100 hover:border-blue-200 group transition-all flex items-center gap-3 shadow-sm h-full">
+                             <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                                <FileText className="w-5 h-5 text-gray-400 group-hover:text-blue-500" />
+                             </div>
+                             <div className="overflow-hidden pr-8">
+                                <p className="text-[10px] font-black text-gray-900 truncate uppercase tracking-tight">{file.name}</p>
+                                <p className="text-[8px] font-medium text-gray-400 uppercase tracking-widest">{format(new Date(file.date), "dd MMM, yyyy")}</p>
+                             </div>
+                          </a>
+                          {currentUser?.role === 'admin' && (
+                            <button
+                              onClick={(e) => handleDeleteFile(e, file.id, file.name)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-red-50 text-red-600 rounded-lg flex items-center justify-center opacity-0 group-hover/card:opacity-100 hover:bg-red-600 hover:text-white transition-all border border-red-100 shadow-sm z-10"
+                              title="Eliminar Archivo"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       ))}
                    </div>
                  )}

@@ -240,6 +240,7 @@ export const api = {
   updateProcedureType: (data: { id: string, name?: string, steps?: string }) => apiCall<{ success: true }>('updateProcedureType', data),
   deleteProcedureType: (id: string) => apiCall<{ success: true }>('deleteProcedureType', { id }),
   updateProcedure: (data: Partial<Procedure> & { id: string }) => apiCall<{ success: true }>('updateProcedure', data),
+  deleteFile: (id: string) => apiCall<{ success: true }>('deleteFile', { id }),
   deleteProcedure: (id: string) => apiCall<{ success: true }>('deleteProcedure', { id }),
   deleteUser: (username: string) => apiCall<{ success: true }>('deleteUser', { username }),
   createDriveFolder: (procedureId: string, title: string) => apiCall<{ driveUrl: string }>('createDriveFolder', { procedureId, title }),
