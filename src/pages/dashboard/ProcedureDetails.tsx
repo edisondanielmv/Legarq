@@ -154,6 +154,16 @@ export default function ProcedureDetails() {
 
       const clientUser = users.find((u: User) => u.username === proc.clientUsername) || null;
       
+      const clientFallback: Partial<User> = {
+        username: proc.clientUsername || '',
+        name: proc.clientName || '',
+        email: proc.clientEmail || '',
+        phone: proc.clientPhone || '',
+        address: proc.clientAddress || '',
+        idNumber: proc.idNumber || '',
+        role: 'client'
+      };
+
       setOriginal({ procedure: proc, client: clientUser, logs, financials });
       setFiles(files);
       setProcedureTypes(types);
@@ -162,7 +172,7 @@ export default function ProcedureDetails() {
 
       setDraft({
         procedure: { ...proc },
-        client: clientUser ? { ...clientUser } : {},
+        client: clientUser ? { ...clientUser } : clientFallback,
         logs: logs.map(l => ({ ...l })),
         financials: financials.map(f => ({ ...f }))
       });
@@ -190,22 +200,28 @@ export default function ProcedureDetails() {
         completedSteps: draft.procedure.completedSteps,
         procedureType: draft.procedure.procedureType,
         propertyNumber: draft.procedure.propertyNumber,
-        clientName: draft.client.name, // Sync
-        clientPhone: draft.client.phone, // Sync
-        clientEmail: draft.client.email // Sync
+        clientName: draft.client.name, 
+        clientPhone: draft.client.phone, 
+        clientEmail: draft.client.email,
+        idNumber: draft.client.idNumber,
+        clientAddress: draft.client.address
       };
       await api.updateProcedure(procedureChanges);
 
       // 2. Update Client User account (if admin/tech)
-      if (currentUser?.role !== 'client' && original.client) {
-        await api.updateUser({
-          username: original.client.username,
-          name: draft.client.name,
-          phone: draft.client.phone,
-          address: draft.client.address,
-          idNumber: draft.client.idNumber,
-          email: draft.client.email
-        });
+      if (currentUser?.role !== 'client' && draft.client.username) {
+        try {
+          await api.updateUser({
+            username: draft.client.username,
+            name: draft.client.name,
+            phone: draft.client.phone,
+            address: draft.client.address,
+            idNumber: draft.client.idNumber,
+            email: draft.client.email
+          });
+        } catch (err) {
+          console.warn("[SAVE] User account update failed (possibly doesn't exist), but procedure was updated:", err);
+        }
       }
 
       // 3. Handle Bitacora (Logs)
