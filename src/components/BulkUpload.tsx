@@ -102,10 +102,10 @@ export function BulkUpload({ onSuccess, procedureTypes, technicians }: BulkUploa
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
+        className="flex-1 md:flex-none bg-emerald-600 text-white h-10 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all font-black text-[9px] uppercase tracking-widest shadow-sm active:scale-95"
         id="btn-bulk-upload"
       >
-        <Upload size={18} />
+        <Upload className="w-3.5 h-3.5" />
         <span>Carga Masiva</span>
       </button>
 
@@ -126,12 +126,12 @@ export function BulkUpload({ onSuccess, procedureTypes, technicians }: BulkUploa
                   </h2>
                   <p className="text-sm text-gray-500 mt-1">Suba varios trámites a la vez mediante una plantilla de Excel</p>
                 </div>
-                <button 
-                  onClick={() => { setIsOpen(false); reset(); }}
-                  className="p-2 hover:bg-gray-200 rounded-full transition-colors"
-                >
-                  <X size={24} className="text-gray-400" />
-                </button>
+                  <button 
+                    onClick={() => { setIsOpen(false); reset(); }}
+                    className="p-2 hover:bg-gray-200 rounded-xl transition-colors"
+                  >
+                    <X className="w-6 h-6 text-gray-400" />
+                  </button>
               </div>
 
               <div className="flex-1 overflow-y-auto p-6">
@@ -151,9 +151,9 @@ export function BulkUpload({ onSuccess, procedureTypes, technicians }: BulkUploa
                           </p>
                           <button
                             onClick={downloadTemplate}
-                            className="mt-4 flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
+                            className="mt-4 flex items-center gap-2 bg-emerald-600 text-white h-9 px-4 rounded-xl hover:bg-emerald-700 transition-all font-black text-[9px] uppercase tracking-widest active:scale-95"
                           >
-                            <Download size={18} />
+                            <Download className="w-3.5 h-3.5" />
                             Bajar Plantilla Excel
                           </button>
                         </div>
@@ -289,19 +289,19 @@ export function BulkUpload({ onSuccess, procedureTypes, technicians }: BulkUploa
                   <>
                     <button
                       onClick={() => { setIsOpen(false); reset(); }}
-                      className="px-6 py-2 rounded-lg font-medium text-gray-600 hover:bg-gray-200 transition-colors"
+                      className="h-10 px-6 rounded-xl font-black text-[9px] uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors"
                     >
                       Cancelar
                     </button>
                     <button
                       onClick={handleSubmit}
                       disabled={data.length === 0 || isLoading}
-                      className="flex items-center gap-2 bg-emerald-600 text-white px-8 py-2 rounded-lg font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                      className="flex items-center gap-2 bg-emerald-600 text-white h-10 px-8 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-emerald-500/10 active:scale-95"
                     >
                       {isLoading ? (
-                        <Hourglass className="animate-spin" size={18} />
+                        <Hourglass className="animate-spin w-3.5 h-3.5" />
                       ) : (
-                        <CheckCircle size={18} />
+                        <CheckCircle className="w-3.5 h-3.5" />
                       )}
                       {isLoading ? "Procesando..." : "Subir Trámites"}
                     </button>
@@ -309,7 +309,7 @@ export function BulkUpload({ onSuccess, procedureTypes, technicians }: BulkUploa
                 ) : (
                   <button
                     onClick={() => { setIsOpen(false); reset(); }}
-                    className="bg-gray-800 text-white px-8 py-2 rounded-lg font-bold hover:bg-gray-900 transition-colors shadow-lg"
+                    className="bg-gray-900 text-white h-10 px-8 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95"
                   >
                     Cerrar
                   </button>

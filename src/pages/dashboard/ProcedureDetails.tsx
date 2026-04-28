@@ -368,7 +368,7 @@ export default function ProcedureDetails() {
       {/* Header Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/dashboard')} className="p-2.5 bg-gray-50 text-gray-400 hover:text-gray-900 rounded-xl border border-gray-100 transition-all">
+          <button onClick={() => navigate('/dashboard')} className="h-10 w-10 bg-gray-50 text-gray-400 hover:text-gray-900 rounded-xl border border-gray-100 transition-all flex items-center justify-center shrink-0">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
@@ -407,7 +407,7 @@ export default function ProcedureDetails() {
               value={draft.procedure.status}
               onChange={e => setDraft({...draft, procedure: {...draft.procedure, status: e.target.value as any}})}
               className={clsx(
-                "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border-none ring-1 transition-all outline-none",
+                "h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest border-none ring-1 transition-all outline-none",
                 draft.procedure.status === 'Finalizado' 
                   ? "bg-emerald-50 text-emerald-600 ring-emerald-100" 
                   : "bg-amber-50 text-amber-600 ring-amber-100"
@@ -424,7 +424,7 @@ export default function ProcedureDetails() {
               onClick={handleDeleteProcedure}
               disabled={saving}
               className={clsx(
-                "px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border shadow-sm",
+                "h-10 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border shadow-sm",
                 saving 
                   ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" 
                   : confirmDelete
@@ -440,14 +440,14 @@ export default function ProcedureDetails() {
               ) : (
                 <Trash2 className="w-4 h-4" />
               )}
-              <span>{confirmDelete ? "¡CONFIRMAR ELIMINACIÓN!" : "Eliminar"}</span>
+              <span>{confirmDelete ? "¡CONFIRMAR!" : "Eliminar"}</span>
             </button>
           )}
 
           <a 
             href={`/consulta?idNumber=${draft.client.idNumber || draft.client.username}`} 
             target="_blank" 
-            className="p-2.5 bg-white text-gray-400 hover:text-[#E3000F] rounded-xl border border-gray-100 shadow-sm"
+            className="h-10 w-10 bg-white text-gray-400 hover:text-[#E3000F] rounded-xl border border-gray-100 shadow-sm flex items-center justify-center shrink-0"
             title="Ver vista pública"
           >
             <Eye className="w-5 h-5" />
@@ -666,7 +666,7 @@ export default function ProcedureDetails() {
                       <h3 className="text-base font-black text-gray-900 uppercase tracking-tight">Registro de Bitácora</h3>
                       <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">Gestión de anotaciones y seguimiento técnico</p>
                    </div>
-                   <button onClick={addLogLocal} className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-[#E3000F] transition-all">
+                   <button onClick={addLogLocal} className="flex items-center gap-2 h-10 px-4 bg-gray-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#E3000F] transition-all active:scale-95 shadow-lg shadow-gray-200/50">
                       <Plus className="w-4 h-4" /> Nueva Nota
                    </button>
                 </div>
@@ -801,10 +801,10 @@ export default function ProcedureDetails() {
                    <div className="flex justify-between items-center mb-6">
                       <h3 className="text-base font-black text-gray-900 uppercase tracking-tight">Rubros Económicos</h3>
                       <div className="flex gap-2">
-                         <button onClick={() => addFinancialLocal('Ingreso')} className="px-4 py-2.5 bg-emerald-500 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center gap-2">
+                         <button onClick={() => addFinancialLocal('Ingreso')} className="h-10 px-4 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/10 active:scale-95">
                             <Plus className="w-4 h-4" /> Abono
                          </button>
-                         <button onClick={() => addFinancialLocal('Egreso')} className="px-4 py-2.5 bg-red-500 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-red-600 transition-all flex items-center gap-2">
+                         <button onClick={() => addFinancialLocal('Egreso')} className="h-10 px-4 bg-red-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-red-600 transition-all flex items-center gap-2 shadow-lg shadow-red-500/10 active:scale-95">
                             <Plus className="w-4 h-4" /> Gasto
                          </button>
                       </div>
@@ -983,7 +983,7 @@ export default function ProcedureDetails() {
                   <button 
                     onClick={handleGlobalSave}
                     disabled={saving}
-                    className="px-8 py-3 bg-red-600 text-white rounded-[18px] font-black text-[11px] uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-600/20 active:scale-95 flex items-center gap-2"
+                    className="h-10 px-8 bg-red-600 text-white rounded-xl font-black text-[11px] uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-600/20 active:scale-95 flex items-center gap-2"
                   >
                     {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Guardar Expediente
