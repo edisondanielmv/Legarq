@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Plus, Hourglass, Trash2, Briefcase, Edit2, Save, X, ListChecks } from 'lucide-react';
+import { Plus, Hourglass, Trash2, Briefcase, Edit2, Save, X, ListChecks, ChevronUp, ChevronDown } from 'lucide-react';
 import { ProcedureType } from '../../types';
 
 export default function ProcedureTypes() {
@@ -13,6 +13,8 @@ export default function ProcedureTypes() {
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({ name: '', steps: '' });
   const [newStep, setNewStep] = useState('');
+
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTypes();
@@ -60,12 +62,14 @@ export default function ProcedureTypes() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Está seguro de eliminar este tipo de trámite?')) return;
+    console.log("[DEBUG] Executing deletion for ID:", id);
     setLoading(true);
+    setConfirmDelete(null);
     try {
       await api.deleteProcedureType(id);
       await fetchTypes();
     } catch (err: any) {
+      console.error("[DEBUG] Delete error:", err);
       setError(err.message);
       setLoading(false);
     }
@@ -93,6 +97,18 @@ export default function ProcedureTypes() {
     setFormData({ ...formData, steps: JSON.stringify(updatedSteps) });
   };
 
+  const moveStep = (index: number, direction: 'up' | 'down') => {
+    const currentSteps = getStepsList(formData.steps);
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === currentSteps.length - 1) return;
+
+    const updatedSteps = [...currentSteps];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    [updatedSteps[index], updatedSteps[newIndex]] = [updatedSteps[newIndex], updatedSteps[index]];
+    
+    setFormData({ ...formData, steps: JSON.stringify(updatedSteps) });
+  };
+
   if (loading && types.length === 0) {
     return (
       <div className="flex flex-col justify-center items-center h-96 gap-4">
@@ -110,6 +126,7 @@ export default function ProcedureTypes() {
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Gestión de servicios y hojas de ruta</p>
         </div>
         <button 
+          type="button"
           onClick={() => handleOpenModal()}
           className="bg-[#1A1A1A] text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-[#E3000F] transition-all shadow-lg active:scale-95 text-[9px] font-black uppercase tracking-widest"
         >
@@ -144,8 +161,47 @@ export default function ProcedureTypes() {
                   <h3 className="text-base font-black text-gray-900 tracking-tight leading-tight">{type.name}</h3>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => handleOpenModal(type)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all active:scale-90" title="Editar"><Edit2 className="w-3.5 h-3.5" /></button>
-                  <button onClick={() => handleDelete(type.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-90" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
+                  {confirmDelete === type.id ? (
+                    <div className="flex items-center gap-1 animate-in fade-in slide-in-from-right-2 duration-300">
+                      <button 
+                        type="button"
+                        onClick={() => handleDelete(type.id)} 
+                        disabled={loading}
+                        className="px-2 py-1 bg-red-600 text-white text-[8px] font-black uppercase tracking-widest rounded-lg hover:bg-gray-900 transition-all shadow-sm disabled:opacity-50"
+                      >
+                        {loading ? '...' : 'Confirmar'}
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => setConfirmDelete(null)} 
+                        disabled={loading}
+                        className="p-1.5 text-gray-400 hover:text-gray-900 transition-all disabled:opacity-50"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button 
+                        type="button"
+                        onClick={() => handleOpenModal(type)} 
+                        disabled={loading}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all active:scale-90 disabled:opacity-50" 
+                        title="Editar"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => setConfirmDelete(type.id)} 
+                        disabled={loading}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-90 disabled:opacity-50" 
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
               
@@ -235,13 +291,37 @@ export default function ProcedureTypes() {
                           </span>
                           <span className="text-xs font-bold text-gray-700 uppercase tracking-tight truncate">{step}</span>
                         </div>
-                        <button 
-                          type="button" 
-                          onClick={() => removeStep(index)}
-                          className="p-1.5 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-90"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <div className="flex flex-col bg-white border border-gray-100 rounded-lg shadow-sm">
+                            <button 
+                              type="button" 
+                              onClick={() => moveStep(index, 'up')}
+                              disabled={index === 0}
+                              className="p-1 text-gray-400 hover:text-[#E3000F] hover:bg-gray-50 rounded-t-lg transition-all disabled:opacity-10"
+                              title="Subir"
+                            >
+                              <ChevronUp className="w-3 h-3" />
+                            </button>
+                            <div className="h-px bg-gray-100 w-full" />
+                            <button 
+                              type="button" 
+                              onClick={() => moveStep(index, 'down')}
+                              disabled={index === getStepsList(formData.steps).length - 1}
+                              className="p-1 text-gray-400 hover:text-[#E3000F] hover:bg-gray-50 rounded-b-lg transition-all disabled:opacity-10"
+                              title="Bajar"
+                            >
+                              <ChevronDown className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => removeStep(index)}
+                            className="p-2 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active:scale-90"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     ))
                   )}

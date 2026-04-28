@@ -24,6 +24,8 @@ export default function FinancialReports() {
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<FinancialItem | null>(null);
   const [newAccountName, setNewAccountName] = useState('');
+  const [deletingTransactionId, setDeletingTransactionId] = useState<string | null>(null);
+  const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -195,13 +197,19 @@ export default function FinancialReports() {
   };
 
   const handleDeleteTransaction = async (id: string) => {
-    if (!window.confirm('¿Estás seguro de eliminar este registro?')) return;
+    if (deletingTransactionId !== id) {
+      setDeletingTransactionId(id);
+      setTimeout(() => setDeletingTransactionId(null), 3000);
+      return;
+    }
+
     setSaving(true);
+    setDeletingTransactionId(null);
     try {
       await api.deleteFinancialItem(id);
       fetchData();
     } catch (err: any) {
-      alert(err.message);
+      setError(err.message);
     } finally {
       setSaving(false);
     }
@@ -225,7 +233,14 @@ export default function FinancialReports() {
   };
 
   const handleDeleteAccount = async (id: string) => {
+    if (deletingAccountId !== id) {
+      setDeletingAccountId(id);
+      setTimeout(() => setDeletingAccountId(null), 3000);
+      return;
+    }
+    
     setSaving(true);
+    setDeletingAccountId(null);
     setError('');
     try {
       await api.deleteAccount(id);
@@ -607,16 +622,25 @@ export default function FinancialReports() {
                           <td className="px-4 py-3">
                             <div className="flex justify-center gap-1">
                               <button 
+                                type="button"
                                 onClick={() => handleEditTransaction(t)}
-                                className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                                disabled={saving}
+                                className="p-1 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
                               <button 
+                                type="button"
                                 onClick={() => handleDeleteTransaction(t.id)}
-                                className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                disabled={saving}
+                                className={clsx(
+                                  "p-1 rounded transition-all disabled:opacity-50",
+                                  deletingTransactionId === t.id 
+                                    ? "bg-red-600 text-white animate-pulse px-2 text-[8px] font-black" 
+                                    : "text-gray-400 hover:text-red-600"
+                                )}
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                {deletingTransactionId === t.id ? '¿BORRAR?' : <Trash2 className="w-3.5 h-3.5" />}
                               </button>
                             </div>
                           </td>
@@ -737,10 +761,17 @@ export default function FinancialReports() {
                   <div key={acc.id} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg border border-gray-100">
                     <span className="text-xs font-bold text-gray-700">{acc.name}</span>
                     <button 
+                      type="button"
                       onClick={() => handleDeleteAccount(acc.id)}
-                      className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                      disabled={saving}
+                      className={clsx(
+                        "p-1 rounded transition-all disabled:opacity-50",
+                        deletingAccountId === acc.id 
+                          ? "bg-red-600 text-white px-2 text-[8px] font-black" 
+                          : "text-gray-400 hover:text-red-600"
+                      )}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      {deletingAccountId === acc.id ? '¿BORRAR?' : <Trash2 className="w-3.5 h-3.5" />}
                     </button>
                   </div>
                 ))}
