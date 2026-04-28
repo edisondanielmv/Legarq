@@ -157,15 +157,15 @@ export default function DashboardLayout() {
             Modo Demostración - Datos no guardados en Google Sheets
           </div>
         )}
-        <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 h-12 md:h-14 flex items-center px-4 md:px-5 sticky top-0 z-30">
+        <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 h-10 sm:h-12 flex items-center px-4 md:px-5 sticky top-0 z-30">
           <div className="flex items-center gap-2">
-            <div className="w-1 h-5 bg-[#E3000F] rounded-full hidden md:block" />
-            <h1 className="text-sm md:text-lg font-black text-gray-900 tracking-tight">
+            <div className="w-0.5 h-4 bg-[#E3000F] rounded-full hidden md:block" />
+            <h1 className="text-xs md:text-base font-black text-gray-900 tracking-tight">
               Sistema de <span className="text-[#E3000F]">Gestión</span>
             </h1>
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-2 md:p-4 bg-[#FDFDFD]">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#FDFDFD]">
           <div className="max-w-[1600px] mx-auto">
             <Outlet />
           </div>

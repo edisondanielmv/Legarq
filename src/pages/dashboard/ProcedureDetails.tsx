@@ -107,11 +107,33 @@ export default function ProcedureDetails() {
     setError(null);
     try {
       const searchId = (id || '').toString().trim();
-      const proc = await api.getProcedure({ 
-        id: searchId, 
-        username: currentUser.username, 
-        role: currentUser.role 
-      });
+      let proc: Procedure | undefined;
+
+      try {
+        proc = await api.getProcedure({ 
+          id: searchId, 
+          username: currentUser.username, 
+          role: currentUser.role 
+        });
+      } catch (err: any) {
+        // Fallback robusto si el backend no se ha actualizado con getProcedure
+        const isNetError = err.message?.includes('ACCIÓN NO IMPLEMENTADA') || err.message?.includes('not implement');
+        if (isNetError) {
+          console.warn("[FRONTEND] Usando método legacy de búsqueda...");
+          const procs = await api.getProcedures({ 
+            username: currentUser.username, 
+            role: currentUser.role 
+          });
+          proc = procs.find((p: Procedure) => {
+            const sid = String(p.id || '').trim();
+            const scode = String(p.code || '').trim().toLowerCase();
+            const tid = searchId.toLowerCase();
+            return sid === searchId || scode === tid || sid.toLowerCase() === tid;
+          });
+        } else {
+          throw err;
+        }
+      }
       
       if (!proc) {
         console.error("Procedure not found for search term:", searchId);
@@ -371,7 +393,7 @@ export default function ProcedureDetails() {
   const progress = calculateProgress();
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-32">
+    <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 pb-20 sm:pb-32 px-3 sm:px-4">
       {saving && <LoadingOverlay message="Procesando... Por favor espere." />}
 
       {error && (
@@ -390,30 +412,30 @@ export default function ProcedureDetails() {
       )}
 
       {/* Header Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/dashboard')} className="h-10 w-10 bg-gray-50 text-gray-400 hover:text-gray-900 rounded-xl border border-gray-100 transition-all flex items-center justify-center shrink-0">
-            <ArrowLeft className="w-5 h-5" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-[28px] sm:rounded-[32px] border border-gray-100 shadow-sm">
+        <div className="flex items-center gap-3 sm:gap-4 overflow-hidden w-full">
+          <button onClick={() => navigate('/dashboard')} className="h-9 w-9 sm:h-10 sm:w-10 bg-gray-50 text-gray-400 hover:text-gray-900 rounded-xl border border-gray-100 transition-all flex items-center justify-center shrink-0">
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="bg-red-50 text-[#E3000F] px-2 py-0.5 rounded-md text-[9px] font-black tracking-widest border border-red-100 uppercase">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
+              <span className="bg-red-50 text-[#E3000F] px-1.5 py-0.5 rounded-md text-[7px] sm:text-[9px] font-black tracking-widest border border-red-100 uppercase">
                 {original.procedure.code}
               </span>
-              <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                Creado: {format(new Date(original.procedure.createdAt), "dd MMM yyyy", { locale: es })}
+              <span className="text-[7px] sm:text-[9px] font-black text-gray-400 uppercase tracking-widest truncate">
+                Creado: {format(new Date(original.procedure.createdAt), "dd MMM yy", { locale: es })}
               </span>
             </div>
             <input 
               value={draft.procedure.title || ''}
               onChange={e => setDraft({...draft, procedure: {...draft.procedure, title: e.target.value}})}
-              className="text-xl font-black text-gray-900 bg-transparent border-none outline-none focus:ring-0 w-full p-0 leading-none placeholder:text-gray-200"
+              className="text-base sm:text-xl font-black text-gray-900 bg-transparent border-none outline-none focus:ring-0 w-full p-0 leading-tight placeholder:text-gray-200 truncate"
               placeholder="Nombre del expediente..."
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
           <div className="hidden lg:flex flex-col items-end mr-4">
              <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Progreso Global</span>
              <div className="flex items-center gap-2 mt-1">
@@ -424,21 +446,21 @@ export default function ProcedureDetails() {
              </div>
           </div>
           
-          <div className="h-10 w-px bg-gray-100 mx-2" />
+          <div className="hidden sm:block h-10 w-px bg-gray-100 mx-2" />
           
           {currentUser?.role === 'admin' && (
             <select 
               value={draft.procedure.status}
               onChange={e => setDraft({...draft, procedure: {...draft.procedure, status: e.target.value as any}})}
               className={clsx(
-                "h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest border-none ring-1 transition-all outline-none",
+                "h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest border-none ring-1 transition-all outline-none",
                 draft.procedure.status === 'Finalizado' 
                   ? "bg-emerald-50 text-emerald-600 ring-emerald-100" 
                   : "bg-amber-50 text-amber-600 ring-amber-100"
               )}
             >
-              <option value="En proceso">En proceso</option>
-              <option value="Finalizado">Finalizado</option>
+              <option value="En proceso">Activo</option>
+              <option value="Finalizado">Listo</option>
             </select>
           )}
 
@@ -448,80 +470,79 @@ export default function ProcedureDetails() {
               onClick={handleDeleteProcedure}
               disabled={saving}
               className={clsx(
-                "h-10 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border shadow-sm",
+                "h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border shadow-sm",
                 saving 
                   ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" 
                   : confirmDelete
                     ? "bg-red-600 text-white border-red-600 animate-pulse"
                     : "bg-red-50 text-red-600 border-red-100 hover:bg-red-600 hover:text-white"
               )}
-              title={confirmDelete ? "Haga clic de nuevo para confirmar eliminación total" : "Eliminar Trámite Permanentemente"}
             >
               {saving ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
+                <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
               ) : confirmDelete ? (
-                <AlertCircle className="w-4 h-4" />
+                <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               ) : (
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               )}
-              <span>{confirmDelete ? "¡CONFIRMAR!" : "Eliminar"}</span>
+              <span>{confirmDelete ? "¡SI!" : "Borrar"}</span>
             </button>
           )}
 
           <a 
             href={`/consulta?idNumber=${draft.client.idNumber || draft.client.username}`} 
             target="_blank" 
-            className="h-10 w-10 bg-white text-gray-400 hover:text-[#E3000F] rounded-xl border border-gray-100 shadow-sm flex items-center justify-center shrink-0"
+            className="h-9 w-9 sm:h-10 sm:w-10 bg-white text-gray-400 hover:text-[#E3000F] rounded-xl border border-gray-100 shadow-sm flex items-center justify-center shrink-0"
             title="Ver vista pública"
           >
-            <Eye className="w-5 h-5" />
+            <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
           </a>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Column: Sidebar Tabs & Client Quick Info */}
-        <div className="lg:col-span-1 space-y-4">
-          <div className="bg-white p-2 rounded-[28px] border border-gray-100 shadow-sm flex flex-col gap-1">
-             <TabButton label="Información Trámite" icon={Briefcase} active={activeTab === 'tramite'} onClick={() => setActiveTab('tramite')} />
-             <TabButton label="Información Cliente" icon={UserIcon} active={activeTab === 'cliente'} onClick={() => setActiveTab('cliente')} />
-             <TabButton label="Información Inmueble" icon={Home} active={activeTab === 'inmueble'} onClick={() => setActiveTab('inmueble')} />
-             <TabButton label="Bitácora" icon={ClipboardList} active={activeTab === 'bitacora'} onClick={() => setActiveTab('bitacora')} count={draft.logs.length} />
-             <TabButton label="Finanzas" icon={DollarSign} active={activeTab === 'finanzas'} onClick={() => setActiveTab('finanzas')} count={draft.financials.length} />
-             <TabButton label="Archivos Drive" icon={Folder} active={activeTab === 'archivos'} onClick={() => setActiveTab('archivos')} />
+        <div className="lg:col-span-1 space-y-3 sm:space-y-4">
+          <div className="bg-white p-1.5 sm:p-2 rounded-[24px] sm:rounded-[28px] border border-gray-100 shadow-sm flex flex-row lg:flex-col gap-1 overflow-x-auto lg:overflow-visible no-scrollbar">
+             <TabButton label="Trámite" icon={Briefcase} active={activeTab === 'tramite'} onClick={() => setActiveTab('tramite')} />
+             <TabButton label="Cliente" icon={UserIcon} active={activeTab === 'cliente'} onClick={() => setActiveTab('cliente')} />
+             <TabButton label="Predio" icon={Home} active={activeTab === 'inmueble'} onClick={() => setActiveTab('inmueble')} />
+             <TabButton label="Notas" icon={ClipboardList} active={activeTab === 'bitacora'} onClick={() => setActiveTab('bitacora')} count={draft.logs.length} />
+             <TabButton label="Presupuesto" icon={DollarSign} active={activeTab === 'finanzas'} onClick={() => setActiveTab('finanzas')} count={draft.financials.length} />
+             <TabButton label="Drive" icon={Folder} active={activeTab === 'archivos'} onClick={() => setActiveTab('archivos')} />
           </div>
 
           {/* Quick Info Cards */}
-          <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm space-y-4">
+          <div className="bg-white p-4 sm:p-6 rounded-[28px] sm:rounded-[32px] border border-gray-100 shadow-sm space-y-3 sm:space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center">
-                <UserIcon className="w-5 h-5 text-[#E3000F]" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-50 rounded-xl flex items-center justify-center">
+                <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#E3000F]" />
               </div>
               <div className="overflow-hidden">
-                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Cliente</p>
-                <p className="text-sm font-black mt-1 truncate">{draft.client.name || 'Cargando...'}</p>
+                <p className="text-[7px] sm:text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Cliente</p>
+                <p className="text-xs sm:text-sm font-black mt-1 truncate">{draft.client.name || 'Cargando...'}</p>
               </div>
             </div>
             
             <div className="h-px bg-gray-50 w-full" />
             
-            <div className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-2xl space-y-3">
-                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-gray-400">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="bg-gray-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-2 sm:space-y-3">
+                <div className="flex justify-between items-center text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-gray-400">
                   <span>Monto Acordado</span>
                   <span className="text-gray-900">${draft.procedure.expectedValue || 0}</span>
                 </div>
-                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-gray-400">
+                <div className="flex justify-between items-center text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-gray-400">
                   <span>Abonado</span>
                   <span className="text-emerald-600">${draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-gray-400">
+                <div className="flex justify-between items-center text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-gray-400">
                   <span>Gastos</span>
                   <span className="text-red-500">${draft.financials.filter(f => !f.isDeleted && (f.type === 'Egreso' || f.type === 'Gasto')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0).toLocaleString()}</span>
                 </div>
                 <div className="h-px bg-gray-200 w-full" />
-                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                  <span className="text-gray-400">Saldo Pendiente</span>
+                <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase tracking-widest">
+                  <span className="text-gray-400">Pendiente</span>
                   <span className={clsx(
                     (typeof draft.procedure.expectedValue === 'number' ? draft.procedure.expectedValue : parseFloat(String(draft.procedure.expectedValue || 0))) - draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0) > 0 ? "text-[#E3000F]" : "text-emerald-600"
                   )}>
@@ -818,18 +839,18 @@ export default function ProcedureDetails() {
                      color={(typeof draft.procedure.expectedValue === 'number' ? draft.procedure.expectedValue : parseFloat(String(draft.procedure.expectedValue || 0))) - draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0) > 0 ? "orange" : "emerald"} 
                      icon={DollarSign} 
                      highlight
-                   />
-                </div>
+                    />
+                 </div>
 
-                <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm">
-                   <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-base font-black text-gray-900 uppercase tracking-tight">Rubros Económicos</h3>
-                      <div className="flex gap-2">
-                         <button onClick={() => addFinancialLocal('Ingreso')} className="h-10 px-4 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/10 active:scale-95">
-                            <Plus className="w-4 h-4" /> Abono
+                 <div className="bg-white p-4 sm:p-6 rounded-[28px] sm:rounded-[32px] border border-gray-100 shadow-sm">
+                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
+                      <h3 className="text-sm sm:text-base font-black text-gray-900 uppercase tracking-tight">Movimientos</h3>
+                      <div className="flex gap-2 w-full sm:w-auto">
+                         <button onClick={() => addFinancialLocal('Ingreso')} className="flex-1 sm:flex-none h-9 sm:h-10 px-3 sm:px-4 bg-emerald-500 text-white rounded-xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 active:scale-95">
+                            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Abono
                          </button>
-                         <button onClick={() => addFinancialLocal('Egreso')} className="h-10 px-4 bg-red-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-red-600 transition-all flex items-center gap-2 shadow-lg shadow-red-500/10 active:scale-95">
-                            <Plus className="w-4 h-4" /> Gasto
+                         <button onClick={() => addFinancialLocal('Egreso')} className="flex-1 sm:flex-none h-9 sm:h-10 px-3 sm:px-4 bg-red-500 text-white rounded-xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest hover:bg-red-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/10 active:scale-95">
+                            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Gasto
                          </button>
                       </div>
                    </div>
@@ -916,14 +937,14 @@ export default function ProcedureDetails() {
 
             {activeTab === 'archivos' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-                 <div className="bg-white p-10 rounded-[32px] border-2 border-dashed border-gray-100 text-center space-y-6">
-                    <div className="w-20 h-20 bg-blue-50 rounded-[28px] flex items-center justify-center mx-auto shadow-sm">
-                       <Folder className="w-10 h-10 text-blue-500" />
+                 <div className="bg-white p-6 sm:p-10 rounded-[28px] sm:rounded-[32px] border-2 border-dashed border-gray-100 text-center space-y-4 sm:space-y-6">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-50 rounded-[24px] sm:rounded-[28px] flex items-center justify-center mx-auto shadow-sm">
+                       <Folder className="w-8 h-8 sm:w-10 sm:h-10 text-blue-500" />
                     </div>
                     <div>
-                       <h3 className="text-xl font-black text-gray-900">Gestión de Archivos en la Nube</h3>
-                       <p className="text-xs font-medium text-gray-400 mt-2 max-w-sm mx-auto leading-relaxed">
-                          La documentación técnica, planos y comprobantes se sincronizan automáticamente con la carpeta virtual de Google Drive asignada a este trámite.
+                       <h3 className="text-base sm:text-xl font-black text-gray-900 leading-tight">Archivos en la Nube</h3>
+                       <p className="text-[10px] sm:text-xs font-medium text-gray-400 mt-2 max-w-sm mx-auto leading-relaxed px-4">
+                          Sincronización automática con la carpeta virtual de Google Drive asignada a este trámite.
                        </p>
                     </div>
 
@@ -982,35 +1003,35 @@ export default function ProcedureDetails() {
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-2xl"
+            className="fixed bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-50 w-[94%] sm:w-[90%] max-w-2xl"
           >
-            <div className="bg-[#1A1A1A] p-5 rounded-[28px] border border-white/10 shadow-2xl backdrop-blur-xl flex items-center justify-between gap-6">
-               <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-red-600 rounded-2xl flex items-center justify-center shadow-lg shadow-red-600/30">
-                     <Save className="w-6 h-6 text-white" />
+            <div className="bg-[#1A1A1A] p-4 sm:p-5 rounded-[24px] sm:rounded-[28px] border border-white/10 shadow-2xl backdrop-blur-xl flex items-center justify-between gap-4 sm:gap-6">
+               <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-red-600/30 shrink-0">
+                     <Save className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   </div>
-                  <div>
-                     <p className="text-[10px] font-black text-white uppercase tracking-widest leading-none">Expediente Modificado</p>
-                     <p className="text-[9px] font-medium text-gray-400 mt-1">Hay cambios pendientes por guardar en el sistema</p>
+                  <div className="min-w-0">
+                     <p className="text-[8px] sm:text-[10px] font-black text-white uppercase tracking-widest leading-none truncate">Cambios Pendientes</p>
+                     <p className="text-[7px] sm:text-[9px] font-medium text-gray-400 mt-1 truncate">Recuerde guardar para sincronizar</p>
                   </div>
                </div>
 
-               <div className="flex items-center gap-2">
+               <div className="flex items-center gap-2 shrink-0">
                   <button 
                     onClick={() => {
                       if (window.confirm('¿Descartar cambios localizados?')) fetchData();
                     }}
-                    className="px-4 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-white transition-colors"
+                    className="px-2 sm:px-4 py-2 text-[8px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-white transition-colors hidden xs:block"
                   >
                     Descartar
                   </button>
                   <button 
                     onClick={handleGlobalSave}
                     disabled={saving}
-                    className="h-10 px-8 bg-red-600 text-white rounded-xl font-black text-[11px] uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-600/20 active:scale-95 flex items-center gap-2"
+                    className="h-9 sm:h-10 px-4 sm:px-8 bg-red-600 text-white rounded-xl font-black text-[9px] sm:text-[11px] uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-600/20 active:scale-95 flex items-center gap-2"
                   >
-                    {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    Guardar Expediente
+                    {saving ? <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" /> : <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                    <span className="hidden xs:inline">Guardar Expediente</span><span className="xs:hidden">Guardar</span>
                   </button>
                </div>
             </div>
@@ -1038,10 +1059,10 @@ export default function ProcedureDetails() {
 
 function Section({ title, children, extra }: { title: string, children: React.ReactNode, extra?: React.ReactNode }) {
   return (
-    <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm space-y-6">
+    <div className="bg-white p-4 sm:p-6 md:p-8 rounded-[24px] sm:rounded-[32px] border border-gray-100 shadow-sm space-y-4 sm:space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-base font-black text-gray-900 flex items-center gap-3">
-          <div className="w-1.5 h-6 bg-[#E3000F] rounded-full" />
+        <h3 className="text-sm sm:text-base font-black text-gray-900 flex items-center gap-2 sm:gap-3">
+          <div className="w-1 h-5 sm:w-1.5 sm:h-6 bg-[#E3000F] rounded-full" />
           {title}
         </h3>
         {extra}
@@ -1065,16 +1086,16 @@ function TabButton({ label, icon: Icon, active, onClick, count }: { label: strin
     <button 
       onClick={onClick}
       className={clsx(
-        "flex items-center justify-between px-5 py-4 rounded-[20px] transition-all group",
-        active ? "bg-gray-900 text-white shadow-lg" : "bg-white text-gray-500 hover:bg-gray-50"
+        "flex items-center justify-between px-3 sm:px-5 py-2.5 sm:py-4 rounded-xl sm:rounded-[20px] transition-all group shrink-0",
+        active ? "bg-gray-900 text-white shadow-lg" : "bg-white text-gray-500 hover:bg-gray-50 border border-transparent"
       )}
     >
-      <div className="flex items-center gap-3">
-        <Icon className={clsx("w-5 h-5", active ? "text-red-500" : "text-gray-300 group-hover:text-gray-400")} />
-        <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+      <div className="flex items-center gap-2 sm:gap-3">
+        <Icon className={clsx("w-4 h-4 sm:w-5 sm:h-5", active ? "text-red-500" : "text-gray-300 group-hover:text-gray-400")} />
+        <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest whitespace-nowrap">{label}</span>
       </div>
       {count !== undefined && count > 0 && (
-        <span className={clsx("px-2 py-0.5 rounded-full text-[8px] font-black", active ? "bg-red-600 text-white" : "bg-gray-100 text-gray-400")}>
+        <span className={clsx("ml-2 sm:ml-0 px-1.5 py-0.5 rounded-full text-[7px] sm:text-[8px] font-black", active ? "bg-red-600 text-white" : "bg-gray-100 text-gray-400")}>
           {count}
         </span>
       )}

@@ -205,43 +205,41 @@ export default function Procedures() {
   }
 
   return (
-    <div className="space-y-4 max-w-6xl mx-auto relative font-sans selection:bg-[#E3000F] selection:text-white">
+    <div className="space-y-4 max-w-6xl mx-auto py-2 sm:py-4 px-3 sm:px-4 relative font-sans selection:bg-[#E3000F] selection:text-white">
       {saving && <LoadingOverlay />}
       
       {/* Success Message Toast */}
       {successMessage && (
-        <div className="fixed bottom-8 right-8 bg-[#1A1A1A] text-white px-4 py-3 rounded-xl shadow-2xl z-[100] flex items-center gap-2 animate-in slide-in-from-bottom-4 duration-300 border border-white/10">
-          <div className="w-6 h-6 bg-emerald-500 rounded-lg flex items-center justify-center">
-            <CheckCircle2 className="w-4 h-4 text-white" />
+        <div className="fixed bottom-4 right-4 bg-[#1A1A1A] text-white px-3 py-2.5 rounded-xl shadow-2xl z-[100] flex items-center gap-2 animate-in slide-in-from-bottom-4 duration-300 border border-white/10">
+          <div className="w-5 h-5 bg-emerald-500 rounded-lg flex items-center justify-center">
+            <CheckCircle2 className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="text-[9px] font-black uppercase tracking-widest">{successMessage}</span>
+          <span className="text-[8px] font-black uppercase tracking-widest">{successMessage}</span>
         </div>
       )}
-
+ 
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Gestión de <span className="text-[#E3000F]">Trámites</span></h1>
-          <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mt-0.5">Seguimiento de proyectos en tiempo real</p>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 md:w-10 md:h-10 bg-[#E3000F] text-white rounded-xl flex items-center justify-center shadow-lg shadow-red-100 shrink-0">
+             <Briefcase className="w-4 h-4 md:w-5 md:h-5" />
+          </div>
+          <div>
+            <h1 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight">Gestión de <span className="text-[#E3000F]">Trámites</span></h1>
+            <p className="text-[7px] md:text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mt-0.5">Seguimiento en tiempo real</p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <a
             href="/consulta"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 md:flex-none bg-white text-gray-900 border border-gray-100 h-10 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-all font-black text-[9px] uppercase tracking-widest shadow-sm active:scale-95"
+            className="flex-1 md:flex-none bg-white text-gray-900 border border-gray-100 h-9 md:h-10 px-3 md:px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-all font-black text-[8px] md:text-[9px] uppercase tracking-widest shadow-sm active:scale-95"
           >
-            <Eye className="w-3.5 h-3.5 text-[#E3000F]" /> Simular Consulta
+            <Eye className="w-3 h-3 md:w-3.5 md:h-3.5 text-[#E3000F]" /> <span className="hidden xs:inline">Consultar</span><span className="xs:hidden">Ver</span>
           </a>
           {user?.role === 'admin' && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleForceDeleteByCode}
-                className="flex-1 md:flex-none bg-red-50 text-red-600 border border-red-100 h-10 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-red-600 hover:text-white transition-all font-black text-[9px] uppercase tracking-widest shadow-sm active:scale-95"
-                title="Método alternativo para eliminar por código"
-              >
-                <Hash className="w-3.5 h-3.5" /> Eliminar por Código
-              </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <BulkUpload 
                 onSuccess={fetchProcedures} 
                 procedureTypes={procedureTypes} 
@@ -249,9 +247,9 @@ export default function Procedures() {
               />
               <button
                 onClick={() => setShowNewModal(true)}
-                className="flex-1 md:flex-none bg-[#1A1A1A] text-white h-10 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#E3000F] transition-all shadow-xl shadow-gray-200 font-black text-[9px] uppercase tracking-widest active:scale-95"
+                className="flex-1 md:flex-none bg-[#1A1A1A] text-white h-9 md:h-10 px-3 md:px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#E3000F] transition-all shadow-xl shadow-gray-200 font-black text-[8px] md:text-[9px] uppercase tracking-widest active:scale-95"
               >
-                <Plus className="w-3.5 h-3.5" /> Nuevo Trámite
+                <Plus className="w-3 h-3 md:w-3.5 md:h-3.5" /> <span className="hidden xs:inline">Nuevo Trámite</span><span className="xs:hidden">Nuevo</span>
               </button>
             </div>
           )}
@@ -259,19 +257,19 @@ export default function Procedures() {
       </div>
 
       {/* Filters & Search */}
-      <div className="bg-white p-1.5 rounded-[24px] border border-gray-100 shadow-sm flex flex-col md:flex-row gap-1.5 items-center">
+      <div className="bg-white p-1 rounded-[20px] border border-gray-100 shadow-sm flex flex-col md:flex-row gap-1 items-center">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
           <input
             type="text"
-            placeholder="Buscar por código, título, cliente o cédula..."
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-transparent rounded-[18px] focus:ring-2 focus:ring-[#E3000F]/10 focus:bg-white border outline-none transition-all text-xs font-black text-gray-900 placeholder:text-gray-400 placeholder:font-black placeholder:uppercase placeholder:text-[9px] placeholder:tracking-widest"
+            placeholder="Buscar proyectos..."
+            className="w-full pl-9 pr-4 py-2 bg-gray-50 border-transparent rounded-[16px] focus:ring-2 focus:ring-[#E3000F]/10 focus:bg-white border outline-none transition-all text-[10px] sm:text-xs font-black text-gray-900 placeholder:text-gray-400 placeholder:font-black placeholder:uppercase placeholder:text-[8px] placeholder:tracking-widest"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2 text-[9px] font-black text-gray-400 uppercase tracking-widest px-4 py-1.5">
-          <span className="bg-[#1A1A1A] text-white px-2 py-0.5 rounded-md">{filtered.length}</span> Trámites
+        <div className="flex items-center gap-2 text-[8px] font-black text-gray-400 uppercase tracking-widest px-3 py-1">
+          <span className="bg-[#1A1A1A] text-white px-1.5 py-0.5 rounded-md">{filtered.length}</span> Trámites
         </div>
       </div>
 
@@ -407,92 +405,82 @@ export default function Procedures() {
       </div>
 
       {/* Mobile Card View */}
-      <div className="md:hidden space-y-3">
+      <div className="md:hidden space-y-2">
         {filtered.map((proc) => (
           <div 
             key={proc.id} 
-            className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden group active:scale-[0.98] transition-all cursor-pointer"
+            className="bg-white rounded-[20px] border border-gray-100 shadow-sm overflow-hidden group active:scale-[0.98] transition-all cursor-pointer"
             onClick={() => navigate(`/dashboard/procedures/${proc.id}`)}
           >
-            <div className="p-4">
-              <div className="flex justify-between items-start mb-3">
+            <div className="p-3">
+              <div className="flex justify-between items-start mb-2">
                 <div className="flex flex-col gap-1">
-                  <span className={clsx(
-                    "px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest border w-fit",
-                    proc.status === 'Finalizado' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                    proc.status === 'En proceso' ? "bg-amber-50 text-amber-600 border-amber-100" :
-                    "bg-gray-50 text-gray-600 border-gray-100"
-                  )}>
-                    {proc.status}
-                  </span>
-                  <div className="flex items-center gap-1.5 text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                    <Hash className="w-3 h-3 text-[#E3000F]" /> {proc.code || '---'}
+                  <div className="flex items-center gap-1.5">
+                    <span className={clsx(
+                      "px-1.5 py-0.5 rounded-full text-[6.5px] font-black uppercase tracking-widest border w-fit",
+                      proc.status === 'Finalizado' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                      proc.status === 'En proceso' ? "bg-amber-50 text-amber-600 border-amber-100" :
+                      "bg-gray-50 text-gray-600 border-gray-100"
+                    )}>
+                      {proc.status}
+                    </span>
+                    <span className="text-[7.5px] font-mono font-black text-[#E3000F] bg-red-50 px-1.5 py-0.5 rounded-md border border-red-100 tracking-tight">
+                      {proc.code || '---'}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[8px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100 uppercase tracking-widest w-fit mt-1">
-                    <Clock className="w-3 h-3" /> {calculateDaysElapsed(proc.createdAt, proc.completedAt)} días
-                  </div>
-                  {proc.driveUrl && (
+                </div>
+                <div className="bg-gray-50 p-1.5 rounded-lg border border-gray-100">
+                  <ArrowRight className="w-3 h-3 text-gray-400" />
+                </div>
+              </div>
+
+              <h3 className="text-[11px] font-black text-gray-900 tracking-tight mb-2 leading-tight">
+                {proc.title}
+              </h3>
+
+              <div className="flex flex-wrap gap-2 mb-3">
+                 <div className="flex items-center gap-1 text-[7px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-100 uppercase tracking-widest w-fit">
+                    <Clock className="w-2.5 h-2.5" /> {calculateDaysElapsed(proc.createdAt, proc.completedAt)} d
+                 </div>
+                 {proc.driveUrl && (
                     <a
                       href={proc.driveUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1.5 text-[8px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 uppercase tracking-widest w-fit mt-1"
+                      className="flex items-center gap-1 text-[7px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md border border-blue-100 uppercase tracking-widest w-fit"
                     >
-                      <FolderOpen className="w-3 h-3" /> Carpeta Virtual
+                      <FolderOpen className="w-2.5 h-2.5" /> Drive
                     </a>
-                  )}
-                  {user?.role === 'admin' && (
+                 )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-3 border-t border-gray-50">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <div className="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100 shrink-0">
+                    <UserIcon className="w-3 h-3 text-gray-400" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[6px] font-black text-gray-400 uppercase tracking-widest">Cliente</span>
+                    <span className="text-[8px] font-black text-gray-700 truncate">{proc.clientName || 'Sin nombre'}</span>
+                  </div>
+                </div>
+                <div className="flex items-end justify-end">
+                   {user?.role === 'admin' && (
                     <button
                       type="button"
                       onClick={(e) => handleDelete(e, proc.id, proc.code || '')}
                       className={clsx(
-                        "flex items-center gap-1.5 text-[8px] font-black px-2 py-0.5 rounded-md border uppercase tracking-widest w-fit mt-1",
+                        "flex items-center gap-1 text-[7px] font-black px-2 py-1 rounded-lg border uppercase tracking-widest",
                         confirmDeleteId === proc.id
-                          ? "bg-red-600 text-white border-red-600"
-                          : "bg-red-50 text-red-600 border-red-100"
+                          ? "bg-red-600 text-white border-red-600 active:scale-95"
+                          : "bg-red-50 text-red-600 border-red-100 active:scale-95"
                       )}
                     >
-                      {confirmDeleteId === proc.id ? <AlertCircle className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />}
-                      {confirmDeleteId === proc.id ? "¡CONFIRMAR ELIMINACIÓN!" : "Eliminar"}
+                      {confirmDeleteId === proc.id ? <AlertCircle className="w-2.5 h-2.5" /> : <Trash2 className="w-2.5 h-2.5" />}
+                      {confirmDeleteId === proc.id ? "¡SÍ!" : "Borrar"}
                     </button>
                   )}
-                </div>
-                <div className="bg-gray-50 p-2 rounded-xl border border-gray-100">
-                  <ArrowRight className="w-4 h-4 text-gray-400" />
-                </div>
-              </div>
-
-              <h3 className="text-sm font-black text-gray-900 tracking-tight mb-3 leading-tight">
-                {proc.title}
-              </h3>
-
-              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-50">
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100 shrink-0">
-                    <UserIcon className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                  <div className="flex flex-col overflow-hidden">
-                    <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Cliente</span>
-                    <span className="text-[9px] font-black text-gray-700 truncate">{proc.clientName || 'Sin nombre'}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <div className={clsx(
-                    "w-8 h-8 rounded-lg flex items-center justify-center border shrink-0",
-                    proc.technicianUsername ? "bg-emerald-50 border-emerald-100" : "bg-red-50 border-red-100"
-                  )}>
-                    <Briefcase className={clsx("w-3.5 h-3.5", proc.technicianUsername ? "text-emerald-600" : "text-red-600")} />
-                  </div>
-                  <div className="flex flex-col overflow-hidden">
-                    <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Técnico</span>
-                    <span className={clsx(
-                      "text-[9px] font-black truncate",
-                      proc.technicianUsername ? "text-emerald-700" : "text-red-700"
-                    )}>
-                      {proc.technicianName || proc.technicianUsername || 'Sin asignar'}
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
