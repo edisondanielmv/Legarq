@@ -464,6 +464,30 @@ export default function ProcedureDetails() {
           </div>
           
           <div className="hidden sm:block h-10 w-px bg-gray-100 mx-2" />
+
+          {hasChanges && (
+            <div className="flex items-center gap-1.5 sm:gap-2 animate-in fade-in zoom-in duration-300">
+               <button 
+                onClick={handleGlobalSave}
+                disabled={saving}
+                className="h-9 sm:h-10 px-3 sm:px-5 bg-red-600 text-white rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest hover:bg-gray-900 transition-all flex items-center gap-2 shadow-lg shadow-red-200"
+               >
+                 {saving ? <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" /> : <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                 <span>{saving ? 'Guardando...' : 'Guardar'}</span>
+               </button>
+               <button 
+                onClick={() => {
+                  if (window.confirm('¿Descartar cambios localizados?')) fetchData();
+                }}
+                disabled={saving}
+                className="h-9 w-9 sm:h-10 sm:w-10 bg-gray-50 text-gray-400 hover:text-gray-900 rounded-xl border border-gray-100 transition-all flex items-center justify-center shrink-0"
+                title="Descartar cambios"
+               >
+                 <X className="w-4 h-4 sm:w-5 sm:h-5" />
+               </button>
+               <div className="h-6 w-px bg-gray-100 mx-1 hidden sm:block" />
+            </div>
+          )}
           
           {currentUser?.role === 'admin' && (
             <select 
@@ -812,34 +836,33 @@ export default function ProcedureDetails() {
             )}
 
             {activeTab === 'finanzas' && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
-                {/* Finance Header (Unified) */}
-                <div className="bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
-                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight flex items-center gap-2">
-                           <DollarSign className="w-5 h-5 text-emerald-500" />
-                           Gestión Financiera del Expediente
-                        </h3>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Control de pagos, gastos y saldos pendientes</p>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
+                {/* Finance Header (Compact) */}
+                <div className="bg-white p-4 sm:p-5 rounded-[24px] sm:rounded-[28px] border border-gray-100 shadow-sm">
+                   <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                          <DollarSign className="w-4 h-4 text-emerald-600" />
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-black text-gray-900 uppercase tracking-tight">Gestión Financiera</h3>
+                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none mt-0.5">Control de pagos y gastos</p>
+                        </div>
                       </div>
-                      <div className="w-full md:w-auto">
-                        <Field label="Monto Acordado del Trámite ($)">
-                          <div className="relative">
-                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input 
-                              type="number"
-                              value={draft.procedure.expectedValue || 0}
-                              onChange={e => setDraft({...draft, procedure: {...draft.procedure, expectedValue: Number(e.target.value)}})}
-                              className="w-full md:w-48 bg-gray-900 text-white border-none rounded-2xl pl-10 pr-4 py-3 text-sm font-black outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-xl shadow-emerald-500/10"
-                            />
-                          </div>
-                        </Field>
+                      
+                      <div className="flex items-center gap-3 bg-gray-50 p-1.5 pl-3 rounded-xl border border-gray-100">
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Monto Acordado ($)</span>
+                        <input 
+                          type="number"
+                          value={draft.procedure.expectedValue || 0}
+                          onChange={e => setDraft({...draft, procedure: {...draft.procedure, expectedValue: Number(e.target.value)}})}
+                          className="w-24 sm:w-28 bg-white border-gray-200 rounded-lg py-1.5 px-3 text-xs font-black outline-none focus:ring-2 focus:ring-emerald-500/20 text-right"
+                        />
                       </div>
                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                    <StatCard 
                      label="V. Acordado" 
                      value={draft.procedure.expectedValue || 0} 
@@ -867,34 +890,36 @@ export default function ProcedureDetails() {
                     />
                  </div>
 
-                 <div className="bg-white p-4 sm:p-6 rounded-[28px] sm:rounded-[32px] border border-gray-100 shadow-sm">
-                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
-                      <h3 className="text-sm sm:text-base font-black text-gray-900 uppercase tracking-tight">Movimientos</h3>
-                      <div className="flex gap-2 w-full sm:w-auto">
-                         <button onClick={() => addFinancialLocal('Ingreso')} className="flex-1 sm:flex-none h-9 sm:h-10 px-3 sm:px-4 bg-emerald-500 text-white rounded-xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 active:scale-95">
-                            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Abono
+                 <div className="bg-white p-4 sm:p-5 rounded-[24px] sm:rounded-[28px] border border-gray-100 shadow-sm">
+                   <div className="flex justify-between items-center gap-4 mb-4">
+                      <h3 className="text-xs font-black text-gray-900 uppercase tracking-tight flex items-center gap-2">
+                        <RefreshCw className="w-3 h-3 text-gray-400" /> Movimientos
+                      </h3>
+                      <div className="flex gap-2">
+                         <button onClick={() => addFinancialLocal('Ingreso')} className="h-8 px-3 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
+                            <Plus className="w-3 h-3" /> Abono
                          </button>
-                         <button onClick={() => addFinancialLocal('Egreso')} className="flex-1 sm:flex-none h-9 sm:h-10 px-3 sm:px-4 bg-red-500 text-white rounded-xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest hover:bg-red-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/10 active:scale-95">
-                            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Gasto
+                         <button onClick={() => addFinancialLocal('Egreso')} className="h-8 px-3 bg-red-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-red-600 transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
+                            <Plus className="w-3 h-3" /> Gasto
                          </button>
                       </div>
                    </div>
 
-                   <div className="space-y-3">
+                   <div className="space-y-2">
                       {draft.financials.filter(f => !f.isDeleted).map((fin, idx) => (
                         <div key={fin.id} className={clsx(
-                          "flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl border transition-all",
-                          fin.isNew ? "border-amber-200 bg-amber-50/20" : "border-gray-50 hover:bg-gray-50/50"
+                          "flex items-center gap-3 p-2.5 rounded-xl border transition-all",
+                          fin.isNew ? "border-amber-200 bg-amber-50/20" : "border-gray-50 hover:bg-gray-50/70"
                         )}>
                            <div className={clsx(
-                             "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                             fin.type === 'Ingreso' ? "bg-emerald-50 text-emerald-600" : (fin.type === 'Egreso' ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-600")
+                             "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border",
+                             fin.type === 'Ingreso' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : (fin.type === 'Egreso' ? "bg-red-50 text-red-600 border-red-100" : "bg-blue-50 text-blue-600 border-blue-100")
                            )}>
-                             {fin.type === 'Ingreso' ? <ArrowUpRight className="w-5 h-5" /> : (fin.type === 'Egreso' ? <ArrowDownRight className="w-5 h-5" /> : <DollarSign className="w-5 h-5" />)}
+                             {fin.type === 'Ingreso' ? <ArrowUpRight className="w-3.5 h-3.5" /> : (fin.type === 'Egreso' ? <ArrowDownRight className="w-3.5 h-3.5" /> : <DollarSign className="w-3.5 h-3.5" />)}
                            </div>
 
-                           <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-3 items-center">
-                              <div className="sm:col-span-2">
+                           <div className="flex-1 grid grid-cols-12 gap-3 items-center">
+                              <div className="col-span-7">
                                 <input 
                                   value={fin.description}
                                   onChange={e => {
@@ -902,19 +927,19 @@ export default function ProcedureDetails() {
                                     newFins[idx].description = e.target.value;
                                     setDraft({...draft, financials: newFins});
                                   }}
-                                  className="w-full bg-transparent border-none outline-none focus:ring-0 text-[11px] font-black text-gray-900 p-0 placeholder:text-gray-200"
-                                  placeholder="Descripción del rubro..."
+                                  className="w-full bg-transparent border-none outline-none focus:ring-0 text-[10px] font-black text-gray-900 p-0 placeholder:text-gray-200"
+                                  placeholder="Descripción..."
                                 />
-                                <div className="flex mt-1 text-[8px] font-black text-gray-400 uppercase tracking-widest gap-2">
+                                <div className="flex mt-0.5 text-[7px] font-black text-gray-400 uppercase tracking-widest gap-2">
                                    <span>{fin.category}</span>
                                    <span>•</span>
-                                   <span>{format(new Date(fin.date || Date.now()), "dd MMM yyyy")}</span>
+                                   <span>{format(new Date(fin.date || Date.now()), "dd/MM/yy")}</span>
                                 </div>
                               </div>
                               
-                              <div>
-                                <div className="relative">
-                                  <span className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                              <div className="col-span-4">
+                                <div className="relative flex items-center justify-end bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                                  <span className="text-gray-400 font-bold text-[10px] mr-1">$</span>
                                   <input 
                                     type="number"
                                     value={fin.amount || ''}
@@ -923,13 +948,13 @@ export default function ProcedureDetails() {
                                       newFins[idx].amount = Number(e.target.value);
                                       setDraft({...draft, financials: newFins});
                                     }}
-                                    className="w-full bg-transparent border-none border-b border-gray-100 pl-4 outline-none focus:ring-0 text-sm font-black text-gray-900 p-0"
+                                    className="w-full bg-transparent border-none outline-none focus:ring-0 text-[10px] font-black text-gray-900 p-0 text-right"
                                     placeholder="0.00"
                                   />
                                 </div>
                               </div>
 
-                              <div className="flex justify-end gap-2">
+                              <div className="col-span-1 flex justify-end">
                                  <button 
                                   onClick={() => {
                                     const newFins = [...draft.financials];
@@ -940,19 +965,19 @@ export default function ProcedureDetails() {
                                     }
                                     setDraft({...draft, financials: newFins});
                                   }}
-                                  className="p-2 text-gray-300 hover:text-red-500 rounded-xl"
+                                  className="p-1 text-gray-300 hover:text-red-500 transition-colors"
                                  >
-                                    <Trash2 className="w-4 h-4" />
+                                    <Trash2 className="w-3 h-3" />
                                  </button>
                               </div>
                            </div>
                         </div>
                       ))}
 
-                      {draft.financials.length === 0 && (
-                        <div className="py-12 text-center">
-                           <DollarSign className="w-10 h-10 text-gray-100 mx-auto mb-2" />
-                           <p className="text-gray-300 font-black text-[9px] uppercase tracking-widest">No hay movimientos financieros registrados</p>
+                      {draft.financials.filter(f => !f.isDeleted).length === 0 && (
+                        <div className="py-8 text-center border border-dashed border-gray-100 rounded-2xl">
+                           <DollarSign className="w-8 h-8 text-gray-100 mx-auto mb-2 opacity-50" />
+                           <p className="text-gray-300 font-black text-[8px] uppercase tracking-widest leading-none">Sin movimientos registrados</p>
                         </div>
                       )}
                    </div>
@@ -1021,49 +1046,7 @@ export default function ProcedureDetails() {
         </div>
       </div>
 
-      {/* Global Save Button (Fixed Footer) */}
-      <AnimatePresence>
-        {hasChanges && (
-          <motion.div 
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            className="fixed bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-50 w-[94%] sm:w-[90%] max-w-2xl"
-          >
-            <div className="bg-[#1A1A1A] p-4 sm:p-5 rounded-[24px] sm:rounded-[28px] border border-white/10 shadow-2xl backdrop-blur-xl flex items-center justify-between gap-4 sm:gap-6">
-               <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-red-600/30 shrink-0">
-                     <Save className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                  </div>
-                  <div className="min-w-0">
-                     <p className="text-[8px] sm:text-[10px] font-black text-white uppercase tracking-widest leading-none truncate">Cambios Pendientes</p>
-                     <p className="text-[7px] sm:text-[9px] font-medium text-gray-400 mt-1 truncate">Recuerde guardar para sincronizar</p>
-                  </div>
-               </div>
-
-               <div className="flex items-center gap-2 shrink-0">
-                  <button 
-                    onClick={() => {
-                      if (window.confirm('¿Descartar cambios localizados?')) fetchData();
-                    }}
-                    className="px-2 sm:px-4 py-2 text-[8px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-white transition-colors hidden xs:block"
-                  >
-                    Descartar
-                  </button>
-                  <button 
-                    onClick={handleGlobalSave}
-                    disabled={saving}
-                    className="h-9 sm:h-10 px-4 sm:px-8 bg-red-600 text-white rounded-xl font-black text-[9px] sm:text-[11px] uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-600/20 active:scale-95 flex items-center gap-2"
-                  >
-                    {saving ? <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" /> : <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-                    <span className="hidden xs:inline">Guardar Expediente</span><span className="xs:hidden">Guardar</span>
-                  </button>
-               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+      {/* Floating alert containers only */}
       {success && (
          <div className="fixed top-8 right-8 bg-emerald-500 text-white px-6 py-4 rounded-2xl shadow-2xl z-[100] animate-in fade-in slide-in-from-top-4 duration-300 flex items-center gap-3">
             <CheckCircle2 className="w-6 h-6" />
@@ -1130,24 +1113,26 @@ function TabButton({ label, icon: Icon, active, onClick, count }: { label: strin
 
 function StatCard({ label, value, color, icon: Icon, highlight }: { label: string, value: number, color: 'emerald' | 'red' | 'blue' | 'gray' | 'orange', icon: any, highlight?: boolean }) {
   const colors = {
-    emerald: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
-    red: 'bg-red-50 text-red-600 ring-red-100',
-    blue: 'bg-blue-50 text-blue-600 ring-blue-100',
-    gray: 'bg-gray-50 text-gray-600 ring-gray-100',
-    orange: 'bg-orange-50 text-orange-600 ring-orange-100'
+    emerald: 'bg-emerald-50 text-emerald-600 ring-emerald-100/50',
+    red: 'bg-red-50 text-red-600 ring-red-100/50',
+    blue: 'bg-blue-50 text-blue-600 ring-blue-100/50',
+    gray: 'bg-gray-50 text-gray-500 ring-gray-100/50',
+    orange: 'bg-orange-50 text-orange-600 ring-orange-100/50'
   };
   
   return (
     <div className={clsx(
-      "p-6 rounded-[32px] ring-1 ring-inset shadow-sm transition-all",
+      "p-3 sm:p-4 rounded-[20px] sm:rounded-[24px] ring-1 ring-inset shadow-sm transition-all flex items-center gap-3",
       colors[color],
-      highlight && "ring-2 ring-offset-2 ring-current ring-opacity-20 translate-y-[-2px]"
+      highlight && "ring-2 ring-offset-1 ring-current ring-opacity-10"
     )}>
-       <div className="flex items-center justify-between mb-4">
-          <Icon className="w-6 h-6 opacity-40" />
-          <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
+       <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white/50 flex items-center justify-center shrink-0">
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5 opacity-70" />
        </div>
-       <p className="text-2xl font-black">${value.toLocaleString('es-EC', { minimumFractionDigits: 2 })}</p>
+       <div className="min-w-0">
+          <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest block opacity-70 mb-0.5 truncate">{label}</span>
+          <p className="text-sm sm:text-base font-black truncate">${value.toLocaleString('es-EC', { minimumFractionDigits: 2 })}</p>
+       </div>
     </div>
   );
 }
