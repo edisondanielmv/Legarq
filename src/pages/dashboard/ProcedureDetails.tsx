@@ -106,32 +106,15 @@ export default function ProcedureDetails() {
     setLoading(true);
     setError(null);
     try {
-      const procs = await api.getProcedures({ username: currentUser.username, role: currentUser.role });
-      
-      if (!procs || procs.length === 0) {
-        console.warn("No procedures found for user:", currentUser.username);
-      }
-
       const searchId = (id || '').toString().trim();
-      
-      // Debug info for the user in case of "Not found"
-      console.log(`[DEBUG] Buscando trámite con identificador: "${searchId}"`);
-      console.log(`[DEBUG] Rol del usuario: ${currentUser.role}`);
-      console.log(`[DEBUG] Cantidad de trámites recibidos: ${procs.length}`);
-
-      const proc = procs.find((p: Procedure) => {
-        const pid = String(p.id || '').trim();
-        const pcode = String(p.code || '').trim().toLowerCase();
-        const target = searchId.toLowerCase();
-        return pid === searchId || pcode === target || pid.toLowerCase() === target;
+      const proc = await api.getProcedure({ 
+        id: searchId, 
+        username: currentUser.username, 
+        role: currentUser.role 
       });
       
       if (!proc) {
         console.error("Procedure not found for search term:", searchId);
-        if (procs.length > 0) {
-          console.log("IDs disponibles:", procs.slice(0, 5).map(p => p.id));
-          console.log("Códigos disponibles:", procs.slice(0, 5).map(p => p.code));
-        }
         setLoading(false);
         return;
       }
@@ -336,9 +319,9 @@ export default function ProcedureDetails() {
       <div className="w-20 h-20 bg-gray-50 rounded-[32px] flex items-center justify-center mx-auto mb-6 border border-gray-100 shadow-sm">
         <AlertCircle className="w-10 h-10 text-gray-200" />
       </div>
-      <h2 className="text-xl font-black text-gray-900 tracking-tight">Expediente no disponible</h2>
+      <h2 className="text-xl font-black text-gray-900 tracking-tight">{error ? "Error de Acceso" : "Expediente no disponible"}</h2>
       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 leading-relaxed">
-        No se pudo encontrar el trámite solicitado en su lista de acceso. Es posible que no tenga permisos o que el enlace sea incorrecto.
+        {error || "No se pudo encontrar el trámite solicitado en su lista de acceso. Es posible que no tenga permisos o que el enlace sea incorrecto."}
       </p>
       
       <div className="mt-8 flex flex-col gap-3">

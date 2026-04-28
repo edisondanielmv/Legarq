@@ -212,6 +212,7 @@ const mockApi = async (action: string, data: any): Promise<any> => {
 export const api = {
   login: (data: any) => apiCall<User>('login', data),
   getProcedures: (data: { role: string, username: string }) => apiCall<Procedure[]>('getProcedures', data),
+  getProcedure: (data: { id: string, role: string, username: string }) => apiCall<Procedure>('getProcedure', data),
   createProcedure: (data: any) => apiCall<{ id: string, driveUrl?: string }>('createProcedure', data),
   updateProcedureStatus: (data: { id: string, status: string }) => apiCall<{ success: true }>('updateProcedureStatus', data),
   assignTechnician: (data: { procedureId: string, technicianUsername: string }) => apiCall<{ success: true }>('assignTechnician', data),

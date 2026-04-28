@@ -61,6 +61,7 @@ function doPost(e) {
       case 'setup': initSheets(); result = { status: 'initialized' }; break;
       case 'login': result = login(data); break;
       case 'getProcedures': result = getProcedures(data); break;
+      case 'getProcedure': result = getProcedure(data); break;
       case 'createProcedure': result = createProcedure(data); break;
       case 'updateProcedure': result = updateProcedure(data); break;
       case 'deleteProcedure': result = deleteProcedure(data); break;
@@ -149,6 +150,29 @@ function getProcedures(data) {
   if (data.role === 'client') return procs.filter(function(p) { return String(p.clientUsername || '').toLowerCase() === username; });
   if (data.role === 'tech') return procs.filter(function(p) { return String(p.technicianUsername || '').toLowerCase() === username; });
   return procs;
+}
+
+function getProcedure(data) {
+  var procs = getSheetData('Tramites');
+  var searchId = String(data.id || '').trim();
+  var username = String(data.username || '').toLowerCase();
+  var role = data.role;
+
+  var proc = procs.find(function(p) {
+    var pid = String(p.id || '').trim();
+    var pcode = String(p.code || '').trim().toLowerCase();
+    var target = searchId.toLowerCase();
+    return pid === searchId || pcode === target || pid.toLowerCase() === target;
+  });
+
+  if (!proc) throw new Error('Trámite no encontrado con identificador: ' + searchId);
+
+  // Access Control
+  if (role === 'admin') return proc;
+  if (role === 'client' && String(proc.clientUsername || '').toLowerCase() === username) return proc;
+  if (role === 'tech' && String(proc.technicianUsername || '').toLowerCase() === username) return proc;
+
+  throw new Error('No tiene permisos para acceder a este trámite.');
 }
 
 function createProcedure(data) {
