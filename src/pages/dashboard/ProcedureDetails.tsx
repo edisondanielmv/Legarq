@@ -112,17 +112,26 @@ export default function ProcedureDetails() {
         console.warn("No procedures found for user:", currentUser.username);
       }
 
-      // Mejoramos la búsqueda del trámite para evitar problemas de tipos o espacios
       const searchId = (id || '').toString().trim();
-      const proc = procs.find((p: Procedure) => 
-        String(p.id).trim() === searchId || 
-        String(p.code).trim().toLowerCase() === searchId.toLowerCase()
-      );
+      
+      // Debug info for the user in case of "Not found"
+      console.log(`[DEBUG] Buscando trámite con identificador: "${searchId}"`);
+      console.log(`[DEBUG] Rol del usuario: ${currentUser.role}`);
+      console.log(`[DEBUG] Cantidad de trámites recibidos: ${procs.length}`);
+
+      const proc = procs.find((p: Procedure) => {
+        const pid = String(p.id || '').trim();
+        const pcode = String(p.code || '').trim().toLowerCase();
+        const target = searchId.toLowerCase();
+        return pid === searchId || pcode === target || pid.toLowerCase() === target;
+      });
       
       if (!proc) {
         console.error("Procedure not found for search term:", searchId);
-        console.log("Available IDs:", procs.map(p => p.id));
-        console.log("Available Codes:", procs.map(p => p.code));
+        if (procs.length > 0) {
+          console.log("IDs disponibles:", procs.slice(0, 5).map(p => p.id));
+          console.log("Códigos disponibles:", procs.slice(0, 5).map(p => p.code));
+        }
         setLoading(false);
         return;
       }
@@ -323,10 +332,42 @@ export default function ProcedureDetails() {
   );
 
   if (!draft || !original.procedure) return (
-    <div className="text-center py-20 px-6">
-      <AlertCircle className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-      <h2 className="text-xl font-black text-gray-900">Expediente no disponible</h2>
-      <button onClick={() => navigate('/dashboard')} className="mt-4 text-[#E3000F] text-[10px] font-black uppercase tracking-widest">Volver al Dashboard</button>
+    <div className="text-center py-20 px-6 max-w-md mx-auto">
+      <div className="w-20 h-20 bg-gray-50 rounded-[32px] flex items-center justify-center mx-auto mb-6 border border-gray-100 shadow-sm">
+        <AlertCircle className="w-10 h-10 text-gray-200" />
+      </div>
+      <h2 className="text-xl font-black text-gray-900 tracking-tight">Expediente no disponible</h2>
+      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 leading-relaxed">
+        No se pudo encontrar el trámite solicitado en su lista de acceso. Es posible que no tenga permisos o que el enlace sea incorrecto.
+      </p>
+      
+      <div className="mt-8 flex flex-col gap-3">
+        <button 
+          onClick={() => {
+            api.clearCache();
+            fetchData();
+          }} 
+          className="w-full bg-[#1A1A1A] text-white h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[#E3000F] transition-all shadow-xl shadow-gray-200 active:scale-95 flex items-center justify-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" /> Reintentar y Limpiar Caché
+        </button>
+        
+        <button 
+          onClick={() => navigate('/dashboard')} 
+          className="w-full bg-white text-gray-900 border border-gray-100 h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" /> Volver al Dashboard
+        </button>
+      </div>
+
+      <div className="mt-12 p-4 bg-gray-50 rounded-2xl border border-gray-100 text-left">
+        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Detalles Técnicos</p>
+        <code className="text-[9px] font-mono text-gray-500 break-all">
+          ID: {id}<br/>
+          User: {currentUser?.username}<br/>
+          Role: {currentUser?.role}
+        </code>
+      </div>
     </div>
   );
 

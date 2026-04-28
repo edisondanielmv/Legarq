@@ -170,13 +170,16 @@ export default function Procedures() {
     }
   };
 
-  const filtered = procedures.filter(p => 
-    (p.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.code && p.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (p.clientUsername && p.clientUsername.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (p.clientName && p.clientName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (p.idNumber && String(p.idNumber).toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filtered = procedures.filter(p => {
+    const term = searchTerm.toLowerCase();
+    return (
+      (p.title || '').toLowerCase().includes(term) ||
+      (p.code || '').toLowerCase().includes(term) ||
+      (p.clientUsername || '').toLowerCase().includes(term) ||
+      (p.clientName || '').toLowerCase().includes(term) ||
+      String(p.idNumber || '').toLowerCase().includes(term)
+    );
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {

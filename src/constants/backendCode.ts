@@ -145,8 +145,9 @@ function login(data) {
 
 function getProcedures(data) {
   var procs = getSheetData('Tramites');
-  if (data.role === 'client') return procs.filter(function(p) { return String(p.clientUsername || '') === String(data.username || ''); });
-  if (data.role === 'tech') return procs.filter(function(p) { return String(p.technicianUsername || '') === String(data.username || ''); });
+  var username = String(data.username || '').toLowerCase();
+  if (data.role === 'client') return procs.filter(function(p) { return String(p.clientUsername || '').toLowerCase() === username; });
+  if (data.role === 'tech') return procs.filter(function(p) { return String(p.technicianUsername || '').toLowerCase() === username; });
   return procs;
 }
 
