@@ -247,6 +247,7 @@ export const api = {
   createDriveFolder: (procedureId: string, title: string) => apiCall<{ driveUrl: string }>('createDriveFolder', { procedureId, title }),
   getTechnicianActivityReport: (role: string) => apiCall<{ logs: ProcedureLog[], procedures: Procedure[], technicians: { id: string, name: string, username: string }[] }>('getTechnicianActivityReport', { role }),
   checkDuplicateIdNumber: (idNumber: string, excludeUsername?: string) => apiCall<{ exists: boolean; name?: string }>('checkDuplicateIdNumber', { idNumber, excludeUsername }),
+  setupDatabase: () => apiCall<{ status: string }>('setup'),
   getAllTableData: () => apiCall<any>('getAllTableData'),
   batchUpdateTable: (tableName: string, updates: any[]) => apiCall<{ success: boolean }>('batchUpdateTable', { tableName, updates }),
   clearCache,

@@ -200,6 +200,7 @@ export default function ProcedureDetails() {
         completedSteps: draft.procedure.completedSteps,
         procedureType: draft.procedure.procedureType,
         propertyNumber: draft.procedure.propertyNumber,
+        platformNumber: draft.procedure.platformNumber,
         clientName: draft.client.name, 
         clientPhone: draft.client.phone, 
         clientEmail: draft.client.email,
@@ -597,6 +598,14 @@ export default function ProcedureDetails() {
                           <option value="">Sin asignar</option>
                           {staff.filter(u => u.role === 'tech').map(t => <option key={t.id} value={t.username}>{t.name}</option>)}
                         </select>
+                      </Field>
+                      <Field label="Número de Trámite en Plataforma">
+                        <input 
+                          value={draft.procedure.platformNumber || ''}
+                          onChange={e => setDraft({...draft, procedure: {...draft.procedure, platformNumber: e.target.value}})}
+                          className="w-full bg-gray-50 border-gray-100 rounded-xl p-3 text-xs font-black outline-none focus:ring-2 focus:ring-red-500/20"
+                          placeholder="Número asignado por la plataforma externa"
+                        />
                       </Field>
                    </div>
                 </Section>

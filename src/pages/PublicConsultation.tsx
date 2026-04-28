@@ -239,6 +239,11 @@ const PublicConsultation = () => {
                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
                                   <Hash className="w-3.5 h-3.5" /> {proc.code}
                                 </span>
+                                {proc.platformNumber && (
+                                  <span className="text-[10px] font-black text-red-600 uppercase tracking-widest flex items-center gap-1.5 bg-red-50 px-2 py-0.5 rounded-md border border-red-100">
+                                    <Building2 className="w-3.5 h-3.5" /> Plataforma: {proc.platformNumber}
+                                  </span>
+                                )}
                               </div>
                               <h2 className="text-xl font-black text-gray-900 tracking-tight group-hover:text-[#E3000F] transition-colors leading-tight">
                                 {proc.title}

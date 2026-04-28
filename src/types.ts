@@ -22,6 +22,7 @@ export interface Procedure {
   idNumber?: string;
   procedureType?: string;
   propertyNumber?: string;
+  platformNumber?: string;
   technicianUsername?: string;
   technicianName?: string; // Added to show technician name in lists
   driveUrl?: string;

@@ -26,7 +26,8 @@ export default function Procedures() {
   const [newProc, setNewProc] = useState({ 
     clientName: '',
     clientEmail: '',
-    procedureType: ''
+    procedureType: '',
+    platformNumber: ''
   });
 
   useEffect(() => {
@@ -86,13 +87,15 @@ export default function Procedures() {
         clientEmail: clientEmail,
         procedureType: newProc.procedureType,
         title: newProc.procedureType,
+        platformNumber: newProc.platformNumber
       });
       
       setShowNewModal(false);
       setNewProc({ 
         clientName: '',
         clientEmail: '',
-        procedureType: ''
+        procedureType: '',
+        platformNumber: ''
       });
       
       const driveMsg = result.driveUrl 
@@ -553,6 +556,16 @@ export default function Procedures() {
                       <option key={t.id} value={t.name}>{t.name}</option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Número de Trámite en Plataforma</label>
+                  <input 
+                    type="text" 
+                    value={newProc.platformNumber} 
+                    onChange={e => setNewProc({...newProc, platformNumber: e.target.value})} 
+                    className="w-full bg-gray-50 border-transparent rounded-xl p-3 outline-none focus:ring-2 focus:ring-[#E3000F]/20 focus:bg-white border text-xs font-black tracking-tight transition-all" 
+                    placeholder="Opcional: Número asignado por plataforma externa" 
+                  />
                 </div>
               </div>
               

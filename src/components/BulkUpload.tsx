@@ -28,6 +28,7 @@ export function BulkUpload({ onSuccess, procedureTypes, technicians }: BulkUploa
     'Email Cliente',
     'Teléfono Cliente',
     'Valor Esperado',
+    'Número de Plataforma',
     'Username Técnico (opcional)'
   ];
 
@@ -64,7 +65,8 @@ export function BulkUpload({ onSuccess, procedureTypes, technicians }: BulkUploa
           clientEmail: row[5] || '',
           clientPhone: row[6]?.toString() || '',
           expectedValue: parseFloat(row[7]) || 0,
-          technicianUsername: row[8] || ''
+          platformNumber: row[8]?.toString() || '',
+          technicianUsername: row[9] || ''
         }));
 
         setData(validatedData);
