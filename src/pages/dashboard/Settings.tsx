@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Settings, Database, RefreshCw, Copy, CheckCircle2, Code, AlertTriangle } from 'lucide-react';
+import { Settings, Database, RefreshCw, Copy, CheckCircle2, Code, AlertTriangle, Folder, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { BACKEND_SCRIPT } from '../../constants/backendCode';
 import LoadingOverlay from '../../components/LoadingOverlay';
 
 export default function SettingsPage() {
   const [initializing, setInitializing] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
   const [copied, setCopied] = useState(false);
   const [results, setResults] = useState<{ success: boolean, msg: string } | null>(null);
 
@@ -31,6 +32,25 @@ export default function SettingsPage() {
     }
   };
 
+  const handleCleanFolders = async () => {
+    if (!window.confirm('¿Desea iniciar la limpieza de carpetas de Drive huérfanas? Esta acción enviará a la papelera aquellas carpetas de Drive que correspondan a trámites que ya fueron eliminados de la base de datos.')) {
+      return;
+    }
+    setCleaning(true);
+    setResults(null);
+    try {
+      const response = await api.cleanOrphanFolders();
+      setResults({ 
+        success: true, 
+        msg: `Operación finalizada. Se enviaron a la papelera ${response.deletedCount || 0} carpetas inactivas de trámites eliminados.` 
+      });
+    } catch (error: any) {
+      setResults({ success: false, msg: error.message || 'Error al ejecutar la limpieza de carpetas.' });
+    } finally {
+      setCleaning(false);
+    }
+  };
+
   const copyCode = () => {
     navigator.clipboard.writeText(BACKEND_SCRIPT);
     setCopied(true);
@@ -52,7 +72,7 @@ export default function SettingsPage() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* DB Maintenance */}
           <div className="bg-gray-50 p-6 rounded-[28px] border border-gray-100 flex flex-col justify-between">
             <div>
@@ -90,10 +110,33 @@ export default function SettingsPage() {
             
             <button 
               onClick={copyCode}
-              className="w-full h-11 bg-white text-gray-900 border border-gray-200 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all flex items-center justify-center gap-2 shadow-sm"
+              className="w-full h-11 bg-white text-gray-950 border border-gray-200 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all flex items-center justify-center gap-2 shadow-sm"
             >
               {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
               {copied ? '¡Copiado!' : 'Copiar Código App Script'}
+            </button>
+          </div>
+
+          {/* Clean Orphan Folders */}
+          <div className="bg-gray-50 p-6 rounded-[28px] border border-gray-100 flex flex-col justify-between">
+            <div>
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm mb-4">
+                <Folder className="w-5 h-5 text-rose-500" />
+              </div>
+              <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight mb-2">Limpieza de Carpetas</h3>
+              <p className="text-[10px] text-gray-500 font-medium leading-relaxed mb-6">
+                Escanea y elimina de forma definitiva las carpetas digitales inactivas de aquellos trámites que ya se hayan borrado de la base de datos.
+              </p>
+            </div>
+            
+            <button 
+              type="button"
+              onClick={handleCleanFolders}
+              disabled={cleaning}
+              className="w-full h-11 bg-white text-gray-900 border border-gray-200 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-905 hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+            >
+              <Trash2 className={`w-4 h-4 ${cleaning ? 'animate-pulse' : ''}`} />
+              {cleaning ? 'Limpiando...' : 'Limpiar Carpetas'}
             </button>
           </div>
         </div>

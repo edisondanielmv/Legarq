@@ -94,6 +94,7 @@ function doPost(e) {
       case 'bulkCreateProcedures': result = bulkCreateProcedures(data); break;
       case 'checkDuplicateIdNumber': result = checkDuplicateIdNumber(data); break;
       case 'createDriveFolder': result = createDriveFolder(data); break;
+      case 'cleanOrphanFolders': result = cleanOrphanFolders(data); break;
       case 'getAllTableData': result = getAllTableData(); break;
       case 'batchUpdateTable': result = batchUpdateTable(data); break;
       case 'getTechnicianActivityReport': result = getTechnicianActivityReport(data); break;
@@ -518,6 +519,54 @@ function createDriveFolder(data) {
   folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   updateProcedure({ id: data.procedureId, driveFolderId: folder.getId(), driveUrl: folder.getUrl() });
   return { driveUrl: folder.getUrl() };
+}
+
+function cleanOrphanFolders(data) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Tramites');
+  if (!sheet) throw new Error('Hoja Tramites no encontrada');
+  var rows = sheet.getDataRange().getValues();
+  
+  var activeFolderIds = [];
+  if (rows.length >= 2) {
+    var h = rows[0];
+    var folderIdIndex = h.indexOf('driveFolderId');
+    if (folderIdIndex !== -1) {
+      for (var i = 1; i < rows.length; i++) {
+        var fid = String(rows[i][folderIdIndex] || '').trim();
+        if (fid) {
+          activeFolderIds.push(fid);
+        }
+      }
+    }
+  }
+  
+  var parent = getOrCreateMainFolder();
+  var subfolders = parent.getFolders();
+  var deletedNames = [];
+  var deletedCount = 0;
+  
+  while (subfolders.hasNext()) {
+    var folder = subfolders.next();
+    var folderId = folder.getId();
+    
+    if (activeFolderIds.indexOf(folderId) === -1) {
+      var name = folder.getName();
+      try {
+        folder.setTrashed(true);
+        deletedNames.push(name);
+        deletedCount++;
+      } catch (e) {
+        Logger.log("Error al eliminar carpeta huérfana " + name + ": " + e);
+      }
+    }
+  }
+  
+  return { 
+    success: true, 
+    deletedCount: deletedCount, 
+    deletedNames: deletedNames 
+  };
 }
 
 function bulkCreateProcedures(list) {

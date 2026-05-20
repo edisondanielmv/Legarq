@@ -245,6 +245,7 @@ export const api = {
   deleteProcedure: (id: string) => apiCall<{ success: true }>('deleteProcedure', { id }),
   deleteUser: (username: string) => apiCall<{ success: true }>('deleteUser', { username }),
   createDriveFolder: (procedureId: string, title: string) => apiCall<{ driveUrl: string }>('createDriveFolder', { procedureId, title }),
+  cleanOrphanFolders: () => apiCall<{ success: boolean; deletedCount: number; deletedNames: string[] }>('cleanOrphanFolders'),
   getTechnicianActivityReport: (role: string) => apiCall<{ logs: ProcedureLog[], procedures: Procedure[], technicians: { id: string, name: string, username: string }[] }>('getTechnicianActivityReport', { role }),
   checkDuplicateIdNumber: (idNumber: string, excludeUsername?: string) => apiCall<{ exists: boolean; name?: string }>('checkDuplicateIdNumber', { idNumber, excludeUsername }),
   setupDatabase: () => apiCall<{ status: string }>('setup'),

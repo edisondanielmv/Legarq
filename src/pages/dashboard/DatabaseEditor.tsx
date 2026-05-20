@@ -14,7 +14,9 @@ import {
   Box,
   CreditCard,
   X,
-  Plus
+  Plus,
+  FolderOpen,
+  ExternalLink
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import LoadingOverlay from '../../components/LoadingOverlay';
@@ -289,9 +291,22 @@ export default function DatabaseEditor() {
                       return (
                         <td key={col} className="p-2 min-w-[150px]">
                           {isImmutable ? (
-                             <div className="px-2 py-1.5 text-[10px] font-medium text-gray-400 bg-gray-50/50 rounded-lg truncate select-all">
-                               {String(displayValue || '')}
-                             </div>
+                             col === 'driveUrl' && displayValue ? (
+                               <a 
+                                 href={String(displayValue)} 
+                                 target="_blank" 
+                                 rel="noreferrer" 
+                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#E3000F] hover:text-[#B30009] bg-red-50 hover:bg-red-100/50 border border-red-100 rounded-lg transition-colors cursor-pointer"
+                               >
+                                 <FolderOpen className="w-3.5 h-3.5" />
+                                 Abrir Carpeta
+                                 <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                               </a>
+                             ) : (
+                               <div className="px-2 py-1.5 text-[10px] font-medium text-gray-400 bg-gray-50/50 rounded-lg truncate select-all">
+                                 {String(displayValue || '')}
+                               </div>
+                             )
                           ) : (
                             <input 
                               type={typeof displayValue === 'number' ? 'number' : 'text'}
