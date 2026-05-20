@@ -24,6 +24,9 @@ export default function Procedures() {
   const [successMessage, setSuccessMessage] = useState('');
 
   const [showNewModal, setShowNewModal] = useState(false);
+  const [clientMode, setClientMode] = useState<'existing' | 'new'>('existing');
+  const [selectedClientUsername, setSelectedClientUsername] = useState<string>('');
+  const [newClientDocId, setNewClientDocId] = useState<string>('');
   const [newProc, setNewProc] = useState({ 
     clientName: '',
     clientEmail: '',
@@ -78,14 +81,36 @@ export default function Procedures() {
     e.preventDefault();
     setSaving(true);
     try {
-      // Auto-generate email if missing
-      const clientEmail = newProc.clientEmail.trim() || 
-        `${newProc.clientName.toLowerCase().replace(/\s+/g, '_')}_${Date.now().toString().slice(-4)}@legarq.com`;
+      let clientName = '';
+      let clientEmail = '';
+      let idNumber = '';
+      let clientUsername = '';
+
+      if (clientMode === 'existing') {
+        const found = users.find(u => u.username === selectedClientUsername);
+        if (!found) {
+          throw new Error('Debe seleccionar un cliente de la lista.');
+        }
+        clientName = found.name;
+        clientEmail = found.email || '';
+        idNumber = found.idNumber || '';
+        clientUsername = found.username;
+      } else {
+        if (!newProc.clientName.trim()) {
+          throw new Error('Debe ingresar el nombre del nuevo cliente.');
+        }
+        clientName = newProc.clientName.trim();
+        clientEmail = newProc.clientEmail.trim() || 
+          `${clientName.toLowerCase().replace(/\s+/g, '_')}_${Date.now().toString().slice(-4)}@legarq.com`;
+        idNumber = newClientDocId.trim();
+      }
 
       // Use procedureType as title, do NOT include client name
       const result = await api.createProcedure({
-        clientName: newProc.clientName,
-        clientEmail: clientEmail,
+        clientName,
+        clientUsername,
+        clientEmail,
+        idNumber,
         procedureType: newProc.procedureType,
         title: newProc.procedureType,
         platformNumber: newProc.platformNumber
@@ -98,10 +123,12 @@ export default function Procedures() {
         procedureType: '',
         platformNumber: ''
       });
+      setNewClientDocId('');
+      setSelectedClientUsername('');
       
       const driveMsg = result.driveUrl 
-        ? 'Se ha generado la carpeta en Google Drive.' 
-        : 'No se pudo generar la carpeta automáticamente.';
+        ? 'Se ha asignado/generado la carpeta del cliente en Google Drive.' 
+        : 'No se pudo generar/vincular la carpeta en Google Drive automáticamente.';
       
       showSuccess(`Trámite creado exitosamente. ${driveMsg}`);
       await fetchProcedures();
@@ -578,27 +605,86 @@ export default function Procedures() {
             
             <form onSubmit={handleCreate} className="p-6 space-y-6">
               <div className="space-y-4">
+                {/* Selector de modo de cliente */}
                 <div>
-                  <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Nombre del Dueño del Predio</label>
-                  <input 
-                    required 
-                    type="text" 
-                    value={newProc.clientName} 
-                    onChange={e => setNewProc({...newProc, clientName: e.target.value})} 
-                    className="w-full bg-gray-50 border-transparent rounded-xl p-3 outline-none focus:ring-2 focus:ring-[#E3000F]/20 focus:bg-white border text-xs font-black tracking-tight transition-all" 
-                    placeholder="Ej. Juan Pérez" 
-                  />
+                  <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Asociar al Cliente</label>
+                  <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setClientMode('existing')}
+                      className={clsx(
+                        "py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all",
+                        clientMode === 'existing' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-905"
+                      )}
+                    >
+                      Cliente Existente
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setClientMode('new')}
+                      className={clsx(
+                        "py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all",
+                        clientMode === 'new' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-905"
+                      )}
+                    >
+                      Nuevo Cliente
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Correo Electrónico (Opcional)</label>
-                  <input 
-                    type="email" 
-                    value={newProc.clientEmail} 
-                    onChange={e => setNewProc({...newProc, clientEmail: e.target.value})} 
-                    className="w-full bg-gray-50 border-transparent rounded-xl p-3 outline-none focus:ring-2 focus:ring-[#E3000F]/20 focus:bg-white border text-xs font-black tracking-tight transition-all" 
-                    placeholder="ejemplo@correo.com (Se generará uno si se deja vacío)" 
-                  />
-                </div>
+
+                {clientMode === 'existing' ? (
+                  <div>
+                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Seleccionar Cliente de la Lista</label>
+                    <select
+                      required={clientMode === 'existing'}
+                      value={selectedClientUsername}
+                      onChange={e => setSelectedClientUsername(e.target.value)}
+                      className="w-full bg-gray-50 border-transparent rounded-xl p-3 outline-none focus:ring-2 focus:ring-[#E3000F]/20 focus:bg-white border text-xs font-black tracking-tight transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="">-- Seleccionar Cliente --</option>
+                      {users.filter(u => u.role === 'client').map(u => (
+                        <option key={u.id} value={u.username}>
+                          {u.name} {u.idNumber ? `(${u.idNumber})` : `(${u.username})`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Nombre del Dueño del Predio / Cliente</label>
+                      <input 
+                        required={clientMode === 'new'}
+                        type="text" 
+                        value={newProc.clientName} 
+                        onChange={e => setNewProc({...newProc, clientName: e.target.value})} 
+                        className="w-full bg-gray-50 border-transparent rounded-xl p-3 outline-none focus:ring-2 focus:ring-[#E3000F]/20 focus:bg-white border text-xs font-black tracking-tight transition-all" 
+                        placeholder="Ej. Juan Pérez" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">DNI / RUC del Cliente</label>
+                      <input 
+                        type="text" 
+                        value={newClientDocId} 
+                        onChange={e => setNewClientDocId(e.target.value)} 
+                        className="w-full bg-gray-50 border-transparent rounded-xl p-3 outline-none focus:ring-2 focus:ring-[#E3000F]/20 focus:bg-white border text-xs font-black tracking-tight transition-all" 
+                        placeholder="DNI, RUC u otro documento de identidad" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Correo Electrónico (Opcional)</label>
+                      <input 
+                        type="email" 
+                        value={newProc.clientEmail} 
+                        onChange={e => setNewProc({...newProc, clientEmail: e.target.value})} 
+                        className="w-full bg-gray-50 border-transparent rounded-xl p-3 outline-none focus:ring-2 focus:ring-[#E3000F]/20 focus:bg-white border text-xs font-black tracking-tight transition-all" 
+                        placeholder="ejemplo@correo.com (Se generará uno si se deja vacío)" 
+                      />
+                    </div>
+                  </>
+                )}
+
                 <div>
                   <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Tipo de Trámite</label>
                   <select 

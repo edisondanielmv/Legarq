@@ -184,42 +184,109 @@ function createProcedure(data) {
   var code = generateUniqueCode(sheet, headers);
   
   var searchId = String(data.idNumber || '').trim();
-  var randomSuffix = Math.floor(1000 + Math.random() * 9000);
-  var clientUsername = String(data.clientName || 'cliente').toLowerCase().replace(/\\s+/g, '.') + '.' + randomSuffix;
+  var lookupUsername = String(data.clientUsername || '').trim();
+  var lookupName = String(data.clientName || '').trim().toLowerCase();
   
-  createUser({
-    name: data.clientName || 'Cliente Nuevo',
-    username: clientUsername,
-    password: searchId || '12345',
-    role: 'client',
-    idNumber: searchId,
-    email: data.clientEmail || '',
-    status: 'Activo'
-  });
+  var usersObj = getSheetData('Usuarios');
+  var foundUser = null;
+
+  if (lookupUsername) {
+    foundUser = usersObj.find(function(u) {
+      return String(u.role || '').toLowerCase() === 'client' && 
+             String(u.username || '').toLowerCase() === lookupUsername.toLowerCase();
+    });
+  }
+  if (!foundUser && searchId) {
+    foundUser = usersObj.find(function(u) {
+      return String(u.role || '').toLowerCase() === 'client' && 
+             String(u.idNumber || '').trim() === searchId;
+    });
+  }
+  if (!foundUser && lookupName) {
+    foundUser = usersObj.find(function(u) {
+      return String(u.role || '').toLowerCase() === 'client' && 
+             (String(u.name || '').trim().toLowerCase() === lookupName || 
+              String(u.username || '').trim().toLowerCase() === lookupName);
+    });
+  }
+
+  var finalClientUsername = '';
+  var finalClientName = '';
+  var finalIdNumber = '';
+  var finalClientEmail = '';
+
+  if (foundUser) {
+    finalClientUsername = foundUser.username;
+    finalClientName = foundUser.name;
+    finalIdNumber = foundUser.idNumber || searchId;
+    finalClientEmail = foundUser.email || data.clientEmail || '';
+  } else {
+    var randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    var cleanName = String(data.clientName || 'cliente').toLowerCase()
+      .replace(/[áàäâ]/g, 'a')
+      .replace(/[éèëê]/g, 'e')
+      .replace(/[íìïî]/g, 'i')
+      .replace(/[óòöô]/g, 'o')
+      .replace(/[úùüû]/g, 'u')
+      .replace(/ñ/g, 'n')
+      .replace(/\s+/g, '.')
+      .replace(/[^a-z0-9.]/g, '');
+    
+    finalClientUsername = lookupUsername || (cleanName + '.' + randomSuffix);
+    finalClientName = data.clientName || 'Cliente Nuevo';
+    finalIdNumber = searchId;
+    finalClientEmail = data.clientEmail || '';
+
+    createUser({
+      name: finalClientName,
+      username: finalClientUsername,
+      password: finalIdNumber || '12345',
+      role: 'client',
+      idNumber: finalIdNumber,
+      email: finalClientEmail,
+      status: 'Activo'
+    });
+  }
 
   var folderData = { folderId: '', folderUrl: '' };
+  
+  // Find any existing procedure for this same client that has a Drive folder
   try {
-    var parent = getOrCreateMainFolder();
-    var folder = parent.createFolder('Trámite: ' + (data.title || 'Nuevo') + ' (' + code + ')');
-    folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    folderData.folderId = folder.getId();
-    folderData.folderUrl = folder.getUrl();
+    var proceduresObj = getSheetData('Tramites');
+    var procWithFolder = proceduresObj.find(function(p) {
+      return (String(p.clientUsername || '').toLowerCase() === finalClientUsername.toLowerCase() ||
+              (finalIdNumber && String(p.idNumber || '').trim() === finalIdNumber)) && String(p.driveFolderId || '').trim();
+    });
+
+    if (procWithFolder) {
+      folderData.folderId = procWithFolder.driveFolderId;
+      folderData.folderUrl = procWithFolder.driveUrl;
+    } else {
+      var parent = getOrCreateMainFolder();
+      var folderName = 'Cliente: ' + finalClientName + (finalIdNumber ? ' (' + finalIdNumber + ')' : '');
+      var folder = parent.createFolder(folderName);
+      folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      folderData.folderId = folder.getId();
+      folderData.folderUrl = folder.getUrl();
+    }
   } catch(e) {}
 
   var rowData = Object.assign({}, data, {
     id: id,
     code: code,
-    clientUsername: clientUsername,
+    clientUsername: finalClientUsername,
+    clientName: finalClientName,
+    clientEmail: finalClientEmail,
+    idNumber: finalIdNumber,
     status: 'En proceso',
     createdAt: new Date().toISOString(),
     driveFolderId: folderData.folderId,
-    driveUrl: folderData.folderUrl,
-    idNumber: searchId
+    driveUrl: folderData.folderUrl
   });
   
   var row = headers.map(function(h) { return rowData[h] || ''; });
   sheet.appendRow(row);
-  return { id: id, code: code, driveUrl: folderData.folderUrl, clientUsername: clientUsername };
+  return { id: id, code: code, driveUrl: folderData.folderUrl, clientUsername: finalClientUsername };
 }
 
 function updateProcedure(data) {
