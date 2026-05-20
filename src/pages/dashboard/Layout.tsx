@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LayoutDashboard, Users, LogOut, FileText, DollarSign, Settings, Menu, X, ClipboardList, Eye, Database } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, FileText, DollarSign, Settings, Menu, X, ClipboardList, Eye, Database, MessageSquare } from 'lucide-react';
 import clsx from 'clsx';
 import { APPS_SCRIPT_URL } from '../../lib/api';
 
@@ -19,6 +19,7 @@ export default function DashboardLayout() {
   const navItems = [
     { name: 'Trámites', href: '/dashboard', icon: FileText, roles: ['admin', 'tech', 'client'] },
     { name: 'Simular Consulta', href: '/consulta', icon: Eye, roles: ['admin', 'tech'] },
+    { name: 'Reportar Nota', href: '/dashboard/report-note', icon: MessageSquare, roles: ['admin', 'tech'] },
     { name: 'Seguimiento', href: '/dashboard/reports?view=tracking', icon: ClipboardList, roles: ['admin'] },
     { name: 'Tipos de Trámite', href: '/dashboard/procedure-types', icon: LayoutDashboard, roles: ['admin'] },
     { name: 'Usuarios', href: '/dashboard/users', icon: Users, roles: ['admin'] },

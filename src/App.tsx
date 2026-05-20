@@ -15,6 +15,7 @@ import FinancialReports from './pages/dashboard/FinancialReports';
 import Reports from './pages/dashboard/Reports';
 import Settings from './pages/dashboard/Settings';
 import DatabaseEditor from './pages/dashboard/DatabaseEditor';
+import ReportNote from './pages/dashboard/ReportNote';
 
 const ProtectedRoute = ({ children, allowedRoles, requiredPermission }: { children: React.ReactNode, allowedRoles?: string[], requiredPermission?: string }) => {
   const { user } = useAuth();
@@ -58,6 +59,11 @@ function AppRoutes() {
       }>
         <Route index element={<Procedures />} />
         <Route path="procedures/:id" element={<ProcedureDetails />} />
+        <Route path="report-note" element={
+          <ProtectedRoute allowedRoles={['admin', 'tech']}>
+            <ReportNote />
+          </ProtectedRoute>
+        } />
         <Route path="procedure-types" element={
           <ProtectedRoute allowedRoles={['admin']} requiredPermission="procedure_types">
             <ProcedureTypes />
