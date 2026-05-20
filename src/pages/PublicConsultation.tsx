@@ -231,6 +231,7 @@ const PublicConsultation = () => {
                                 <span className={clsx(
                                   "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
                                   proc.status === 'Finalizado' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                                  proc.status === 'Suspendido' ? "bg-rose-50 text-rose-600 border-rose-100" :
                                   proc.status === 'En proceso' ? "bg-amber-50 text-amber-600 border-amber-100" :
                                   "bg-gray-50 text-gray-600 border-gray-100"
                                 )}>

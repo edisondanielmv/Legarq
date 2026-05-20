@@ -19,6 +19,7 @@ export default function Procedures() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'Todos' | 'En proceso' | 'Suspendido' | 'Finalizado'>('Todos');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -175,18 +176,21 @@ export default function Procedures() {
 
   const filtered = procedures.filter(p => {
     const term = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       (p.title || '').toLowerCase().includes(term) ||
       (p.code || '').toLowerCase().includes(term) ||
       (p.clientUsername || '').toLowerCase().includes(term) ||
       (p.clientName || '').toLowerCase().includes(term) ||
       String(p.idNumber || '').toLowerCase().includes(term)
     );
+    const matchesStatus = statusFilter === 'Todos' || p.status === statusFilter;
+    return matchesSearch && matchesStatus;
   });
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'En proceso': return 'bg-amber-50 text-amber-600 border-amber-100';
+      case 'Suspendido': return 'bg-rose-50 text-rose-600 border-rose-100';
       case 'Finalizado': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
       default: return 'bg-gray-50 text-gray-600 border-gray-100';
     }
@@ -259,20 +263,71 @@ export default function Procedures() {
         </div>
       </div>
 
-      {/* Filters & Search */}
-      <div className="bg-white p-1 rounded-[20px] border border-gray-100 shadow-sm flex flex-col md:flex-row gap-1 items-center">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
-          <input
-            type="text"
-            placeholder="Buscar proyectos..."
-            className="w-full pl-9 pr-4 py-2 bg-gray-50 border-transparent rounded-[16px] focus:ring-2 focus:ring-[#E3000F]/10 focus:bg-white border outline-none transition-all text-[10px] sm:text-xs font-black text-gray-900 placeholder:text-gray-400 placeholder:font-black placeholder:uppercase placeholder:text-[8px] placeholder:tracking-widest"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {/* Filters, Search & Status Selectors */}
+      <div className="bg-white p-2 sm:p-3 rounded-[24px] border border-gray-100 shadow-sm space-y-2">
+        <div className="flex flex-col md:flex-row gap-2 items-center">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
+            <input
+              type="text"
+              placeholder="Buscar proyectos..."
+              className="w-full pl-9 pr-4 py-2 bg-gray-50 border-transparent rounded-[18px] focus:ring-2 focus:ring-[#E3000F]/10 focus:bg-white border outline-none transition-all text-[10px] sm:text-xs font-black text-gray-900 placeholder:text-gray-400 placeholder:font-black placeholder:uppercase placeholder:text-[8px] placeholder:tracking-widest"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2 text-[8px] font-black text-gray-400 uppercase tracking-widest px-3 py-1 shrink-0 self-end md:self-auto">
+            <span className="bg-[#1A1A1A] text-white px-2 py-0.5 rounded-md font-mono">{filtered.length}</span> Trámites filtrados
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-[8px] font-black text-gray-400 uppercase tracking-widest px-3 py-1">
-          <span className="bg-[#1A1A1A] text-white px-1.5 py-0.5 rounded-md">{filtered.length}</span> Trámites
+        
+        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-gray-50">
+          <span className="text-[8px] font-black uppercase tracking-[0.1em] text-gray-400 mr-1 hidden sm:inline">Filtrar por Estado:</span>
+          {(['Todos', 'En proceso', 'Suspendido', 'Finalizado'] as const).map((status) => {
+            const isActive = statusFilter === status;
+            const count = procedures.filter(p => status === 'Todos' || p.status === status).length;
+            
+            let countColor = "bg-gray-100 text-gray-500";
+            let activeStyles = "bg-[#1A1A1A] text-white border-[#1A1A1A] shadow-md shadow-gray-100";
+            let inactiveStyles = "text-gray-500 border-gray-100 hover:bg-gray-50 hover:text-gray-900";
+            
+            if (isActive) {
+              if (status === 'En proceso') {
+                activeStyles = "bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-50";
+                countColor = "bg-amber-800/30 text-white";
+              } else if (status === 'Suspendido') {
+                activeStyles = "bg-rose-600 text-white border-rose-600 shadow-md shadow-rose-50";
+                countColor = "bg-rose-800/30 text-white";
+              } else if (status === 'Finalizado') {
+                activeStyles = "bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-50";
+                countColor = "bg-emerald-800/30 text-white";
+              } else {
+                countColor = "bg-white/30 text-white";
+              }
+            } else {
+              countColor = "bg-gray-100 text-gray-400 group-hover:text-gray-500";
+            }
+
+            return (
+              <button
+                key={status}
+                type="button"
+                onClick={() => setStatusFilter(status)}
+                className={clsx(
+                  "px-2 px-2.5 sm:px-3 py-1 text-[8px] font-black uppercase tracking-widest transition-all duration-200 flex items-center gap-1.5 border active:scale-95 group rounded-xl",
+                  isActive ? activeStyles : inactiveStyles
+                )}
+              >
+                <span>{status}</span>
+                <span className={clsx(
+                  "px-1.5 py-0.5 rounded-lg text-[6.5px] font-mono leading-none font-bold transition-all",
+                  countColor
+                )}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -422,6 +477,7 @@ export default function Procedures() {
                     <span className={clsx(
                       "px-1.5 py-0.5 rounded-full text-[6.5px] font-black uppercase tracking-widest border w-fit",
                       proc.status === 'Finalizado' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                      proc.status === 'Suspendido' ? "bg-rose-50 text-rose-600 border-rose-100" :
                       proc.status === 'En proceso' ? "bg-amber-50 text-amber-600 border-amber-100" :
                       "bg-gray-50 text-gray-600 border-gray-100"
                     )}>

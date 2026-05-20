@@ -194,7 +194,7 @@ export default function ProcedureDetails() {
       const procedureChanges = {
         id: realId,
         title: draft.procedure.title,
-        status: draft.procedure.status,
+        status: currentUser?.role === 'admin' ? draft.procedure.status : original.procedure.status,
         technicianUsername: draft.procedure.technicianUsername,
         expectedValue: draft.procedure.expectedValue,
         completedSteps: draft.procedure.completedSteps,
@@ -497,12 +497,28 @@ export default function ProcedureDetails() {
                 "h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest border-none ring-1 transition-all outline-none",
                 draft.procedure.status === 'Finalizado' 
                   ? "bg-emerald-50 text-emerald-600 ring-emerald-100" 
-                  : "bg-amber-50 text-amber-600 ring-amber-100"
+                  : draft.procedure.status === 'Suspendido'
+                    ? "bg-rose-50 text-rose-600 ring-rose-100"
+                    : "bg-amber-50 text-amber-600 ring-amber-100"
               )}
             >
-              <option value="En proceso">Activo</option>
-              <option value="Finalizado">Listo</option>
+              <option value="En proceso">En proceso</option>
+              <option value="Suspendido">Suspendido</option>
+              <option value="Finalizado">Finalizado</option>
             </select>
+          )}
+
+          {currentUser?.role !== 'admin' && (
+            <div className={clsx(
+              "h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest border flex items-center justify-center font-sans select-none shrink-0",
+              draft.procedure.status === 'Finalizado' 
+                ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
+                : draft.procedure.status === 'Suspendido'
+                  ? "bg-rose-50 text-rose-600 border-rose-100"
+                  : "bg-amber-50 text-amber-600 border-amber-100"
+            )}>
+              {draft.procedure.status}
+            </div>
           )}
 
           {currentUser?.role === 'admin' && (

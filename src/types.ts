@@ -27,7 +27,7 @@ export interface Procedure {
   technicianName?: string; // Added to show technician name in lists
   driveUrl?: string;
   driveFolderUrl?: string;
-  status: 'En proceso' | 'Finalizado';
+  status: 'En proceso' | 'Suspendido' | 'Finalizado';
   description: string;
   createdAt: string;
   completedAt?: string;

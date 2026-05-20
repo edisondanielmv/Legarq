@@ -25,6 +25,7 @@ export default function Reports() {
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState('');
   const [selectedTech, setSelectedTech] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -99,6 +100,11 @@ export default function Reports() {
     }
 
     const procedure = data.procedures.find(p => p.id === log.procedureId);
+    
+    // Status filtering
+    const matchesStatus = selectedStatus === 'all' || procedure?.status === selectedStatus;
+    if (!matchesStatus) return false;
+
     const matchesSearch = 
       log.note.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ((procedure?.title || '').toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -135,6 +141,7 @@ export default function Reports() {
     doc.setFontSize(10);
     doc.setTextColor(100);
     let filterText = `Filtros: Técnico: ${selectedTech === 'all' ? 'Todos' : getTechName(selectedTech)}`;
+    if (selectedStatus !== 'all') filterText += ` | Estado: ${selectedStatus}`;
     if (startDate) filterText += ` | Desde: ${startDate}`;
     if (endDate) filterText += ` | Hasta: ${endDate}`;
     if (searchTerm) filterText += ` | Búsqueda: "${searchTerm}"`;
@@ -149,6 +156,10 @@ export default function Reports() {
           (proc.clientName || proc.clientUsername || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
           (proc.code || '').toLowerCase().includes(searchTerm.toLowerCase());
         
+        // Filter by state
+        const matchesStatus = selectedStatus === 'all' || proc.status === selectedStatus;
+        if (!matchesStatus) return false;
+
         // If there are technician or date filters, only show procedures with matching logs
         const hasActiveFilters = selectedTech !== 'all' || startDate || endDate;
         if (hasActiveFilters) {
@@ -164,23 +175,25 @@ export default function Reports() {
           proc.clientName || proc.clientUsername,
           proc.procedureType || 'N/A',
           proc.technicianName || proc.technicianUsername || 'Sin asignar',
+          proc.status || 'En proceso',
           procLogs.map(l => `${format(new Date(l.date), 'dd/MM/yy')}: ${l.note}`).join('\n')
         ];
       });
 
       autoTable(doc, {
         startY: 35,
-        head: [['Nº Trámite', 'Cliente', 'Tipo', 'Técnico', 'Actividades']],
+        head: [['Nº Trámite', 'Cliente', 'Tipo', 'Técnico', 'Estado', 'Actividades']],
         body: tableData,
         theme: 'grid',
         headStyles: { fillColor: [227, 0, 15] },
         styles: { fontSize: 7, cellPadding: 2 },
         columnStyles: {
-          0: { cellWidth: 20 },
-          1: { cellWidth: 30 },
-          2: { cellWidth: 30 },
-          3: { cellWidth: 30 },
-          4: { cellWidth: 'auto' }
+          0: { cellWidth: 15 },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 25 },
+          3: { cellWidth: 25 },
+          4: { cellWidth: 20 },
+          5: { cellWidth: 'auto' }
         }
       });
     } else {
@@ -339,6 +352,19 @@ export default function Reports() {
                 ))}
               </select>
             </div>
+            <div className="flex items-center gap-1.5">
+              <Filter className="w-3.5 h-3.5 text-gray-400" />
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="text-[9px] font-black uppercase tracking-widest border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-[#E3000F]/20 bg-white"
+              >
+                <option value="all">Todos los Estados</option>
+                <option value="En proceso">En proceso</option>
+                <option value="Suspendido">Suspendido</option>
+                <option value="Finalizado">Finalizado</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -474,6 +500,7 @@ export default function Reports() {
                   <th className="px-6 py-3 text-[9px] font-black text-gray-400 uppercase tracking-widest">Cliente</th>
                   <th className="px-6 py-3 text-[9px] font-black text-gray-400 uppercase tracking-widest">Tipo de Trámite</th>
                   <th className="px-6 py-3 text-[9px] font-black text-gray-400 uppercase tracking-widest">Técnico</th>
+                  <th className="px-6 py-3 text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Estado</th>
                   <th className="px-6 py-3 text-[9px] font-black text-gray-400 uppercase tracking-widest">Actividades (Bitácora)</th>
                   <th className="px-6 py-3 text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Ver</th>
                 </tr>
@@ -486,6 +513,10 @@ export default function Reports() {
                     (p.clientName || p.clientUsername || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                     (p.code || '').toLowerCase().includes(searchTerm.toLowerCase());
                   
+                  // Filter by status match
+                  const matchesStatus = selectedStatus === 'all' || p.status === selectedStatus;
+                  if (!matchesStatus) return false;
+
                   // If there are technician or date filters, only show procedures with matching logs
                   const hasActiveFilters = selectedTech !== 'all' || startDate || endDate;
                   if (hasActiveFilters) {
@@ -510,6 +541,17 @@ export default function Reports() {
                       </td>
                       <td className="px-6 py-3 whitespace-nowrap">
                         <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">{proc.technicianName || proc.technicianUsername || 'Sin asignar'}</span>
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap text-center">
+                        <span className={clsx(
+                          "px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest border font-sans select-none inline-block",
+                          proc.status === 'Finalizado' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                          proc.status === 'Suspendido' ? "bg-rose-50 text-rose-600 border-rose-100" :
+                          proc.status === 'En proceso' ? "bg-amber-50 text-amber-600 border-amber-100" :
+                          "bg-gray-50 text-gray-600 border-gray-100"
+                        )}>
+                          {proc.status || 'En proceso'}
+                        </span>
                       </td>
                       <td className="px-6 py-3">
                         <div className="space-y-1 max-h-32 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200">
