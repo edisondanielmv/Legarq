@@ -46,10 +46,11 @@ export default function ReportNote() {
   const [selectedId, setSelectedId] = useState<string>('');
   
   const [noteText, setNoteText] = useState('');
-  const [isExternal, setIsExternal] = useState(true);
+  const [isExternal, setIsExternal] = useState(false);
   
   const [logs, setLogs] = useState<ProcedureLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [updatingLogId, setUpdatingLogId] = useState<string | null>(null);
   
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -189,8 +190,8 @@ export default function ReportNote() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Left Column: Procedure Finder (4 cols) */}
-        <div className="lg:col-span-4 bg-white p-6 rounded-[28px] border border-gray-100 shadow-sm flex flex-col h-[calc(100vh-280px)] min-h-[500px]">
+        {/* Left Column: Procedure Finder (4 cols) - Hidden on mobile for height compactness */}
+        <div className="hidden lg:flex lg:col-span-4 bg-white p-6 rounded-[28px] border border-gray-100 shadow-sm flex-col h-[calc(100vh-280px)] min-h-[500px]">
           <div className="mb-4">
             <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest mb-2 flex items-center gap-1.5">
               <Search className="w-4 h-4 text-red-500" />
@@ -281,14 +282,45 @@ export default function ReportNote() {
         <div className="lg:col-span-8 space-y-6">
           
           {/* Main Action card - Reporting Form */}
-          <div className="bg-white p-6 rounded-[28px] border border-gray-100 shadow-sm">
+          <div className="bg-white p-4 sm:p-6 rounded-[28px] border border-gray-100 shadow-sm">
+            {/* Quick selector for mobile devices */}
+            {procedures.length > 0 && (
+              <div className="block lg:hidden mb-4 space-y-1.5">
+                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Search className="w-3.5 h-3.5 text-[#E3000F]" />
+                  Seleccionar Trámite (Móvil)
+                </label>
+                <select
+                  value={selectedId}
+                  onChange={(e) => {
+                    setSelectedId(e.target.value);
+                    setStatusMessage(null);
+                  }}
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500 text-xs font-black tracking-tight transition-all cursor-pointer appearance-none"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='lucide lucide-chevron-down'><path d='m6 9 6 6 6-6'/></svg>")`,
+                    backgroundPosition: 'right 12px center',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: '16px'
+                  }}
+                >
+                  <option value="" disabled>-- Elija un trámite --</option>
+                  {procedures.map(p => (
+                    <option key={p.id} value={p.id}>
+                      [{p.code}] {p.title} - {p.clientName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {selectedProcedure ? (
               <form onSubmit={handleSubmit} className="space-y-4">
                 
                 {/* Selected procedure info summary */}
                 <div className="p-4 bg-gray-50/50 border border-gray-100 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-1">
-                    <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Trámite Seleccionado</span>
+                    <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block font-sans">Trámite Seleccionado</span>
                     <h3 className="text-sm font-black text-gray-900 tracking-tight flex items-center gap-1.5">
                       <FileText className="w-4 h-4 text-[#E3000F]" />
                       [{selectedProcedure.code}] {selectedProcedure.title}
@@ -328,26 +360,6 @@ export default function ReportNote() {
                     placeholder="Escriba aquí los detalles correspondientes..."
                     className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500 transition-all font-sans"
                   />
-                </div>
-
-                {/* Rapid Preset Appender */}
-                <div className="space-y-2">
-                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5 text-[#C5B39A]" />
-                    Plantillas de Comentarios Rápidos (Haga clic para añadir)
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {COMMON_PRESETS.map((p, i) => (
-                      <button
-                        type="button"
-                        key={i}
-                        onClick={() => handleApplyPreset(p)}
-                        className="px-2.5 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-150 rounded-lg text-[9px] font-medium text-gray-600 transition-all active:scale-95"
-                      >
-                        + {p.replace(/\.$/, '')}
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 {/* Controls and submission */}
@@ -480,11 +492,39 @@ export default function ReportNote() {
                                     <span className="text-[10px] font-black text-gray-900 uppercase tracking-wider block">
                                       {log.technicianUsername ? `Técnico: ${log.technicianUsername}` : 'Personal Legarq'}
                                     </span>
-                                    <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
-                                      isLogExternal ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                                    }`}>
-                                      {isLogExternal ? 'Público' : 'Solo Interno'}
-                                    </span>
+                                    <label className="inline-flex items-center gap-1.5 cursor-pointer bg-stone-50 hover:bg-stone-100 border border-stone-200/60 px-2.5 py-1 rounded-full select-none transition-all">
+                                      <input 
+                                        type="checkbox" 
+                                        checked={isLogExternal} 
+                                        disabled={updatingLogId === log.id}
+                                        onChange={async (e) => {
+                                          if (!log.id) return;
+                                          const checked = e.target.checked;
+                                          setUpdatingLogId(log.id);
+                                          try {
+                                            await api.updateLog({
+                                              id: log.id,
+                                              note: log.note,
+                                              isExternal: checked
+                                            });
+                                            setLogs(prev => prev.map(l => l.id === log.id ? { ...l, isExternal: checked } : l));
+                                          } catch (err: any) {
+                                            console.error("Error al actualizar visibilidad:", err);
+                                          } finally {
+                                            setUpdatingLogId(null);
+                                          }
+                                        }}
+                                        className="w-3 h-3 text-[#E3000F] rounded border-gray-300 cursor-pointer focus:ring-[#E3000F]"
+                                      />
+                                      <span className={`text-[8px] font-black uppercase tracking-wide flex items-center gap-1 ${
+                                        isLogExternal ? 'text-emerald-700' : 'text-rose-600'
+                                      }`}>
+                                        {isLogExternal ? 'Público (Cliente)' : 'Solo Interno'}
+                                        {updatingLogId === log.id && (
+                                          <span className="w-2 h-2 border-2 border-dashed border-current rounded-full animate-spin inline-block"></span>
+                                        )}
+                                      </span>
+                                    </label>
                                   </div>
                                   <div className="flex items-center gap-1 text-[9px] text-gray-400 font-bold uppercase tracking-wider">
                                     <Calendar className="w-3 h-3" />

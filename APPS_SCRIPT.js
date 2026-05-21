@@ -320,8 +320,38 @@ function deleteProcedure(data) {
       var procData = {};
       h.forEach(function(header, j) { procData[header] = rows[i][j]; });
       
-      if (procData.driveFolderId) {
-        try { DriveApp.getFolderById(procData.driveFolderId).setTrashed(true); } catch (e) {}
+      var driveFolderId = String(procData.driveFolderId || '').trim();
+      var clientUser = String(procData.clientUsername || '').trim();
+
+      // Verificar si hay otros trámites vinculados a la misma carpeta o cliente
+      var hasOtherProcsSharingFolder = false;
+      var hasOtherProcsSameClient = false;
+      
+      var idIndex = h.indexOf('id');
+      var folderIdIndex = h.indexOf('driveFolderId');
+      var clientUsernameIndex = h.indexOf('clientUsername');
+
+      for (var rIndex = 1; rIndex < rows.length; rIndex++) {
+        if (rIndex === i) continue;
+        
+        var otherFolderId = folderIdIndex !== -1 ? String(rows[rIndex][folderIdIndex] || '').trim() : '';
+        var otherClientUser = clientUsernameIndex !== -1 ? String(rows[rIndex][clientUsernameIndex] || '').trim() : '';
+        var otherUuid = idIndex !== -1 ? String(rows[rIndex][idIndex] || '').trim() : String(rows[rIndex][0] || '').trim();
+        
+        if (otherUuid === realId) continue;
+
+        if (driveFolderId && otherFolderId === driveFolderId) {
+          hasOtherProcsSharingFolder = true;
+        }
+        if (clientUser && otherClientUser === clientUser) {
+          hasOtherProcsSameClient = true;
+        }
+      }
+
+      var shouldDeleteFolder = driveFolderId && !hasOtherProcsSharingFolder && !hasOtherProcsSameClient;
+
+      if (shouldDeleteFolder) {
+        try { DriveApp.getFolderById(driveFolderId).setTrashed(true); } catch (e) {}
       }
 
       deleteRowsByColumn('Finanzas', 1, realId);

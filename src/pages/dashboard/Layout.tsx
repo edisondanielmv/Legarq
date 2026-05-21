@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LayoutDashboard, Users, LogOut, FileText, DollarSign, Settings, Menu, X, ClipboardList, Eye, Database, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, FileText, DollarSign, Settings, Menu, X, ClipboardList, Eye, Database, MessageSquare, Coins } from 'lucide-react';
 import clsx from 'clsx';
 import { APPS_SCRIPT_URL } from '../../lib/api';
 
@@ -24,6 +24,7 @@ export default function DashboardLayout() {
     { name: 'Tipos de Trámite', href: '/dashboard/procedure-types', icon: LayoutDashboard, roles: ['admin'] },
     { name: 'Usuarios', href: '/dashboard/users', icon: Users, roles: ['admin'] },
     { name: 'Reporte Actividades', href: '/dashboard/reports?view=list', icon: ClipboardList, roles: ['admin'] },
+    { name: 'Caja Rápida', href: '/dashboard/quick-finance', icon: Coins, roles: ['admin'] },
     { name: 'Reportes Finanzas', href: '/dashboard/financial-reports', icon: DollarSign, roles: ['admin'] },
     { name: 'Base de Datos', href: '/dashboard/database', icon: Database, roles: ['admin'] },
     { name: 'Configuración', href: '/dashboard/settings', icon: Settings, roles: ['admin'] },
@@ -46,6 +47,7 @@ export default function DashboardLayout() {
         '/dashboard/users': 'users',
         '/dashboard/reports': 'reports',
         '/dashboard/financial-reports': 'finance',
+        '/dashboard/quick-finance': 'finance',
         '/dashboard/settings': 'settings'
       };
       
@@ -158,7 +160,7 @@ export default function DashboardLayout() {
             Modo Demostración - Datos no guardados en Google Sheets
           </div>
         )}
-        <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 h-10 sm:h-12 flex items-center px-4 md:px-5 sticky top-0 z-30">
+        <header className="hidden md:flex bg-white/80 backdrop-blur-md border-b border-gray-100 h-10 sm:h-12 items-center px-4 md:px-5 sticky top-0 z-30">
           <div className="flex items-center gap-2">
             <div className="w-0.5 h-4 bg-[#E3000F] rounded-full hidden md:block" />
             <h1 className="text-xs md:text-base font-black text-gray-900 tracking-tight">

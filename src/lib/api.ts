@@ -142,7 +142,15 @@ const performFetch = async <T>(action: string, data: any, cacheKey: string, sile
         throw new Error("La conexión con Google Sheets tardó demasiado (más de 60 segundos).");
       }
       
-      console.error("Fetch Error:", error);
+      const isKnownScriptOutdated = error.message?.includes('getFinancialSummary') || 
+                                    error.message?.includes('getAllTableData') || 
+                                    error.message?.includes('Acción no implementada');
+      
+      if (isKnownScriptOutdated) {
+        console.warn(`[Apps Script Outdated] La acción '${action}' no está soportada por su despliegue actual de Google Apps Script. Por favor actualice el script desde el panel de Configuración.`);
+      } else {
+        console.error("Fetch Error:", error);
+      }
       
       // Handle the generic "Failed to fetch" which usually means network or CORS issue
       if (error.message === 'Failed to fetch' || error.message?.includes('network')) {
@@ -230,7 +238,15 @@ export const api = {
   addFinancialItem: (data: Partial<FinancialItem>) => apiCall<{ id: string }>('addFinancialItem', data),
   updateFinancialItem: (data: Partial<FinancialItem> & { id: string }) => apiCall<{ success: true }>('updateFinancialItem', data),
   deleteFinancialItem: (id: string) => apiCall<{ success: true }>('deleteFinancialItem', { id }),
-  getFinancialSummary: () => apiCall<{ transactions: FinancialItem[], procedures: Procedure[] }>('getFinancialSummary'),
+  getFinancialSummary: () => apiCall<{ transactions: FinancialItem[], procedures: Procedure[], isScriptOutdated?: boolean }>('getFinancialSummary').catch(err => {
+    console.warn("getFinancialSummary failed, using empty fallback. Error:", err.message);
+    return {
+      transactions: [],
+      procedures: [],
+      isScriptOutdated: true,
+      error: err.message
+    };
+  }),
   getAccounts: () => apiCall<Account[]>('getAccounts'),
   createAccount: (name: string) => apiCall<{ id: string }>('createAccount', { name }),
   deleteAccount: (id: string) => apiCall<{ success: true }>('deleteAccount', { id }),

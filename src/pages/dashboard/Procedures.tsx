@@ -34,6 +34,47 @@ export default function Procedures() {
     platformNumber: ''
   });
 
+  interface ClientOption {
+    username: string;
+    name: string;
+    idNumber?: string;
+    email?: string;
+  }
+
+  // Combine client accounts from users table and procedure metadata (such as bulk uploads / procedures without user accounts)
+  const clientsFromUsers: ClientOption[] = (users || [])
+    .filter(u => {
+      const r = (u.role || '').trim().toLowerCase();
+      // Filter role to get all client roles or anything that isn't admin/tech/finance/other specialized non-clients
+      return r === 'client' || r === 'cliente' || (!r || !['admin', 'tech', 'finance'].includes(r));
+    })
+    .map(u => ({
+      username: u.username,
+      name: u.name,
+      idNumber: u.idNumber,
+      email: u.email
+    }));
+
+  const clientsFromProcedures: ClientOption[] = [];
+  (procedures || []).forEach(p => {
+    if (p.clientUsername && p.clientName) {
+      const existsInUsers = clientsFromUsers.some(c => c.username.toLowerCase() === p.clientUsername.toLowerCase());
+      const existsInProcs = clientsFromProcedures.some(c => c.username.toLowerCase() === p.clientUsername.toLowerCase());
+      if (!existsInUsers && !existsInProcs) {
+        clientsFromProcedures.push({
+          username: p.clientUsername,
+          name: p.clientName,
+          idNumber: p.idNumber,
+          email: p.clientEmail
+        });
+      }
+    }
+  });
+
+  const allClients: ClientOption[] = [...clientsFromUsers, ...clientsFromProcedures].sort((a, b) =>
+    (a.name || '').localeCompare(b.name || '')
+  );
+
   useEffect(() => {
     fetchProcedures();
     if (user?.role === 'admin') {
@@ -87,7 +128,7 @@ export default function Procedures() {
       let clientUsername = '';
 
       if (clientMode === 'existing') {
-        const found = users.find(u => u.username === selectedClientUsername);
+        const found = allClients.find(c => c.username === selectedClientUsername);
         if (!found) {
           throw new Error('Debe seleccionar un cliente de la lista.');
         }
@@ -642,9 +683,9 @@ export default function Procedures() {
                       className="w-full bg-gray-50 border-transparent rounded-xl p-3 outline-none focus:ring-2 focus:ring-[#E3000F]/20 focus:bg-white border text-xs font-black tracking-tight transition-all appearance-none cursor-pointer"
                     >
                       <option value="">-- Seleccionar Cliente --</option>
-                      {users.filter(u => u.role === 'client').map(u => (
-                        <option key={u.id} value={u.username}>
-                          {u.name} {u.idNumber ? `(${u.idNumber})` : `(${u.username})`}
+                      {allClients.map(c => (
+                        <option key={c.username} value={c.username}>
+                          {c.name} {c.idNumber ? `(${c.idNumber})` : `(${c.username})`}
                         </option>
                       ))}
                     </select>

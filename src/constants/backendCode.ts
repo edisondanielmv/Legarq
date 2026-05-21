@@ -334,11 +334,32 @@ function deleteProcedure(data) {
     // Comparación robusta
     if (uuid === idToDelete || code === idToDelete || (uuid.toLowerCase() === idToDelete.toLowerCase()) || (code.toLowerCase() === idToDelete.toLowerCase())) {
       var realId = uuid; 
-      var driveFolderId = String(rows[i][folderIdIndex] || '');
-      var clientUser = String(rows[i][clientUsernameIndex] || '');
+      var driveFolderId = String(rows[i][folderIdIndex] || '').trim();
+      var clientUser = String(rows[i][clientUsernameIndex] || '').trim();
 
-      // 1. Eliminar carpeta de Drive si existe
-      if (driveFolderId) {
+      // Verificar si hay otros trámites vinculados al mismo driveFolderId o al mismo cliente
+      var hasOtherProcsSharingFolder = false;
+      var hasOtherProcsSameClient = false;
+      for (var rIndex = 1; rIndex < rows.length; rIndex++) {
+        if (rIndex === i) continue;
+        var otherFolderId = String(rows[rIndex][folderIdIndex] || '').trim();
+        var otherClientUser = String(rows[rIndex][clientUsernameIndex] || '').trim();
+        var otherUuid = String(rows[rIndex][idIndex] || '').trim();
+        
+        if (otherUuid === realId) continue;
+
+        if (driveFolderId && otherFolderId === driveFolderId) {
+          hasOtherProcsSharingFolder = true;
+        }
+        if (clientUser && otherClientUser === clientUser) {
+          hasOtherProcsSameClient = true;
+        }
+      }
+
+      var shouldDeleteFolder = driveFolderId && !hasOtherProcsSharingFolder && !hasOtherProcsSameClient;
+
+      // 1. Eliminar carpeta de Drive si existe y no hay otros trámites vinculados a ella ni al cliente
+      if (shouldDeleteFolder) {
         try { 
           DriveApp.getFolderById(driveFolderId).setTrashed(true); 
         } catch (e) { Logger.log("Error Drive: " + e); }

@@ -28,6 +28,7 @@ export default function FinancialReports() {
   const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isScriptOutdated, setIsScriptOutdated] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -39,11 +40,15 @@ export default function FinancialReports() {
       setError('');
       
       const [summary, allProcedures, accs, usersData] = await Promise.all([
-        api.getFinancialSummary().catch(() => ({ transactions: [], procedures: [] })),
+        api.getFinancialSummary(),
         api.getProcedures({ username: '', role: 'admin' }).catch(() => []),
         api.getAccounts().catch(() => []),
         api.getUsers('admin').catch(() => [])
       ]);
+      
+      if (summary && (summary as any).isScriptOutdated) {
+        setIsScriptOutdated(true);
+      }
       
       // Merge data
       setData({
@@ -148,11 +153,16 @@ export default function FinancialReports() {
 
   // Process data for Category Summary
   const categorySummary = filteredTransactions.reduce((acc: any, t) => {
+    const type = (t.type || '').trim().toLowerCase();
+    const isIncome = type === 'ingreso' || type === 'abono';
+    const isExpense = type === 'egreso' || type === 'gasto';
+    if (!isIncome && !isExpense) return acc;
+
     const cat = t.category || 'Sin Categoría';
     if (!acc[cat]) acc[cat] = { category: cat, income: 0, expense: 0, count: 0 };
     const amt = parseAmount(t.amount);
-    if (t.type === 'Ingreso') acc[cat].income += amt;
-    else acc[cat].expense += amt;
+    if (isIncome) acc[cat].income += amt;
+    if (isExpense) acc[cat].expense += amt;
     acc[cat].count++;
     return acc;
   }, {});
@@ -162,13 +172,18 @@ export default function FinancialReports() {
   // Process data for Cash Flow
   const cashFlowSummary = filteredTransactions.reduce((acc: any, t) => {
     if (!t.date) return acc;
+    const type = (t.type || '').trim().toLowerCase();
+    const isIncome = type === 'ingreso' || type === 'abono';
+    const isExpense = type === 'egreso' || type === 'gasto';
+    if (!isIncome && !isExpense) return acc;
+
     const date = new Date(t.date);
     if (isNaN(date.getTime())) return acc;
     const monthKey = format(date, 'yyyy-MM');
     if (!acc[monthKey]) acc[monthKey] = { month: monthKey, income: 0, expense: 0 };
     const amt = parseAmount(t.amount);
-    if (t.type === 'Ingreso') acc[monthKey].income += amt;
-    else acc[monthKey].expense += amt;
+    if (isIncome) acc[monthKey].income += amt;
+    if (isExpense) acc[monthKey].expense += amt;
     return acc;
   }, {});
 
@@ -257,6 +272,26 @@ export default function FinancialReports() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 relative">
       {saving && <LoadingOverlay />}
+      
+      {isScriptOutdated && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-950 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start md:items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 md:mt-0" />
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider mb-0.5">Código de Servidor Desactualizado</p>
+              <p className="text-stone-600 text-[10px] font-bold uppercase tracking-wide">
+                Su módulo de Reportes Financieros requiere actualizar la Web App de Google Apps Script. Vaya a Configuración, copie el código y vuelva a publicarlo.
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => window.location.hash = '#/dashboard/settings'} 
+            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[9px] font-black uppercase tracking-widest self-end md:self-auto shrink-0 transition-colors shadow-md shadow-amber-100"
+          >
+            Actualizar Ahora
+          </button>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-gray-900 uppercase tracking-tight">Reportes Financieros</h1>
@@ -329,46 +364,46 @@ export default function FinancialReports() {
         </div>
       </div>
 
-    {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-2">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+        <div className="bg-white p-2.5 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-1 sm:mb-2">
             <div className="p-1 bg-green-50 rounded-lg">
-              <TrendingUp className="w-4 h-4 text-green-600" />
+              <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600" />
             </div>
-            <span className="text-[7px] font-black text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full uppercase tracking-widest">Ingresos</span>
+            <span className="text-[6.5px] sm:text-[7px] font-black text-green-600 bg-green-50 px-1 sm:px-1.5 py-0.5 rounded-full uppercase tracking-widest">Ingresos</span>
           </div>
-          <p className="text-xl font-black text-gray-900">${totalIncome.toLocaleString()}</p>
+          <p className="text-sm sm:text-lg md:text-xl font-black text-gray-900">${totalIncome.toLocaleString()}</p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-2">
+        <div className="bg-white p-2.5 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-1 sm:mb-2">
             <div className="p-1 bg-red-50 rounded-lg">
-              <TrendingDown className="w-4 h-4 text-[#E3000F]" />
+              <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#E3000F]" />
             </div>
-            <span className="text-[7px] font-black text-[#E3000F] bg-red-50 px-1.5 py-0.5 rounded-full uppercase tracking-widest">Egresos</span>
+            <span className="text-[6.5px] sm:text-[7px] font-black text-[#E3000F] bg-red-50 px-1 sm:px-1.5 py-0.5 rounded-full uppercase tracking-widest">Egresos</span>
           </div>
-          <p className="text-xl font-black text-gray-900">${totalExpense.toLocaleString()}</p>
+          <p className="text-sm sm:text-lg md:text-xl font-black text-gray-900">${totalExpense.toLocaleString()}</p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-2">
+        <div className="bg-white p-2.5 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-1 sm:mb-2">
             <div className="p-1 bg-blue-50 rounded-lg">
-              <Wallet className="w-4 h-4 text-blue-600" />
+              <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
             </div>
-            <span className="text-[7px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full uppercase tracking-widest">Saldo</span>
+            <span className="text-[6.5px] sm:text-[7px] font-black text-blue-600 bg-blue-50 px-1 sm:px-1.5 py-0.5 rounded-full uppercase tracking-widest">Saldo</span>
           </div>
-          <p className="text-xl font-black text-gray-900">${totalBalance.toLocaleString()}</p>
+          <p className="text-sm sm:text-lg md:text-xl font-black text-gray-900">${totalBalance.toLocaleString()}</p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-2">
+        <div className="bg-white p-2.5 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-1 sm:mb-2">
             <div className="p-1 bg-gray-50 rounded-lg">
-              <Briefcase className="w-4 h-4 text-gray-600" />
+              <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600" />
             </div>
-            <span className="text-[7px] font-black text-gray-600 bg-gray-50 px-1.5 py-0.5 rounded-full uppercase tracking-widest">Proyectado</span>
+            <span className="text-[6.5px] sm:text-[7px] font-black text-gray-600 bg-gray-50 px-1 sm:px-1.5 py-0.5 rounded-full uppercase tracking-widest">Proyectado</span>
           </div>
-          <p className="text-xl font-black text-gray-900">${totalExpected.toLocaleString()}</p>
+          <p className="text-sm sm:text-lg md:text-xl font-black text-gray-900">${totalExpected.toLocaleString()}</p>
         </div>
       </div>
 
@@ -565,7 +600,8 @@ export default function FinancialReports() {
                 <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
                   <h3 className="text-sm font-bold text-gray-900 uppercase">Listado de Transacciones</h3>
                 </div>
-                <div className="overflow-x-auto">
+                {/* Desktop View Table */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-200">
@@ -649,6 +685,93 @@ export default function FinancialReports() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Mobile View Card List */}
+                <div className="md:hidden divide-y divide-gray-100">
+                  {((data.transactions || [])
+                    .filter(t => 
+                      (t.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      (t.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      (data.procedures?.find(p => String(p.id) === String(t.procedureId))?.title || '').toLowerCase().includes(searchTerm.toLowerCase())
+                    )
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).length === 0) ? (
+                      <div className="p-8 text-center text-gray-400 italic text-xs">No se encontraron transacciones.</div>
+                    ) : (
+                      (data.transactions || [])
+                        .filter(t => 
+                          (t.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (t.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (data.procedures?.find(p => String(p.id) === String(t.procedureId))?.title || '').toLowerCase().includes(searchTerm.toLowerCase())
+                        )
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .map(t => {
+                          const isIncome = t.type === 'Ingreso' || t.type === 'Abono' || (t.type || '').trim().toLowerCase() === 'ingreso' || (t.type || '').trim().toLowerCase() === 'abono';
+                          const isReceivable = t.type === 'Cuenta por Cobrar' || t.type === 'Por Cobrar' || (t.type || '').trim().toLowerCase() === 'cuenta por cobrar';
+                          return (
+                            <div key={t.id} className="p-3 space-y-2 hover:bg-gray-50 transition-colors">
+                              <div className="flex justify-between items-start">
+                                <div className="space-y-0.5 max-w-[70%]">
+                                  <span className="text-[10px] text-gray-400 font-bold">{format(new Date(t.date), 'dd/MM/yyyy')}</span>
+                                  <h4 className="text-xs font-bold text-gray-900 leading-tight block break-words">{t.description}</h4>
+                                  <span className="inline-block text-[9px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">{t.category}</span>
+                                </div>
+                                <span className={clsx(
+                                  "text-sm font-black whitespace-nowrap shrink-0 ml-2",
+                                  isIncome ? "text-green-600" : 
+                                  isReceivable ? "text-blue-600" : "text-red-600"
+                                )}>
+                                  {isIncome ? '+' : isReceivable ? '+' : '-'}${parseAmount(t.amount).toLocaleString()}
+                                </span>
+                              </div>
+
+                              <div className="flex flex-wrap gap-1.5 items-center">
+                                {t.isReimbursable && (
+                                  <span className="text-[8px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded border border-yellow-100 font-bold">Reembolsar a: {t.reimburseTo}</span>
+                                )}
+                                {t.fileUrl && (
+                                  <a 
+                                    href={t.fileUrl} 
+                                    target="_blank" 
+                                    rel="noreferrer" 
+                                    className="text-[8px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-100 font-bold flex items-center gap-0.5 hover:bg-blue-100"
+                                  >
+                                    <FileCheck className="w-2.5 h-2.5" /> RESPALDO
+                                  </a>
+                                )}
+                              </div>
+
+                              <div className="flex justify-end gap-2 pt-1.5 border-t border-gray-100">
+                                <button 
+                                  type="button"
+                                  onClick={() => handleEditTransaction(t)}
+                                  disabled={saving}
+                                  className="px-2.5 py-1 bg-gray-50 text-gray-600 border border-gray-200 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-colors hover:bg-gray-100 disabled:opacity-50"
+                                >
+                                  <Edit2 className="w-2.5 h-2.5 text-blue-600" /> Editar
+                                </button>
+                                <button 
+                                  type="button"
+                                  onClick={() => handleDeleteTransaction(t.id)}
+                                  disabled={saving}
+                                  className={clsx(
+                                    "px-2.5 py-1 border rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all disabled:opacity-50",
+                                    deletingTransactionId === t.id 
+                                      ? "bg-red-600 text-white border-red-600 animate-pulse font-black text-[8px]" 
+                                      : "bg-red-50 text-red-600 border-red-100 hover:bg-red-100"
+                                  )}
+                                >
+                                  {deletingTransactionId === t.id ? '¿BORRAR?' : (
+                                    <>
+                                      <Trash2 className="w-2.5 h-2.5" /> Borrar
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                    )}
+                </div>
               </div>
             </div>
           </div>
@@ -660,7 +783,9 @@ export default function FinancialReports() {
           <div className="p-4 bg-gray-50 border-b border-gray-200">
             <h3 className="text-sm font-bold text-gray-900 uppercase">Flujo de Caja Mensual</h3>
           </div>
-          <div className="overflow-x-auto">
+
+          {/* Desktop View Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
@@ -704,6 +829,55 @@ export default function FinancialReports() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden divide-y divide-gray-100">
+            {cashFlowList.length === 0 ? (
+              <div className="p-8 text-center text-gray-400 italic text-xs">No hay registros de flujo de caja.</div>
+            ) : (
+              cashFlowList.map((item: any) => {
+                const netFlow = item.income - item.expense;
+                const isPositive = netFlow >= 0;
+                return (
+                  <div key={item.month} className="p-3.5 space-y-3 hover:bg-gray-50/50 transition-colors">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-black text-gray-900 uppercase tracking-tight">
+                        {format(new Date(item.month + '-01'), 'MMMM yyyy', { locale: es })}
+                      </span>
+                      <span className={clsx(
+                        "flex items-center gap-1 text-[8px] font-black uppercase px-2 py-0.5 rounded-full",
+                        isPositive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                      )}>
+                        {isPositive ? (
+                          <>Positivo <ArrowUpRight className="w-3 h-3 text-green-600" /></>
+                        ) : (
+                          <>Negativo <ArrowDownRight className="w-3 h-3 text-red-600" /></>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100 text-center">
+                      <div className="flex flex-col">
+                        <span className="text-[8px] text-gray-400 uppercase font-black tracking-wider">Ingresos</span>
+                        <span className="text-[11px] font-bold text-green-600">${item.income.toLocaleString()}</span>
+                      </div>
+                      <div className="flex flex-col border-l border-r border-gray-100">
+                        <span className="text-[8px] text-gray-400 uppercase font-black tracking-wider">Egresos</span>
+                        <span className="text-[11px] font-bold text-red-600">${item.expense.toLocaleString()}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[8px] text-gray-400 uppercase font-black tracking-wider">Flujo Neto</span>
+                        <span className={clsx(
+                          "text-[11px] font-black",
+                          isPositive ? "text-green-600" : "text-red-600"
+                        )}>${netFlow.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       )}
