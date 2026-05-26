@@ -242,6 +242,20 @@ export default function Procedures() {
     }
   };
 
+  const handleAssignTechnician = async (procedureId: string, technicianUsername: string) => {
+    setSaving(true);
+    setError('');
+    try {
+      await api.assignTechnician({ procedureId, technicianUsername });
+      showSuccess('Técnico asignado correctamente.');
+      await fetchProcedures();
+    } catch (err: any) {
+      setError(`Error al asignar técnico: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const filtered = procedures.filter(p => {
     const term = searchTerm.toLowerCase();
     const matchesSearch = (
@@ -409,125 +423,161 @@ export default function Procedures() {
       )}
 
       {/* Desktop Table View */}
-      <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden hidden md:block">
-        <table className="min-w-full divide-y divide-gray-50">
-          <thead className="bg-gray-50/50">
-            <tr>
-              <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Código</th>
-              <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Proyecto</th>
-              <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Cliente</th>
-              <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Técnico</th>
-              <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Días</th>
-              <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Estado</th>
-              <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Carpeta</th>
-              {user?.role === 'admin' && <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Acciones</th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {filtered.map((proc) => (
-              <tr 
-                key={proc.id} 
-                className="hover:bg-gray-50/50 transition-colors cursor-pointer group"
-                onClick={() => navigate(`/dashboard/procedures/${proc.id}`)}
-              >
-                <td className="px-6 py-2 whitespace-nowrap">
-                  <span className="text-[8px] font-mono font-black text-[#E3000F] bg-red-50 px-1.5 py-0.5 rounded-md border border-red-100">
-                    {proc.code || '---'}
-                  </span>
-                </td>
-                <td className="px-6 py-2 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-gray-50 rounded-lg group-hover:bg-[#E3000F]/10 transition-colors border border-gray-100 flex items-center justify-center shrink-0">
-                      <FileText className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#E3000F]" />
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-black text-gray-900 group-hover:text-[#E3000F] transition-colors tracking-tight">{proc.title}</div>
-                      <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{proc.procedureType}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-2 whitespace-nowrap">
-                  <div className="flex flex-col">
-                    <div className="text-[11px] font-black text-gray-700">{proc.clientName || 'Sin nombre'}</div>
-                    <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{proc.idNumber || 'N/A'}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-2 whitespace-nowrap">
-                  <div className={clsx(
-                    "flex items-center gap-2 px-3 py-1 rounded-xl border transition-all",
-                    proc.technicianUsername 
-                      ? "bg-emerald-50 border-emerald-100 text-emerald-700" 
-                      : "bg-red-50 border-red-100 text-red-700"
-                  )}>
-                    <div className={clsx(
-                      "w-6 h-6 rounded-md flex items-center justify-center text-[8px] font-black border",
-                      proc.technicianUsername ? "bg-white border-emerald-200" : "bg-white border-red-200"
-                    )}>
-                      {(proc.technicianName || proc.technicianUsername || '?')[0].toUpperCase()}
-                    </div>
-                    <span className="text-[9px] font-black uppercase tracking-tight">
-                      {proc.technicianName || proc.technicianUsername || 'Sin asignar'}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-2 whitespace-nowrap">
-                  <div className="flex items-center gap-1.5 text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100 uppercase tracking-widest w-fit">
-                    <Clock className="w-3 h-3" /> {calculateDaysElapsed(proc.createdAt, proc.completedAt)}
-                  </div>
-                </td>
-                <td className="px-6 py-2 whitespace-nowrap">
-                  <span className={clsx("px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-full border", getStatusColor(proc.status))}>
-                    {proc.status}
-                  </span>
-                </td>
-                <td className="px-6 py-2 whitespace-nowrap">
-                  {proc.driveUrl ? (
-                    <a
-                      href={proc.driveUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all border border-blue-100 shadow-sm group/folder"
-                      title="Abrir Carpeta Virtual"
-                    >
-                      <FolderOpen className="w-4 h-4 group-hover/folder:scale-110 transition-transform" />
-                    </a>
-                  ) : (
-                    <div className="w-8 h-8 bg-gray-50 text-gray-300 rounded-lg flex items-center justify-center border border-gray-100 cursor-not-allowed" title="Carpeta no disponible">
-                      <FolderOpen className="w-4 h-4" />
-                    </div>
-                  )}
-                </td>
-                {user?.role === 'admin' && (
-                  <td className="px-6 py-2 whitespace-nowrap">
-                    <button
-                      type="button"
-                      onClick={(e) => handleDelete(e, proc.id, proc.code || '')}
-                      disabled={saving}
-                      className={clsx(
-                        "h-9 min-w-[36px] px-2 rounded-lg flex items-center justify-center transition-all border shadow-sm group/delete font-black text-[8px] uppercase tracking-tighter",
-                        saving 
-                          ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" 
-                          : confirmDeleteId === proc.id
-                            ? "bg-red-600 text-white border-red-600 animate-pulse font-black text-[7px]"
-                            : "bg-red-50 text-red-600 border-red-100 hover:bg-red-600 hover:text-white"
-                      )}
-                      title={confirmDeleteId === proc.id ? "Haga clic de nuevo para confirmar" : "Eliminar Trámite"}
-                    >
-                      {saving ? (
-                        <RefreshCw className="w-3 h-3 animate-spin" />
-                      ) : confirmDeleteId === proc.id ? (
-                        "¿SI?"
-                      ) : (
-                        <Trash2 className="w-4 h-4 group-hover/delete:scale-110 transition-transform" />
-                      )}
-                    </button>
-                  </td>
-                )}
+      <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden hidden md:block w-full">
+        <div className="overflow-x-auto w-full scrollbar-thin">
+          <table className="min-w-full divide-y divide-gray-50 table-auto">
+            <thead className="bg-gray-50/50">
+              <tr>
+                <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">Código</th>
+                <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">Proyecto</th>
+                <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">Cliente</th>
+                <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">Técnico</th>
+                <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">Días</th>
+                <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">Estado</th>
+                <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">Carpeta</th>
+                {user?.role === 'admin' && <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">Acciones</th>}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {filtered.map((proc) => (
+                <tr 
+                  key={proc.id} 
+                  className="hover:bg-gray-50/50 transition-colors cursor-pointer group"
+                  onClick={() => navigate(`/dashboard/procedures/${proc.id}`)}
+                >
+                  <td className="px-6 py-2 whitespace-nowrap">
+                    <span className="text-[8px] font-mono font-black text-[#E3000F] bg-red-50 px-1.5 py-0.5 rounded-md border border-red-100">
+                      {proc.code || '---'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-2 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-gray-50 rounded-lg group-hover:bg-[#E3000F]/10 transition-colors border border-gray-100 flex items-center justify-center shrink-0">
+                        <FileText className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#E3000F]" />
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-black text-gray-900 group-hover:text-[#E3000F] transition-colors tracking-tight">{proc.title}</div>
+                        <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{proc.procedureType}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-2 whitespace-nowrap">
+                    <div className="flex flex-col">
+                      <div className="text-[11px] font-black text-gray-700">{proc.clientName || 'Sin nombre'}</div>
+                      <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{proc.idNumber || 'N/A'}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    {user?.role === 'admin' ? (
+                      <div className="flex items-center">
+                        <select
+                          value={proc.technicianUsername || ''}
+                          onChange={(e) => handleAssignTechnician(proc.id, e.target.value)}
+                          disabled={saving}
+                          className={clsx(
+                            "text-[9.5px] font-black uppercase tracking-wider pl-2.5 pr-8 py-1.5 rounded-lg border focus:outline-none focus:ring-1 cursor-pointer transition-all appearance-none relative bg-no-repeat",
+                            proc.technicianUsername 
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-700 focus:ring-emerald-400" 
+                              : "bg-red-50 border-red-200 text-red-700 focus:ring-red-400"
+                          )}
+                          style={{
+                            backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                            backgroundRepeat: "no-repeat",
+                            backgroundPosition: "right 0.5rem center",
+                            backgroundSize: "0.6rem"
+                          }}
+                        >
+                          <option value="" className="text-gray-500 font-black">--- Sin asignar ---</option>
+                          {users
+                            .filter(u => {
+                              const r = (u.role || '').toLowerCase().trim();
+                              return r === 'tech' || r === 'tecnico' || r === 'admin';
+                            })
+                            .map(tech => (
+                              <option key={tech.username} value={tech.username} className="text-gray-905 font-extrabold bg-white">
+                                {tech.name} ({tech.role === 'admin' ? 'Admin' : 'Técnico'})
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div className={clsx(
+                        "flex items-center gap-2 px-3 py-1 rounded-xl border transition-all w-fit",
+                        proc.technicianUsername 
+                          ? "bg-emerald-50 border-emerald-100 text-emerald-700" 
+                          : "bg-red-50 border-red-100 text-red-700"
+                      )}>
+                        <div className={clsx(
+                          "w-6 h-6 rounded-md flex items-center justify-center text-[8px] font-black border",
+                          proc.technicianUsername ? "bg-white border-emerald-200" : "bg-white border-red-200"
+                        )}>
+                          {(proc.technicianName || proc.technicianUsername || '?')[0].toUpperCase()}
+                        </div>
+                        <span className="text-[9px] font-black uppercase tracking-tight">
+                          {proc.technicianName || proc.technicianUsername || 'Sin asignar'}
+                        </span>
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-2 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5 text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100 uppercase tracking-widest w-fit">
+                      <Clock className="w-3 h-3" /> {calculateDaysElapsed(proc.createdAt, proc.completedAt)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-2 whitespace-nowrap">
+                    <span className={clsx("px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-full border", getStatusColor(proc.status))}>
+                      {proc.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-2 whitespace-nowrap">
+                    {proc.driveUrl ? (
+                      <a
+                        href={proc.driveUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all border border-blue-100 shadow-sm group/folder"
+                        title="Abrir Carpeta Virtual"
+                      >
+                        <FolderOpen className="w-4 h-4 group-hover/folder:scale-110 transition-transform" />
+                      </a>
+                    ) : (
+                      <div className="w-8 h-8 bg-gray-50 text-gray-300 rounded-lg flex items-center justify-center border border-gray-100 cursor-not-allowed" title="Carpeta no disponible">
+                        <FolderOpen className="w-4 h-4" />
+                      </div>
+                    )}
+                  </td>
+                  {user?.role === 'admin' && (
+                    <td className="px-6 py-2 whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={(e) => handleDelete(e, proc.id, proc.code || '')}
+                        disabled={saving}
+                        className={clsx(
+                          "h-9 min-w-[36px] px-2 rounded-lg flex items-center justify-center transition-all border shadow-sm group/delete font-black text-[8px] uppercase tracking-tighter",
+                          saving 
+                            ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" 
+                            : confirmDeleteId === proc.id
+                              ? "bg-red-600 text-white border-red-600 animate-pulse font-black text-[7px]"
+                              : "bg-red-50 text-red-600 border-red-100 hover:bg-red-600 hover:text-white"
+                        )}
+                        title={confirmDeleteId === proc.id ? "Haga clic de nuevo para confirmar" : "Eliminar Trámite"}
+                      >
+                        {saving ? (
+                          <RefreshCw className="w-3 h-3 animate-spin" />
+                        ) : confirmDeleteId === proc.id ? (
+                          "¿SI?"
+                        ) : (
+                          <Trash2 className="w-4 h-4 group-hover/delete:scale-110 transition-transform" />
+                        )}
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Mobile Card View */}
@@ -582,33 +632,75 @@ export default function Procedures() {
                  )}
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-3 border-t border-gray-50">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <div className="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100 shrink-0">
-                    <UserIcon className="w-3 h-3 text-gray-400" />
+              <div className="space-y-2 pt-3 border-t border-gray-50">
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Cliente info */}
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100 shrink-0">
+                      <UserIcon className="w-3 h-3 text-gray-400" />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[6px] font-black text-gray-400 uppercase tracking-widest">Cliente</span>
+                      <span className="text-[8px] font-black text-gray-700 truncate">{proc.clientName || 'Sin nombre'}</span>
+                    </div>
                   </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-[6px] font-black text-gray-400 uppercase tracking-widest">Cliente</span>
-                    <span className="text-[8px] font-black text-gray-700 truncate">{proc.clientName || 'Sin nombre'}</span>
+
+                  {/* Técnico info */}
+                  <div className="flex flex-col min-w-0 justify-center">
+                    <span className="text-[6px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Técnico</span>
+                    {user?.role === 'admin' ? (
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={proc.technicianUsername || ''}
+                          onChange={(e) => handleAssignTechnician(proc.id, e.target.value)}
+                          disabled={saving}
+                          className={clsx(
+                            "w-full text-[8px] font-black uppercase tracking-tight py-0.5 px-1 rounded border focus:outline-none cursor-pointer text-ellipsis overflow-hidden",
+                            proc.technicianUsername 
+                              ? "bg-emerald-50 border-emerald-100 text-emerald-700" 
+                              : "bg-red-50 border-red-100 text-red-700"
+                          )}
+                        >
+                          <option value="">-- Sin asignar --</option>
+                          {users
+                            .filter(u => {
+                              const r = (u.role || '').toLowerCase().trim();
+                              return r === 'tech' || r === 'tecnico' || r === 'admin';
+                            })
+                            .map(tech => (
+                              <option key={tech.username} value={tech.username}>
+                                {tech.name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <span className="text-[8px] font-black text-gray-700 truncate">
+                        {proc.technicianName || proc.technicianUsername || 'Sin asignar'}
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-end justify-end">
-                   {user?.role === 'admin' && (
+
+                {/* Acciones de admin en móvil (Eliminar) */}
+                {user?.role === 'admin' && (
+                  <div className="flex justify-end pt-1" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
                       onClick={(e) => handleDelete(e, proc.id, proc.code || '')}
+                      disabled={saving}
                       className={clsx(
-                        "flex items-center gap-1 text-[7px] font-black px-2 py-1 rounded-lg border uppercase tracking-widest",
+                        "flex items-center gap-1 text-[7px] font-black px-2 py-1 rounded-lg border uppercase tracking-widest w-fit",
                         confirmDeleteId === proc.id
-                          ? "bg-red-600 text-white border-red-600 active:scale-95"
+                          ? "bg-red-600 text-white border-red-600 active:scale-95 animate-pulse"
                           : "bg-red-50 text-red-600 border-red-100 active:scale-95"
                       )}
                     >
                       {confirmDeleteId === proc.id ? <AlertCircle className="w-2.5 h-2.5" /> : <Trash2 className="w-2.5 h-2.5" />}
-                      {confirmDeleteId === proc.id ? "¡SÍ!" : "Borrar"}
+                      {confirmDeleteId === proc.id ? "¡CONFIRMAR!" : "Borrar Trámite"}
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
