@@ -185,57 +185,57 @@ export default function Users() {
         </div>
 
         {/* Desktop Table View */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-50">
+        <div className="hidden md:block w-full overflow-hidden">
+          <table className="w-full divide-y divide-gray-50 table-auto">
             <thead>
               <tr className="bg-gray-50/50">
-                <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest">Usuario</th>
-                <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest">Contacto</th>
-                <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest">Ubicación</th>
-                <th className="px-6 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest">Rol</th>
-                <th className="px-6 py-3 text-right text-[9px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
+                <th className="px-3 py-2.5 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest w-[25%]">Usuario</th>
+                <th className="px-3 py-2.5 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest w-[25%]">Contacto</th>
+                <th className="px-3 py-2.5 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest w-[25%]">Ubicación</th>
+                <th className="px-3 py-2.5 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest w-[15%]">Rol</th>
+                <th className="px-3 py-2.5 text-right text-[9px] font-black text-gray-400 uppercase tracking-widest w-[10%]">Acciones</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-50">
               {filtered.map((u) => (
                 <tr key={u.id} className="hover:bg-gray-50/30 transition-colors group">
-                  <td className="px-6 py-3 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100 group-hover:scale-110 transition-transform">
+                  <td className="px-3 py-2.5 whitespace-normal break-words">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100 group-hover:scale-110 transition-transform shrink-0">
                         <UserIcon className="w-4 h-4 text-gray-400" />
                       </div>
-                      <div>
-                        <div className="text-xs font-black text-gray-900 tracking-tight">{u.name}</div>
-                        <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest">ID: {u.idNumber || 'N/A'}</div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-black text-gray-900 tracking-tight leading-tight truncate">{u.name}</div>
+                        <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">ID: {u.idNumber || 'N/A'}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-3 whitespace-nowrap">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-500 uppercase tracking-widest">
-                        <Mail className="w-3 h-3 text-[#E3000F]" /> {u.email || u.username}
+                  <td className="px-3 py-2.5 whitespace-normal break-words">
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-500 uppercase tracking-widest truncate">
+                        <Mail className="w-3 h-3 text-[#E3000F] shrink-0" /> {u.email || u.username}
                       </div>
-                      <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-500 uppercase tracking-widest">
-                        <Phone className="w-3 h-3 text-[#E3000F]" /> {u.phone || 'S/N'}
+                      <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-500 uppercase tracking-widest truncate">
+                        <Phone className="w-3 h-3 text-[#E3000F] shrink-0" /> {u.phone || 'S/N'}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-3 whitespace-nowrap">
-                    <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-500 uppercase tracking-widest max-w-[180px] truncate">
-                      <MapPin className="w-3 h-3 text-[#E3000F]" /> {u.address || 'No registrada'}
+                  <td className="px-3 py-2.5 whitespace-normal break-words">
+                    <div className="flex items-start gap-1.5 text-[9px] font-black text-gray-500 uppercase tracking-widest min-w-0 max-w-[200px] leading-tight">
+                      <MapPin className="w-3 h-3 text-[#E3000F] shrink-0 mt-0.5" /> <span>{u.address || 'No registrada'}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-3 whitespace-nowrap">
+                  <td className="px-3 py-2.5 whitespace-nowrap">
                     <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 rounded-lg w-fit border border-gray-100">
                       {getRoleIcon(u.role)}
                       <span className="text-[8px] font-black text-gray-700 uppercase tracking-widest">{getRoleName(u.role)}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-3 whitespace-nowrap text-right">
-                    <div className="flex justify-end gap-2">
+                  <td className="px-3 py-2.5 whitespace-nowrap text-right">
+                    <div className="flex justify-end gap-1.5">
                       <button
                         onClick={() => { setEditingUser(u); setShowEditModal(true); }}
-                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all active:scale-90"
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all active:scale-90 cursor-pointer"
                         title="Editar"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
@@ -243,7 +243,7 @@ export default function Users() {
                       {u.username !== currentUser?.username && (
                         <button
                           onClick={() => setDeletingUser(u.username)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-90"
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-90 cursor-pointer"
                           title="Eliminar"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
