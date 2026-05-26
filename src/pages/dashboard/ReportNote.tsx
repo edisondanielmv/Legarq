@@ -334,18 +334,18 @@ export default function ReportNote() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h2 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">Reportar Nota de Trámite</h2>
-          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Gestión de anotaciones y seguimiento técnico de trámites</p>
+          <h2 className="text-lg md:text-xl font-black text-gray-900 tracking-tight">Reportar Nota de Trámite</h2>
+          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Gestión de anotaciones y seguimiento técnico de trámites</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         
         {/* Left Column: Procedure Finder (4 cols) - Hidden on mobile for height compactness */}
-        <div className="hidden lg:flex lg:col-span-4 bg-white p-6 rounded-[28px] border border-gray-100 shadow-sm flex-col h-[calc(100vh-280px)] min-h-[500px]">
+        <div className="hidden lg:flex lg:col-span-4 bg-white p-4.5 rounded-[20px] border border-gray-100 shadow-sm flex-col h-[calc(100vh-280px)] min-h-[500px]">
           <div className="mb-4">
             <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest mb-2 flex items-center gap-1.5">
               <Search className="w-4 h-4 text-red-500" />
@@ -433,15 +433,15 @@ export default function ReportNote() {
         </div>
 
         {/* Right Column: Editor + Flow Timeline (8 cols) */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="lg:col-span-8 space-y-4">
           
           {/* Main Action card - Reporting Form */}
-          <div className="bg-white p-4 sm:p-6 rounded-[28px] border border-gray-100 shadow-sm">
+          <div className="bg-white p-3.5 sm:p-5 rounded-[20px] border border-gray-100 shadow-sm">
             {/* Quick selector for mobile devices */}
             {procedures.length > 0 && (
-              <div className="block lg:hidden mb-4 space-y-1.5">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Search className="w-3.5 h-3.5 text-[#E3000F]" />
+              <div className="block lg:hidden mb-3 space-y-1">
+                <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                  <Search className="w-3 h-3 text-[#E3000F]" />
                   Seleccionar Trámite (Móvil)
                 </label>
                 <select
@@ -450,12 +450,12 @@ export default function ReportNote() {
                     setSelectedId(e.target.value);
                     setStatusMessage(null);
                   }}
-                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500 text-xs font-black tracking-tight transition-all cursor-pointer appearance-none"
+                  className="w-full h-9 bg-gray-50 border border-gray-200 rounded-lg px-2.5 outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500 text-[11px] font-black tracking-tight transition-all cursor-pointer appearance-none"
                   style={{
                     backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='lucide lucide-chevron-down'><path d='m6 9 6 6 6-6'/></svg>")`,
-                    backgroundPosition: 'right 12px center',
+                    backgroundPosition: 'right 10px center',
                     backgroundRepeat: 'no-repeat',
-                    backgroundSize: '16px'
+                    backgroundSize: '14px'
                   }}
                 >
                   <option value="" disabled>-- Elija un trámite --</option>
@@ -469,17 +469,17 @@ export default function ReportNote() {
             )}
 
             {selectedProcedure ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 
                 {/* Selected procedure info summary */}
-                <div className="p-4 bg-gray-50/50 border border-gray-100 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block font-sans">Trámite Seleccionado</span>
-                    <h3 className="text-sm font-black text-gray-900 tracking-tight flex items-center gap-1.5">
-                      <FileText className="w-4 h-4 text-[#E3000F]" />
+                <div className="p-3 bg-gray-50/50 border border-gray-100 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <span className="text-[7.5px] font-black text-gray-400 uppercase tracking-widest block font-sans">Trámite Seleccionado</span>
+                    <h3 className="text-xs font-black text-gray-900 tracking-tight flex items-center gap-1">
+                      <FileText className="w-3.5 h-3.5 text-[#E3000F]" />
                       [{selectedProcedure.code}] {selectedProcedure.title}
                     </h3>
-                    <p className="text-[10px] text-gray-500 font-medium">
+                    <p className="text-[9px] text-gray-500 font-medium">
                       Propietario: {selectedProcedure.clientName} ({selectedProcedure.idNumber}) | Correo: {selectedProcedure.clientEmail || 'No registrado'}
                     </p>
                   </div>
@@ -489,81 +489,81 @@ export default function ReportNote() {
                       href={selectedProcedure.driveUrl} 
                       target="_blank" 
                       rel="noreferrer" 
-                      className="inline-flex items-center gap-1 px-3 py-1.5 self-start sm:self-center text-[9px] font-black uppercase tracking-widest text-[#E3000F] hover:text-[#B30009] bg-red-50 border border-red-100 hover:bg-red-100/50 rounded-xl transition-all cursor-pointer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 self-start sm:self-center text-[8px] font-black uppercase tracking-widest text-[#E3000F] hover:text-[#B30009] bg-red-50 border border-red-100 hover:bg-red-100/50 rounded-lg transition-all cursor-pointer"
                     >
-                      <FolderOpen className="w-3.5 h-3.5" />
+                      <FolderOpen className="w-3 h-3" />
                       Carpeta Drive
-                      <ExternalLink className="w-2.5 h-2.5 opacity-65" />
+                      <ExternalLink className="w-2 h-2 opacity-65" />
                     </a>
                   )}
                 </div>
 
                 {/* Pill Tab Bar for Mobile Devices */}
-                <div className="flex lg:hidden bg-gray-100 p-1 rounded-xl my-3">
+                <div className="flex lg:hidden bg-gray-100 p-0.5 rounded-lg my-2">
                   <button
                     type="button"
                     onClick={() => setActiveTab('form')}
-                    className={`flex-1 py-1.5 text-center text-[9px] font-black uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-1 text-center text-[8.5px] font-black uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1 ${
                       activeTab === 'form' 
                         ? "bg-white text-[#E3000F] shadow-sm" 
                         : "text-gray-500 hover:text-gray-900"
                     }`}
                   >
-                    <MessageSquare className="w-3.5 h-3.5" />
+                    <MessageSquare className="w-3 h-3" />
                     Nueva Nota
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveTab('history')}
-                    className={`flex-1 py-1.5 text-center text-[9px] font-black uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-1 text-center text-[8.5px] font-black uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1 ${
                       activeTab === 'history' 
                         ? "bg-white text-[#E3000F] shadow-sm" 
                         : "text-gray-500 hover:text-gray-900"
                     }`}
                   >
-                    <Clock className="w-3.5 h-3.5" />
+                    <Clock className="w-3 h-3" />
                     Historial ({logs.length})
                   </button>
                 </div>
 
                 <form 
                   onSubmit={handleSubmit} 
-                  className={`space-y-4 ${activeTab === 'form' ? 'block' : 'hidden lg:block'}`}
+                  className={`space-y-3 ${activeTab === 'form' ? 'block' : 'hidden lg:block'}`}
                 >
                   {/* Text editor and layout */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-1.5">
-                      <MessageSquare className="w-4 h-4 text-gray-500" />
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-1">
+                      <MessageSquare className="w-3.5 h-3.5 text-gray-500" />
                       Contenido de la Nota
                     </label>
                     <textarea
-                      rows={4}
+                      rows={3}
                       value={noteText}
                       onChange={(e) => setNoteText(e.target.value)}
                       placeholder="Escriba aquí los detalles correspondientes..."
-                      className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500 transition-all font-sans"
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500 transition-all font-sans"
                     />
                   </div>
 
                 {/* Municipal Observation Image Attachment */}
-                <div className="space-y-1.5 p-4 bg-stone-50 rounded-2xl border border-stone-200/50">
-                  <label className="text-xs font-black text-gray-950 uppercase tracking-widest flex items-center gap-1.5">
-                    <Image className="w-4 h-4 text-[#E3000F]" />
+                <div className="space-y-1 p-3 bg-stone-50 rounded-xl border border-stone-200/50">
+                  <label className="text-[10px] font-black text-gray-950 uppercase tracking-widest flex items-center gap-1">
+                    <Image className="w-3.5 h-3.5 text-[#E3000F]" />
                     Captura / Observación de la Municipalidad (Opcional)
                   </label>
 
-                  <div className="mt-3">
+                  <div className="mt-2">
                     {uploadingImage ? (
-                      <div className="flex items-center gap-3 py-3 px-4 bg-white rounded-xl border border-dashed border-red-200/80">
-                        <Hourglass className="w-4 h-4 text-[#E3000F] animate-spin shrink-0" />
-                        <span className="text-[10px] font-black text-stone-700 uppercase tracking-wider animate-pulse">
+                      <div className="flex items-center gap-2 py-2 px-3 bg-white rounded-lg border border-dashed border-red-200/80">
+                        <Hourglass className="w-3.5 h-3.5 text-[#E3000F] animate-spin shrink-0" />
+                        <span className="text-[9px] font-black text-stone-700 uppercase tracking-wider animate-pulse">
                           Subiendo archivo a Drive... Por favor, espere.
                         </span>
                       </div>
                     ) : attachedImageUrl ? (
-                      <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-xl border border-stone-200/60 shadow-sm animate-fadeIn">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-10 h-10 rounded-lg bg-stone-50 border border-stone-200 overflow-hidden flex items-center justify-center shrink-0">
+                      <div className="flex items-center justify-between gap-2 p-2 bg-white rounded-lg border border-stone-200/60 shadow-sm animate-fadeIn">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-8 h-8 rounded bg-stone-50 border border-stone-200 overflow-hidden flex items-center justify-center shrink-0">
                             <img 
                               src={attachedImageUrl} 
                               alt="Adjunto" 
@@ -572,10 +572,10 @@ export default function ReportNote() {
                             />
                           </div>
                           <div className="min-w-0">
-                            <span className="text-[10px] font-black text-stone-900 truncate block leading-tight">
+                            <span className="text-[9px] font-black text-stone-900 truncate block leading-tight">
                               {attachedImageName || 'Imagen adjunta'}
                             </span>
-                            <span className="text-[8px] font-bold text-emerald-600 block uppercase tracking-wider leading-none mt-1">
+                            <span className="text-[7.5px] font-bold text-emerald-600 block uppercase tracking-wider leading-none mt-0.5">
                               ✓ Subido con éxito
                             </span>
                           </div>
@@ -583,20 +583,17 @@ export default function ReportNote() {
                         <button
                           type="button"
                           onClick={handleRemoveAttachedImage}
-                          className="p-1 px-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 rounded-lg border border-rose-100 transition-colors shrink-0 text-[9px] font-black uppercase tracking-wider flex items-center gap-1"
+                          className="p-1 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 rounded border border-rose-100 transition-colors shrink-0 text-[8.5px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3 h-3" />
                           Remover
                         </button>
                       </div>
                     ) : (
-                      <label className="flex flex-col items-center justify-center p-4 bg-white hover:bg-stone-100/60 border border-dashed border-stone-300 rounded-xl cursor-pointer transition-all gap-1.5 text-center group">
-                        <Upload className="w-5 h-5 text-stone-400 group-hover:text-[#E3000F] transition-colors" />
-                        <span className="text-[10px] font-black text-stone-600 group-hover:text-stone-900 uppercase tracking-widest transition-colors">
-                          Click para seleccionar o arrastrar captura
-                        </span>
-                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider">
-                          Formatos aceptados: PNG, JPG, JPEG, GIF
+                      <label className="flex flex-col items-center justify-center p-3 bg-white hover:bg-stone-100/60 border border-dashed border-stone-300 rounded-lg cursor-pointer transition-all gap-1 text-center group">
+                        <Upload className="w-4 h-4 text-stone-400 group-hover:text-[#E3000F] transition-colors" />
+                        <span className="text-[9px] font-black text-stone-600 group-hover:text-stone-900 uppercase tracking-widest transition-colors mb-0.5">
+                          Click para seleccionar captura
                         </span>
                         <input
                           type="file"
@@ -610,35 +607,35 @@ export default function ReportNote() {
                 </div>
 
                 {/* Controls and submission */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between pt-4 border-t border-gray-100 gap-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between pt-3 border-t border-gray-100 gap-3">
                   {/* Visibility Toggler */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
                     <button
                       type="button"
                       onClick={() => setIsExternal(prev => !prev)}
-                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                         isExternal ? 'bg-red-600' : 'bg-gray-200'
                       }`}
                     >
                       <span className="sr-only">Comentario externo</span>
                       <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                          isExternal ? 'translate-x-5' : 'translate-x-0'
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          isExternal ? 'translate-x-4' : 'translate-x-0'
                         }`}
                       />
                     </button>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       {isExternal ? (
-                        <Unlock className="w-3.5 h-3.5 text-emerald-500" />
+                        <Unlock className="w-3 h-3 text-emerald-500 animate-pulse" />
                       ) : (
-                        <Lock className="w-3.5 h-3.5 text-rose-500" />
+                        <Lock className="w-3 h-3 text-rose-500" />
                       )}
                       <div>
-                        <span className="text-[10px] font-black text-gray-900 uppercase tracking-wider block">
+                        <span className="text-[9px] font-black text-gray-900 uppercase tracking-wider block">
                           {isExternal ? 'Visible al Cliente' : 'Nota Solo Interna'}
                         </span>
-                        <span className="text-[8px] text-gray-400 font-bold block uppercase tracking-wide">
-                          {isExternal ? 'El propietario del trámite podrá consultar esta nota estatal.' : 'Solo personal autorizado verá esta anotación.'}
+                        <span className="text-[7.5px] text-gray-400 font-bold block uppercase tracking-wide">
+                          {isExternal ? 'Nota visible en consulta pública' : 'Solo personal autorizado'}
                         </span>
                       </div>
                     </div>
@@ -648,26 +645,26 @@ export default function ReportNote() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="h-11 px-6 bg-[#E3000F] text-white border border-[#E3000F] rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-700 hover:border-red-700 disabled:opacity-55 transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-900/15"
+                    className="h-8 px-4 bg-[#E3000F] text-white border border-[#E3000F] rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-red-700 hover:border-red-700 disabled:opacity-55 transition-all flex items-center justify-center gap-1.5 shadow-md shadow-red-900/10 cursor-pointer self-end"
                   >
-                    <Send className={`w-3.5 h-3.5 ${submitting ? 'animate-bounce' : ''}`} />
+                    <Send className={`w-3 h-3 ${submitting ? 'animate-bounce' : ''}`} />
                     {submitting ? 'Registrando...' : 'Registrar Nota'}
                   </button>
                 </div>
 
                 {/* Status messages */}
                 {statusMessage && (
-                  <div className={`mt-4 p-4 rounded-xl border flex items-start gap-2.5 animate-fadeIn ${
+                  <div className={`mt-3 p-2.5 rounded-lg border flex items-start gap-2 animate-fadeIn ${
                     statusMessage.type === 'success' 
                       ? 'bg-emerald-50 border-emerald-100 text-emerald-800' 
                       : 'bg-rose-50 border-rose-100 text-rose-800'
                   }`}>
                     {statusMessage.type === 'success' ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
                     ) : (
-                      <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+                      <AlertCircle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0 mt-0.5" />
                     )}
-                    <span className="text-[10px] sm:text-xs font-bold leading-normal">
+                    <span className="text-[9px] font-bold leading-normal">
                       {statusMessage.text}
                     </span>
                   </div>
@@ -688,59 +685,59 @@ export default function ReportNote() {
 
           {/* Historical timeline of log entries for the selected procedure */}
           {selectedId && (
-            <div className={`bg-white p-6 rounded-[28px] border border-gray-100 shadow-sm ${activeTab === 'history' ? 'block' : 'hidden lg:block'}`}>
-              <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest mb-4 flex items-center justify-between border-b border-gray-100 pb-3">
-                <span className="flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-[#C5B39A]" />
+            <div className={`bg-white p-4 sm:p-5 rounded-[20px] border border-gray-100 shadow-sm ${activeTab === 'history' ? 'block' : 'hidden lg:block'}`}>
+              <h3 className="text-[10px] font-black text-gray-900 uppercase tracking-widest mb-3 flex items-center justify-between border-b border-gray-100 pb-2">
+                <span className="flex items-center gap-1 text-[#C5B39A]">
+                  <Clock className="w-3.5 h-3.5 text-[#C5B39A]" />
                   Historial de Notas del Trámite
                 </span>
-                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wide bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
-                  {logs.length} {logs.length === 1 ? 'Nota' : 'Notas'} escritas
+                <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wide bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
+                  {logs.length} {logs.length === 1 ? 'Nota' : 'Notas'}
                 </span>
               </h3>
 
               {loadingLogs ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-3">
-                  <Clock className="w-6 h-6 animate-spin text-[#E3000F]" />
+                <div className="flex flex-col items-center justify-center py-8 gap-2">
+                  <Clock className="w-5 h-5 animate-spin text-[#E3000F]" />
                   <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Cargando bitácora...</p>
                 </div>
               ) : logs.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50/30 rounded-2xl border border-gray-100">
-                  <MessageSquare className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Aún no se registran notas de bitácora en este trámite.</p>
+                <div className="text-center py-8 bg-gray-50/30 rounded-xl border border-gray-100">
+                  <MessageSquare className="w-6 h-6 text-gray-300 mx-auto mb-1" />
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Aún no se registran notas de bitácora.</p>
                 </div>
               ) : (
-                <div className="flow-root pl-2">
-                  <ul className="-mb-8">
+                <div className="flow-root pl-1">
+                  <ul className="-mb-6">
                     {logs.map((log, index) => {
                       const isLogExternal = String(log.isExternal) === 'true' || log.isExternal === true;
                       return (
                         <li key={log.id || index}>
-                          <div className="relative pb-8">
+                          <div className="relative pb-5">
                             {index !== logs.length - 1 ? (
-                              <span className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-150" aria-hidden="true" />
+                              <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-150" aria-hidden="true" />
                             ) : null}
-                            <div className="relative flex items-start space-x-3">
+                            <div className="relative flex items-start space-x-2">
                               {/* Icon background based on visibility */}
-                              <div className={`relative flex h-10 w-10 items-center justify-center rounded-xl border shadow-sm ${
+                              <div className={`relative flex h-8 w-8 items-center justify-center rounded-lg border shadow-sm shrink-0 ${
                                 isLogExternal 
                                   ? 'bg-emerald-50 border-emerald-100 text-emerald-600' 
                                   : 'bg-rose-50 border-rose-100 text-rose-600'
                               }`}>
                                 {isLogExternal ? (
-                                  <Unlock className="w-4 h-4" />
+                                  <Unlock className="w-3.5 h-3.5" />
                                 ) : (
-                                  <Lock className="w-4 h-4" />
+                                  <Lock className="w-3.5 h-3.5" />
                                 )}
                               </div>
                               
                               <div className="min-w-0 flex-1">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-[10px] font-black text-gray-900 uppercase tracking-wider block">
+                                  <div className="flex items-center gap-1 flex-wrap">
+                                    <span className="text-[9px] font-black text-gray-900 uppercase tracking-wider block">
                                       {log.technicianUsername ? `Técnico: ${log.technicianUsername}` : 'Personal Legarq'}
                                     </span>
-                                    <label className="inline-flex items-center gap-1.5 cursor-pointer bg-stone-50 hover:bg-stone-100 border border-stone-200/60 px-2.5 py-1 rounded-full select-none transition-all">
+                                    <label className="inline-flex items-center gap-1 cursor-pointer bg-stone-50 hover:bg-stone-100 border border-stone-200/60 px-2 py-0.5 rounded-full select-none transition-all">
                                       <input 
                                         type="checkbox" 
                                         checked={isLogExternal} 
@@ -762,20 +759,20 @@ export default function ReportNote() {
                                             setUpdatingLogId(null);
                                           }
                                         }}
-                                        className="w-3 h-3 text-[#E3000F] rounded border-gray-300 cursor-pointer focus:ring-[#E3000F]"
+                                        className="w-2.5 h-2.5 text-[#E3000F] rounded border-gray-300 cursor-pointer focus:ring-[#E3000F]"
                                       />
-                                      <span className={`text-[8px] font-black uppercase tracking-wide flex items-center gap-1 ${
+                                      <span className={`text-[7.5px] font-black uppercase tracking-wide flex items-center gap-1 ${
                                         isLogExternal ? 'text-emerald-700' : 'text-rose-600'
                                       }`}>
-                                        {isLogExternal ? 'Público (Cliente)' : 'Solo Interno'}
+                                        {isLogExternal ? 'Público' : 'Interno'}
                                         {updatingLogId === log.id && (
-                                          <span className="w-2 h-2 border-2 border-dashed border-current rounded-full animate-spin inline-block"></span>
+                                          <span className="w-1.5 h-1.5 border-2 border-dashed border-current rounded-full animate-spin inline-block"></span>
                                         )}
                                       </span>
                                     </label>
                                   </div>
-                                  <div className="flex items-center gap-1.5 text-[9px] text-gray-400 font-bold uppercase tracking-wider">
-                                    <Calendar className="w-3 h-3" />
+                                  <div className="flex items-center gap-1 text-[8px] text-gray-400 font-bold uppercase tracking-wider">
+                                    <Calendar className="w-2.5 h-2.5" />
                                     <span>
                                       {log.date ? new Date(log.date).toLocaleString('es-PE', {
                                         year: 'numeric',
@@ -786,22 +783,22 @@ export default function ReportNote() {
                                       }) : 'Sin fecha'}
                                     </span>
                                     {log.id && editingLogId !== log.id && deletingLogId !== log.id && (
-                                      <div className="flex items-center gap-1 ml-2 pl-2 border-l border-gray-200">
+                                      <div className="flex items-center gap-1 ml-1 pl-1.5 border-l border-gray-200">
                                         <button
                                           type="button"
                                           onClick={() => handleStartEdit(log)}
                                           title="Editar Nota"
-                                          className="p-1 text-gray-400 hover:text-stone-800 hover:bg-stone-50 rounded transition-all cursor-pointer"
+                                          className="p-0.5 text-gray-400 hover:text-stone-800 hover:bg-stone-50 rounded transition-all cursor-pointer"
                                         >
-                                          <Pencil className="w-3 h-3" />
+                                          <Pencil className="w-2.5 h-2.5" />
                                         </button>
                                         <button
                                           type="button"
                                           onClick={() => setDeletingLogId(log.id!)}
                                           title="Eliminar Nota"
-                                          className="p-1 text-gray-400 hover:text-[#E3000F] hover:bg-red-50 rounded transition-all cursor-pointer"
+                                          className="p-0.5 text-gray-400 hover:text-[#E3000F] hover:bg-red-50 rounded transition-all cursor-pointer"
                                         >
-                                          <Trash2 className="w-3 h-3" />
+                                          <Trash2 className="w-2.5 h-2.5" />
                                         </button>
                                       </div>
                                     )}
@@ -809,116 +806,116 @@ export default function ReportNote() {
                                 </div>
                                 
                                 {editingLogId === log.id ? (
-                                  <div className="space-y-3 bg-stone-50 p-3.5 rounded-xl border border-stone-200/60 mt-2">
+                                  <div className="space-y-2 bg-stone-50 p-2.5 rounded-lg border border-stone-200/60 mt-1.5">
                                     <textarea
-                                      rows={3}
+                                      rows={2}
                                       value={editingLogText}
                                       onChange={(e) => setEditingLogText(e.target.value)}
-                                      className="w-full p-3 bg-white border border-stone-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500 transition-all font-sans"
+                                      className="w-full p-2 bg-white border border-stone-200 rounded-lg text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500 transition-all font-sans"
                                       placeholder="Editar contenido de la nota..."
                                     />
                                     
-                                    <div className="flex items-center justify-between gap-4 flex-wrap">
-                                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                                      <label className="flex items-center gap-1.5 cursor-pointer select-none">
                                         <input 
                                           type="checkbox" 
                                           checked={editingIsExternal}
                                           onChange={(e) => setEditingIsExternal(e.target.checked)}
-                                          className="w-3.5 h-3.5 text-[#E3000F] rounded border-gray-300 focus:ring-[#E3000F]"
+                                          className="w-3 h-3 text-[#E3000F] rounded border-gray-300 focus:ring-[#E3000F]"
                                         />
-                                        <span className="text-[9px] font-black uppercase tracking-wider text-stone-600">
-                                          {editingIsExternal ? 'Público (Cliente)' : 'Solo Interno'}
+                                        <span className="text-[8px] font-black uppercase tracking-wider text-stone-600">
+                                          {editingIsExternal ? 'Público' : 'Solo Interno'}
                                         </span>
                                       </label>
 
-                                      <div className="flex items-center gap-1.5 ml-auto">
+                                      <div className="flex items-center gap-1 ml-auto">
                                         <button
                                           type="button"
                                           onClick={() => setEditingLogId(null)}
-                                          className="px-2.5 py-1 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-1 h-7 cursor-pointer"
+                                          className="px-2 py-0.5 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 text-[8px] font-black uppercase tracking-widest rounded transition-all flex items-center gap-0.5 h-6 cursor-pointer"
                                         >
-                                          <X className="w-3 h-3" /> Cancelar
+                                          <X className="w-2.5 h-2.5" /> Cancelar
                                         </button>
                                         <button
                                           type="button"
                                           onClick={() => handleSaveEdit(log.id!)}
                                           disabled={updatingLogId === log.id}
-                                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[8px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-1 h-7 font-sans cursor-pointer disabled:opacity-50"
+                                          className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[8px] font-black uppercase tracking-widest rounded transition-all flex items-center gap-0.5 h-6 font-sans cursor-pointer disabled:opacity-50"
                                         >
-                                          <Check className="w-3 h-3" /> Guardar
+                                          <Check className="w-2.5 h-2.5" /> Guardar
                                         </button>
                                       </div>
                                     </div>
                                   </div>
                                 ) : (
-                                  <div className="mt-2 text-xs font-medium text-gray-700 leading-relaxed bg-gray-50/50 hover:bg-gray-50 p-3 rounded-xl border border-gray-100/50 whitespace-pre-line">
+                                  <div className="mt-1.5 text-xs font-medium text-gray-700 leading-relaxed bg-gray-50/50 hover:bg-gray-50 p-2.5 rounded-lg border border-gray-100/50 whitespace-pre-line">
                                     {renderNoteText(log.note)}
                                   </div>
                                 )}
 
                                 {deletingLogId === log.id && (
-                                  <div className="mt-3 p-3.5 bg-rose-50 border border-rose-100 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn">
-                                    <div className="flex items-start gap-2 text-left">
-                                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                                  <div className="mt-2 p-2.5 bg-rose-50 border border-rose-100 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-2 animate-fadeIn">
+                                    <div className="flex items-start gap-1.5 text-left">
+                                      <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
                                       <div>
-                                        <span className="text-[10px] font-black text-rose-950 uppercase tracking-wide block">¿Confirmar eliminación de nota?</span>
-                                        <span className="text-[9px] text-rose-700 font-bold block uppercase tracking-wide">Esta acción es irreversible y removerá el registro del historial.</span>
+                                        <span className="text-[9px] font-black text-rose-950 uppercase tracking-wide block">¿Confirmar eliminación?</span>
+                                        <span className="text-[8px] text-rose-700 font-bold block uppercase tracking-wide">Acción irreversible.</span>
                                       </div>
                                     </div>
-                                    <div className="flex items-center gap-1.5 shrink-0">
+                                    <div className="flex items-center gap-1 shrink-0">
                                       <button
                                         type="button"
                                         onClick={() => setDeletingLogId(null)}
-                                        className="px-2.5 py-1 bg-white hover:bg-stone-50 border border-rose-200/50 text-stone-700 text-[8px] font-black uppercase tracking-wider rounded-lg transition-all h-7 cursor-pointer"
+                                        className="px-2 py-0.5 bg-white hover:bg-stone-50 border border-rose-200/50 text-stone-700 text-[8px] font-black uppercase tracking-wider rounded h-6 cursor-pointer"
                                       >
-                                        Cancelar
+                                        No
                                       </button>
                                       <button
                                         type="button"
                                         onClick={() => handleDeleteLog(log.id!)}
                                         disabled={updatingLogId === log.id}
-                                        className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[8px] font-black uppercase tracking-wider rounded-lg transition-all h-7 shadow-sm flex items-center gap-1 cursor-pointer"
+                                        className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white text-[8px] font-black uppercase tracking-wider rounded h-6 shadow-sm flex items-center gap-0.5 cursor-pointer"
                                       >
                                         {updatingLogId === log.id ? (
-                                          <span className="w-2.5 h-2.5 border-2 border-white/35 border-t-white rounded-full animate-spin"></span>
+                                          <span className="w-2 h-2 border-2 border-white/35 border-t-white rounded-full animate-spin"></span>
                                         ) : (
-                                          <Trash2 className="w-3 h-3" />
+                                          <Trash2 className="w-2.5 h-2.5" />
                                         )}
-                                        Eliminar
+                                        Sí, Eliminar
                                       </button>
                                     </div>
                                   </div>
                                 )}
                                 {log.imageUrl && (
-                                  <div className="mt-2.5 max-w-sm space-y-2">
+                                  <div className="mt-2 max-w-sm space-y-1.5">
                                     <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Evidencia / Captura del Municipio</span>
                                     <div className="flex items-center">
                                       <a 
                                         href={log.imageUrl} 
                                         target="_blank" 
                                         rel="noreferrer" 
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#E3000F]/10 hover:bg-[#E3000F]/15 text-[#E3000F] hover:text-[#E3000F] text-[10px] font-black uppercase tracking-wider rounded-lg border border-[#E3000F]/20 transition-all shadow-sm"
+                                        className="inline-flex items-center gap-1 px-2 py-1 bg-[#E3000F]/10 hover:bg-[#E3000F]/15 text-[#E3000F] hover:text-[#E3000F] text-[9px] font-black uppercase tracking-wider rounded border border-[#E3000F]/20 transition-all shadow-sm"
                                       >
-                                        <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                                        Ver Imagen de Observación (Enlace Directo)
+                                        <ExternalLink className="w-3 h-3 shrink-0" />
+                                        Ver Enlace Directo
                                       </a>
                                     </div>
                                     <a 
                                       href={log.imageUrl} 
                                       target="_blank" 
                                       rel="noreferrer" 
-                                      className="block rounded-xl border border-gray-150 overflow-hidden relative group/img bg-stone-50 cursor-pointer"
+                                      className="block rounded-lg border border-gray-150 overflow-hidden relative group/img bg-stone-50 cursor-pointer max-w-[240px]"
                                     >
                                       <img 
                                         src={log.imageUrl} 
                                         alt="Captura Municipio" 
-                                        className="max-h-48 w-full object-cover hover:scale-105 transition-transform duration-300" 
+                                        className="max-h-28 w-full object-cover hover:scale-105 transition-transform duration-300" 
                                         referrerPolicy="no-referrer"
                                       />
                                       <div className="absolute inset-0 bg-stone-950/20 opacity-0 hover:opacity-100 flex items-center justify-center transition-all">
-                                        <span className="bg-white/95 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-stone-800 shadow-sm border border-stone-200 flex items-center gap-1">
-                                          <ExternalLink className="w-3 h-3" />
-                                          Ver Imagen Completa
+                                        <span className="bg-white/95 px-2 py-1 rounded text-[8px] font-black uppercase tracking-wider text-stone-800 shadow-sm border border-stone-200 flex items-center gap-0.5">
+                                          <ExternalLink className="w-2.5 h-2.5" />
+                                          Ampliar
                                         </span>
                                       </div>
                                     </a>

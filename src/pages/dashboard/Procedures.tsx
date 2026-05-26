@@ -631,30 +631,30 @@ export default function Procedures() {
 
       {/* Modal Nuevo Trámite */}
       {showNewModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-[24px] shadow-2xl max-w-md w-full overflow-hidden border border-gray-100">
-            <div className="p-6 bg-[#1A1A1A] text-white relative">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-[#E3000F]/10 rounded-full -mr-12 -mt-12 blur-2xl" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3.5 z-50">
+          <div className="bg-white rounded-[20px] shadow-2xl max-w-sm w-full overflow-hidden border border-gray-100">
+            <div className="px-5 py-3.5 bg-[#1A1A1A] text-white relative">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-[#E3000F]/10 rounded-full -mr-10 -mt-10 blur-xl" />
               <div className="flex justify-between items-start relative z-10">
                 <div>
-                  <h3 className="text-xl font-black tracking-tight">Nuevo Trámite</h3>
-                  <p className="text-gray-400 text-[9px] font-black uppercase tracking-widest mt-1">Inicio de proceso legal o constructivo</p>
+                  <h3 className="text-base font-black tracking-tight">Nuevo Trámite</h3>
+                  <p className="text-gray-400 text-[8px] font-black uppercase tracking-widest mt-0.5">Inicio de proceso legal o constructivo</p>
                 </div>
-                <button onClick={() => setShowNewModal(false)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"><X className="w-5 h-5" /></button>
+                <button onClick={() => setShowNewModal(false)} className="p-1 hover:bg-white/10 rounded transition-colors"><X className="w-4 h-4" /></button>
               </div>
             </div>
             
-            <form onSubmit={handleCreate} className="p-6 space-y-6">
-              <div className="space-y-4">
+            <form onSubmit={handleCreate} className="px-5 py-4 space-y-3.5">
+              <div className="space-y-3">
                 {/* Selector de modo de cliente */}
                 <div>
-                  <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Asociar al Cliente</label>
-                  <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-xl">
+                  <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Asociar al Cliente</label>
+                  <div className="grid grid-cols-2 gap-1 bg-gray-100 p-0.5 rounded-lg">
                     <button
                       type="button"
                       onClick={() => setClientMode('existing')}
                       className={clsx(
-                        "py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all",
+                        "py-1 text-[8.5px] font-black uppercase tracking-wider rounded-md transition-all",
                         clientMode === 'existing' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-905"
                       )}
                     >
@@ -664,7 +664,7 @@ export default function Procedures() {
                       type="button"
                       onClick={() => setClientMode('new')}
                       className={clsx(
-                        "py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all",
+                        "py-1 text-[8.5px] font-black uppercase tracking-wider rounded-md transition-all",
                         clientMode === 'new' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-905"
                       )}
                     >
@@ -675,12 +675,12 @@ export default function Procedures() {
 
                 {clientMode === 'existing' ? (
                   <div>
-                    <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Seleccionar Cliente de la Lista</label>
+                    <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Seleccionar Cliente de la Lista</label>
                     <select
                       required={clientMode === 'existing'}
                       value={selectedClientUsername}
                       onChange={e => setSelectedClientUsername(e.target.value)}
-                      className="w-full bg-gray-50 border-transparent rounded-xl p-3 outline-none focus:ring-2 focus:ring-[#E3000F]/20 focus:bg-white border text-xs font-black tracking-tight transition-all appearance-none cursor-pointer"
+                      className="w-full bg-gray-50 border-gray-200 rounded-lg p-2.5 outline-none focus:ring-1 focus:ring-[#E3000F]/30 focus:bg-white border text-[11px] font-black tracking-tight transition-all appearance-none cursor-pointer"
                     >
                       <option value="">-- Seleccionar Cliente --</option>
                       {allClients.map(c => (
@@ -693,33 +693,33 @@ export default function Procedures() {
                 ) : (
                   <>
                     <div>
-                      <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Nombre del Dueño del Predio / Cliente</label>
+                      <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Nombre del Dueño del Predio / Cliente</label>
                       <input 
                         required={clientMode === 'new'}
                         type="text" 
                         value={newProc.clientName} 
                         onChange={e => setNewProc({...newProc, clientName: e.target.value})} 
-                        className="w-full bg-gray-50 border-transparent rounded-xl p-3 outline-none focus:ring-2 focus:ring-[#E3000F]/20 focus:bg-white border text-xs font-black tracking-tight transition-all" 
+                        className="w-full bg-gray-50 border-gray-200 rounded-lg p-2.5 outline-none focus:ring-1 focus:ring-[#E3000F]/30 focus:bg-white border text-[11px] font-black tracking-tight transition-all" 
                         placeholder="Ej. Juan Pérez" 
                       />
                     </div>
                     <div>
-                      <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">DNI / RUC del Cliente</label>
+                      <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1.5">DNI / RUC del Cliente</label>
                       <input 
                         type="text" 
                         value={newClientDocId} 
                         onChange={e => setNewClientDocId(e.target.value)} 
-                        className="w-full bg-gray-50 border-transparent rounded-xl p-3 outline-none focus:ring-2 focus:ring-[#E3000F]/20 focus:bg-white border text-xs font-black tracking-tight transition-all" 
+                        className="w-full bg-gray-50 border-gray-200 rounded-lg p-2.5 outline-none focus:ring-1 focus:ring-[#E3000F]/30 focus:bg-white border text-[11px] font-black tracking-tight transition-all" 
                         placeholder="DNI, RUC u otro documento de identidad" 
                       />
                     </div>
                     <div>
-                      <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Correo Electrónico (Opcional)</label>
+                      <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Correo Electrónico (Opcional)</label>
                       <input 
                         type="email" 
                         value={newProc.clientEmail} 
                         onChange={e => setNewProc({...newProc, clientEmail: e.target.value})} 
-                        className="w-full bg-gray-50 border-transparent rounded-xl p-3 outline-none focus:ring-2 focus:ring-[#E3000F]/20 focus:bg-white border text-xs font-black tracking-tight transition-all" 
+                        className="w-full bg-gray-50 border-gray-200 rounded-lg p-2.5 outline-none focus:ring-1 focus:ring-[#E3000F]/30 focus:bg-white border text-[11px] font-black tracking-tight transition-all" 
                         placeholder="ejemplo@correo.com (Se generará uno si se deja vacío)" 
                       />
                     </div>
@@ -727,12 +727,12 @@ export default function Procedures() {
                 )}
 
                 <div>
-                  <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Tipo de Trámite</label>
+                  <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Tipo de Trámite</label>
                   <select 
                     required
                     value={newProc.procedureType} 
                     onChange={e => setNewProc({...newProc, procedureType: e.target.value})}
-                    className="w-full bg-gray-50 border-transparent rounded-xl p-3 outline-none focus:ring-2 focus:ring-[#E3000F]/20 focus:bg-white border text-xs font-black tracking-tight transition-all appearance-none cursor-pointer"
+                    className="w-full bg-gray-50 border-gray-200 rounded-lg p-2.5 outline-none focus:ring-1 focus:ring-[#E3000F]/30 focus:bg-white border text-[11px] font-black tracking-tight transition-all appearance-none cursor-pointer"
                   >
                     <option value="">Seleccionar Producto</option>
                     {procedureTypes.map(t => (
@@ -741,25 +741,25 @@ export default function Procedures() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Número de Trámite en Plataforma</label>
+                  <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Número de Trámite en Plataforma</label>
                   <input 
                     type="text" 
                     value={newProc.platformNumber} 
                     onChange={e => setNewProc({...newProc, platformNumber: e.target.value})} 
-                    className="w-full bg-gray-50 border-transparent rounded-xl p-3 outline-none focus:ring-2 focus:ring-[#E3000F]/20 focus:bg-white border text-xs font-black tracking-tight transition-all" 
+                    className="w-full bg-gray-50 border-gray-200 rounded-lg p-2.5 outline-none focus:ring-1 focus:ring-[#E3000F]/30 focus:bg-white border text-[11px] font-black tracking-tight transition-all" 
                     placeholder="Opcional: Número asignado por plataforma externa" 
                   />
                 </div>
               </div>
               
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowNewModal(false)} className="px-4 py-2 text-[9px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors">Cancelar</button>
+              <div className="flex justify-end gap-2.5 pt-1">
+                <button type="button" onClick={() => setShowNewModal(false)} className="px-3 py-1.5 text-[8.5px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors">Cancelar</button>
                 <button 
                   type="submit" 
                   disabled={saving} 
-                  className="h-10 px-6 bg-[#1A1A1A] text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-[#E3000F] shadow-xl shadow-gray-200 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50"
+                  className="h-8.5 px-4 bg-[#1A1A1A] text-white text-[8.5px] font-black uppercase tracking-widest rounded-lg hover:bg-[#E3000F] shadow-md shadow-gray-200 transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
-                  {saving ? <Hourglass className="w-3.5 h-3.5 animate-pulse" /> : <Plus className="w-3.5 h-3.5" />}
+                  {saving ? <Hourglass className="w-3 h-3 animate-pulse" /> : <Plus className="w-3 h-3" />}
                   Crear Trámite
                 </button>
               </div>
