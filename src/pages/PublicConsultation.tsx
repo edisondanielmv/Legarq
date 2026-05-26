@@ -108,6 +108,30 @@ const PublicConsultation = () => {
     return Math.round((completed / steps.length) * 100);
   };
 
+  const renderNoteText = (text: string) => {
+    if (!text) return null;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    
+    return parts.map((part, i) => {
+      if (urlRegex.test(part)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-[#E3000F] hover:text-[#E3000F]/80 font-black hover:underline break-all transition-all"
+          >
+            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+            {part}
+          </a>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[#FDFDFD] font-sans selection:bg-[#E3000F] selection:text-white">
       {/* Header */}
@@ -298,9 +322,37 @@ const PublicConsultation = () => {
                                                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
                                                       {new Date(log.date).toLocaleDateString()}
                                                     </span>
-                                                    <p className="text-[11px] font-bold text-gray-600 leading-relaxed">
-                                                      {log.note}
+                                                    <p className="text-[11px] font-bold text-gray-600 leading-relaxed whitespace-pre-line">
+                                                      {renderNoteText(log.note)}
                                                     </p>
+                                                    {log.imageUrl && (
+                                                      <div className="mt-2 text-left space-y-2">
+                                                        <div className="flex items-center">
+                                                          <a 
+                                                            href={log.imageUrl} 
+                                                            target="_blank" 
+                                                            rel="noreferrer" 
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#E3000F]/10 hover:bg-[#E3000F]/15 text-[#E3000F] hover:text-[#E3000F] text-[9px] font-black uppercase tracking-wider rounded-lg border border-[#E3000F]/20 transition-all shadow-sm"
+                                                          >
+                                                            <ExternalLink className="w-3 h-3 shrink-0" />
+                                                            Ver Imagen de Observación
+                                                          </a>
+                                                        </div>
+                                                        <a 
+                                                          href={log.imageUrl} 
+                                                          target="_blank" 
+                                                          rel="noreferrer" 
+                                                          className="inline-block rounded-xl border border-gray-100 overflow-hidden relative group bg-stone-50 cursor-pointer"
+                                                        >
+                                                          <img 
+                                                            src={log.imageUrl} 
+                                                            alt="Adjunto observaciones" 
+                                                            className="max-h-32 object-cover hover:scale-105 transition-all duration-300" 
+                                                            referrerPolicy="no-referrer"
+                                                          />
+                                                        </a>
+                                                      </div>
+                                                    )}
                                                   </div>
                                                 </div>
                                               ))}

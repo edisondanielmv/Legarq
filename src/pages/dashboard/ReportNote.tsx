@@ -18,7 +18,13 @@ import {
   Clock, 
   Sparkles,
   Hourglass,
-  ArrowRight
+  ArrowRight,
+  Upload,
+  Image,
+  Trash2,
+  Pencil,
+  X,
+  Check
 } from 'lucide-react';
 import { Procedure, ProcedureLog } from '../../types';
 
@@ -47,12 +53,74 @@ export default function ReportNote() {
   
   const [noteText, setNoteText] = useState('');
   const [isExternal, setIsExternal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'form' | 'history'>('form');
   
   const [logs, setLogs] = useState<ProcedureLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [updatingLogId, setUpdatingLogId] = useState<string | null>(null);
   
+  // States for editing and deleting notes
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [editingLogText, setEditingLogText] = useState<string>('');
+  const [editingIsExternal, setEditingIsExternal] = useState<boolean>(false);
+  const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
+  
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // States for Municipal Observations Image
+  const [attachedImageUrl, setAttachedImageUrl] = useState('');
+  const [attachedImageName, setAttachedImageName] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedId) return;
+
+    setUploadingImage(true);
+    setStatusMessage(null);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result as string;
+        try {
+          const result = await api.uploadFile({
+            procedureId: selectedId,
+            name: `Municipio_Obs_${Date.now()}_${file.name}`,
+            base64: base64,
+            mimeType: file.type
+          });
+
+          setAttachedImageUrl(result.url);
+          setAttachedImageName(file.name);
+          setStatusMessage({
+            type: 'success',
+            text: `Imagen "${file.name}" cargada correctamente e ingresada a la carpeta del trámite.`
+          });
+        } catch (error: any) {
+          setStatusMessage({
+            type: 'error',
+            text: `Error al subir imagen: ${error.message}`
+          });
+        } finally {
+          setUploadingImage(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setStatusMessage({
+        type: 'error',
+        text: `Error al leer archivo: ${err.message}`
+      });
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveAttachedImage = () => {
+    setAttachedImageUrl('');
+    setAttachedImageName('');
+    setStatusMessage(null);
+  };
 
   // Fetch procedures on load
   const loadProcedures = async () => {
@@ -117,6 +185,85 @@ export default function ReportNote() {
     setNoteText(prev => prev ? `${prev}\n${preset}` : preset);
   };
 
+  // Edit Note Handlers
+  const handleStartEdit = (log: ProcedureLog) => {
+    setEditingLogId(log.id || null);
+    setEditingLogText(log.note);
+    setEditingIsExternal(String(log.isExternal) === 'true' || log.isExternal === true);
+  };
+
+  const handleSaveEdit = async (logId: string) => {
+    if (!editingLogText.trim()) {
+      setStatusMessage({ type: 'error', text: 'El contenido de la nota no puede estar vacío.' });
+      return;
+    }
+    setUpdatingLogId(logId);
+    setStatusMessage(null);
+    try {
+      await api.updateLog({
+        id: logId,
+        note: editingLogText.trim(),
+        isExternal: editingIsExternal
+      });
+      setLogs(prev => prev.map(l => l.id === logId ? { ...l, note: editingLogText.trim(), isExternal: editingIsExternal } : l));
+      setEditingLogId(null);
+      setEditingLogText('');
+      setStatusMessage({ type: 'success', text: 'Nota actualizada exitosamente.' });
+      setTimeout(() => {
+        setStatusMessage(prev => prev?.type === 'success' ? null : prev);
+      }, 4000);
+    } catch (err: any) {
+      console.error("Error al actualizar la nota:", err);
+      setStatusMessage({ type: 'error', text: `Error al actualizar nota: ${err.message}` });
+    } finally {
+      setUpdatingLogId(null);
+    }
+  };
+
+  const handleDeleteLog = async (logId: string) => {
+    setStatusMessage(null);
+    try {
+      setUpdatingLogId(logId);
+      await api.deleteLog(logId);
+      setLogs(prev => prev.filter(l => l.id !== logId));
+      setDeletingLogId(null);
+      setStatusMessage({ type: 'success', text: 'Nota eliminada exitosamente.' });
+      setTimeout(() => {
+        setStatusMessage(prev => prev?.type === 'success' ? null : prev);
+      }, 4000);
+    } catch (err: any) {
+      console.error("Error al eliminar la nota:", err);
+      setStatusMessage({ type: 'error', text: `Error al eliminar nota: ${err.message}` });
+    } finally {
+      setUpdatingLogId(null);
+    }
+  };
+
+  // Helper to render text with clickable links
+  const renderNoteText = (text: string) => {
+    if (!text) return null;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    
+    return parts.map((part, i) => {
+      if (urlRegex.test(part)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-[#E3000F] hover:text-[#E3000F]/80 font-black hover:underline break-all transition-all"
+          >
+            <ExternalLink className="w-3 h-3 shrink-0" />
+            {part}
+          </a>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
   // Submit Note
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,11 +279,16 @@ export default function ReportNote() {
     setSubmitting(true);
     setStatusMessage(null);
     try {
+      const finalNoteText = attachedImageUrl 
+        ? `${noteText.trim()}\n\n🔗 Imagen Adjunta (Drive): ${attachedImageUrl}`
+        : noteText.trim();
+
       await api.addLog({
         procedureId: selectedId,
         technicianUsername: user?.username || '',
-        note: noteText.trim(),
-        isExternal: isExternal
+        note: finalNoteText,
+        isExternal: isExternal,
+        imageUrl: attachedImageUrl || ''
       });
 
       setStatusMessage({ 
@@ -144,6 +296,8 @@ export default function ReportNote() {
         text: `Comentario registrado exitosamente para el trámite ${selectedProcedure?.code || ''}.` 
       });
       setNoteText('');
+      setAttachedImageUrl('');
+      setAttachedImageName('');
       
       // Refresh timeline logs automatically
       await fetchProcedureLogs(selectedId);
@@ -315,7 +469,7 @@ export default function ReportNote() {
             )}
 
             {selectedProcedure ? (
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-4">
                 
                 {/* Selected procedure info summary */}
                 <div className="p-4 bg-gray-50/50 border border-gray-100 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -344,22 +498,115 @@ export default function ReportNote() {
                   )}
                 </div>
 
-                {/* Text editor and layout */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-1.5">
-                    <MessageSquare className="w-4 h-4 text-gray-500" />
-                    Contenido de la Nota
+                {/* Pill Tab Bar for Mobile Devices */}
+                <div className="flex lg:hidden bg-gray-100 p-1 rounded-xl my-3">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('form')}
+                    className={`flex-1 py-1.5 text-center text-[9px] font-black uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                      activeTab === 'form' 
+                        ? "bg-white text-[#E3000F] shadow-sm" 
+                        : "text-gray-500 hover:text-gray-900"
+                    }`}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    Nueva Nota
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('history')}
+                    className={`flex-1 py-1.5 text-center text-[9px] font-black uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                      activeTab === 'history' 
+                        ? "bg-white text-[#E3000F] shadow-sm" 
+                        : "text-gray-500 hover:text-gray-900"
+                    }`}
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    Historial ({logs.length})
+                  </button>
+                </div>
+
+                <form 
+                  onSubmit={handleSubmit} 
+                  className={`space-y-4 ${activeTab === 'form' ? 'block' : 'hidden lg:block'}`}
+                >
+                  {/* Text editor and layout */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-1.5">
+                      <MessageSquare className="w-4 h-4 text-gray-500" />
+                      Contenido de la Nota
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={noteText}
+                      onChange={(e) => setNoteText(e.target.value)}
+                      placeholder="Escriba aquí los detalles correspondientes..."
+                      className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500 transition-all font-sans"
+                    />
+                  </div>
+
+                {/* Municipal Observation Image Attachment */}
+                <div className="space-y-1.5 p-4 bg-stone-50 rounded-2xl border border-stone-200/50">
+                  <label className="text-xs font-black text-gray-950 uppercase tracking-widest flex items-center gap-1.5">
+                    <Image className="w-4 h-4 text-[#E3000F]" />
+                    Captura / Observación de la Municipalidad (Opcional)
                   </label>
-                  <p className="text-[9px] text-gray-400 font-medium tracking-wide">
-                    Redacte de forma clara los avances actuales o anotaciones para registrar en el historial.
-                  </p>
-                  <textarea
-                    rows={4}
-                    value={noteText}
-                    onChange={(e) => setNoteText(e.target.value)}
-                    placeholder="Escriba aquí los detalles correspondientes..."
-                    className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500 transition-all font-sans"
-                  />
+
+                  <div className="mt-3">
+                    {uploadingImage ? (
+                      <div className="flex items-center gap-3 py-3 px-4 bg-white rounded-xl border border-dashed border-red-200/80">
+                        <Hourglass className="w-4 h-4 text-[#E3000F] animate-spin shrink-0" />
+                        <span className="text-[10px] font-black text-stone-700 uppercase tracking-wider animate-pulse">
+                          Subiendo archivo a Drive... Por favor, espere.
+                        </span>
+                      </div>
+                    ) : attachedImageUrl ? (
+                      <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-xl border border-stone-200/60 shadow-sm animate-fadeIn">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-10 h-10 rounded-lg bg-stone-50 border border-stone-200 overflow-hidden flex items-center justify-center shrink-0">
+                            <img 
+                              src={attachedImageUrl} 
+                              alt="Adjunto" 
+                              className="w-full h-full object-cover" 
+                              referrerPolicy="no-referrer"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[10px] font-black text-stone-900 truncate block leading-tight">
+                              {attachedImageName || 'Imagen adjunta'}
+                            </span>
+                            <span className="text-[8px] font-bold text-emerald-600 block uppercase tracking-wider leading-none mt-1">
+                              ✓ Subido con éxito
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveAttachedImage}
+                          className="p-1 px-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 rounded-lg border border-rose-100 transition-colors shrink-0 text-[9px] font-black uppercase tracking-wider flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Remover
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center p-4 bg-white hover:bg-stone-100/60 border border-dashed border-stone-300 rounded-xl cursor-pointer transition-all gap-1.5 text-center group">
+                        <Upload className="w-5 h-5 text-stone-400 group-hover:text-[#E3000F] transition-colors" />
+                        <span className="text-[10px] font-black text-stone-600 group-hover:text-stone-900 uppercase tracking-widest transition-colors">
+                          Click para seleccionar o arrastrar captura
+                        </span>
+                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider">
+                          Formatos aceptados: PNG, JPG, JPEG, GIF
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
 
                 {/* Controls and submission */}
@@ -426,7 +673,8 @@ export default function ReportNote() {
                   </div>
                 )}
 
-              </form>
+                </form>
+              </div>
             ) : (
               <div className="text-center py-20 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
                 <FileText className="w-10 h-10 text-gray-300 mx-auto mb-3" />
@@ -440,7 +688,7 @@ export default function ReportNote() {
 
           {/* Historical timeline of log entries for the selected procedure */}
           {selectedId && (
-            <div className="bg-white p-6 rounded-[28px] border border-gray-100 shadow-sm">
+            <div className={`bg-white p-6 rounded-[28px] border border-gray-100 shadow-sm ${activeTab === 'history' ? 'block' : 'hidden lg:block'}`}>
               <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest mb-4 flex items-center justify-between border-b border-gray-100 pb-3">
                 <span className="flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-[#C5B39A]" />
@@ -526,20 +774,156 @@ export default function ReportNote() {
                                       </span>
                                     </label>
                                   </div>
-                                  <div className="flex items-center gap-1 text-[9px] text-gray-400 font-bold uppercase tracking-wider">
+                                  <div className="flex items-center gap-1.5 text-[9px] text-gray-400 font-bold uppercase tracking-wider">
                                     <Calendar className="w-3 h-3" />
-                                    {log.date ? new Date(log.date).toLocaleString('es-PE', {
-                                      year: 'numeric',
-                                      month: 'short',
-                                      day: 'numeric',
-                                      hour: '2-digit',
-                                      minute: '2-digit'
-                                    }) : 'Sin fecha'}
+                                    <span>
+                                      {log.date ? new Date(log.date).toLocaleString('es-PE', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      }) : 'Sin fecha'}
+                                    </span>
+                                    {log.id && editingLogId !== log.id && deletingLogId !== log.id && (
+                                      <div className="flex items-center gap-1 ml-2 pl-2 border-l border-gray-200">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleStartEdit(log)}
+                                          title="Editar Nota"
+                                          className="p-1 text-gray-400 hover:text-stone-800 hover:bg-stone-50 rounded transition-all cursor-pointer"
+                                        >
+                                          <Pencil className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setDeletingLogId(log.id!)}
+                                          title="Eliminar Nota"
+                                          className="p-1 text-gray-400 hover:text-[#E3000F] hover:bg-red-50 rounded transition-all cursor-pointer"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-                                <div className="mt-2 text-xs font-medium text-gray-700 leading-relaxed bg-gray-50/50 hover:bg-gray-50 p-3 rounded-xl border border-gray-100/50">
-                                  <p className="whitespace-pre-line">{log.note}</p>
-                                </div>
+                                
+                                {editingLogId === log.id ? (
+                                  <div className="space-y-3 bg-stone-50 p-3.5 rounded-xl border border-stone-200/60 mt-2">
+                                    <textarea
+                                      rows={3}
+                                      value={editingLogText}
+                                      onChange={(e) => setEditingLogText(e.target.value)}
+                                      className="w-full p-3 bg-white border border-stone-200 rounded-xl text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500 transition-all font-sans"
+                                      placeholder="Editar contenido de la nota..."
+                                    />
+                                    
+                                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                                        <input 
+                                          type="checkbox" 
+                                          checked={editingIsExternal}
+                                          onChange={(e) => setEditingIsExternal(e.target.checked)}
+                                          className="w-3.5 h-3.5 text-[#E3000F] rounded border-gray-300 focus:ring-[#E3000F]"
+                                        />
+                                        <span className="text-[9px] font-black uppercase tracking-wider text-stone-600">
+                                          {editingIsExternal ? 'Público (Cliente)' : 'Solo Interno'}
+                                        </span>
+                                      </label>
+
+                                      <div className="flex items-center gap-1.5 ml-auto">
+                                        <button
+                                          type="button"
+                                          onClick={() => setEditingLogId(null)}
+                                          className="px-2.5 py-1 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-1 h-7 cursor-pointer"
+                                        >
+                                          <X className="w-3 h-3" /> Cancelar
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleSaveEdit(log.id!)}
+                                          disabled={updatingLogId === log.id}
+                                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[8px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-1 h-7 font-sans cursor-pointer disabled:opacity-50"
+                                        >
+                                          <Check className="w-3 h-3" /> Guardar
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="mt-2 text-xs font-medium text-gray-700 leading-relaxed bg-gray-50/50 hover:bg-gray-50 p-3 rounded-xl border border-gray-100/50 whitespace-pre-line">
+                                    {renderNoteText(log.note)}
+                                  </div>
+                                )}
+
+                                {deletingLogId === log.id && (
+                                  <div className="mt-3 p-3.5 bg-rose-50 border border-rose-100 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn">
+                                    <div className="flex items-start gap-2 text-left">
+                                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                                      <div>
+                                        <span className="text-[10px] font-black text-rose-950 uppercase tracking-wide block">¿Confirmar eliminación de nota?</span>
+                                        <span className="text-[9px] text-rose-700 font-bold block uppercase tracking-wide">Esta acción es irreversible y removerá el registro del historial.</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => setDeletingLogId(null)}
+                                        className="px-2.5 py-1 bg-white hover:bg-stone-50 border border-rose-200/50 text-stone-700 text-[8px] font-black uppercase tracking-wider rounded-lg transition-all h-7 cursor-pointer"
+                                      >
+                                        Cancelar
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteLog(log.id!)}
+                                        disabled={updatingLogId === log.id}
+                                        className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[8px] font-black uppercase tracking-wider rounded-lg transition-all h-7 shadow-sm flex items-center gap-1 cursor-pointer"
+                                      >
+                                        {updatingLogId === log.id ? (
+                                          <span className="w-2.5 h-2.5 border-2 border-white/35 border-t-white rounded-full animate-spin"></span>
+                                        ) : (
+                                          <Trash2 className="w-3 h-3" />
+                                        )}
+                                        Eliminar
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                                {log.imageUrl && (
+                                  <div className="mt-2.5 max-w-sm space-y-2">
+                                    <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Evidencia / Captura del Municipio</span>
+                                    <div className="flex items-center">
+                                      <a 
+                                        href={log.imageUrl} 
+                                        target="_blank" 
+                                        rel="noreferrer" 
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#E3000F]/10 hover:bg-[#E3000F]/15 text-[#E3000F] hover:text-[#E3000F] text-[10px] font-black uppercase tracking-wider rounded-lg border border-[#E3000F]/20 transition-all shadow-sm"
+                                      >
+                                        <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                                        Ver Imagen de Observación (Enlace Directo)
+                                      </a>
+                                    </div>
+                                    <a 
+                                      href={log.imageUrl} 
+                                      target="_blank" 
+                                      rel="noreferrer" 
+                                      className="block rounded-xl border border-gray-150 overflow-hidden relative group/img bg-stone-50 cursor-pointer"
+                                    >
+                                      <img 
+                                        src={log.imageUrl} 
+                                        alt="Captura Municipio" 
+                                        className="max-h-48 w-full object-cover hover:scale-105 transition-transform duration-300" 
+                                        referrerPolicy="no-referrer"
+                                      />
+                                      <div className="absolute inset-0 bg-stone-950/20 opacity-0 hover:opacity-100 flex items-center justify-center transition-all">
+                                        <span className="bg-white/95 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider text-stone-800 shadow-sm border border-stone-200 flex items-center gap-1">
+                                          <ExternalLink className="w-3 h-3" />
+                                          Ver Imagen Completa
+                                        </span>
+                                      </div>
+                                    </a>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>

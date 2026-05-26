@@ -7,7 +7,7 @@ import {
   User as UserIcon, Calendar, DollarSign, FileText, Hourglass, 
   Phone, MapPin, Mail, Folder, MessageSquare, Clock, ArrowUpRight, 
   ArrowDownRight, Circle, Check, AlertCircle, RefreshCw, Eye, Home,
-  ClipboardList, Users, ShieldAlert, Briefcase, X
+  ClipboardList, Users, ShieldAlert, Briefcase, X, ExternalLink
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -837,6 +837,34 @@ export default function ProcedureDetails() {
                             className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-medium text-gray-600 min-h-[60px] p-0 resize-none"
                             placeholder="Ingrese los detalles de este avance..."
                           />
+                          {log.imageUrl && (
+                            <div className="mt-2 max-w-xs space-y-2">
+                              <div className="flex items-center">
+                                <a 
+                                  href={log.imageUrl} 
+                                  target="_blank" 
+                                  rel="noreferrer" 
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#E3000F]/10 hover:bg-[#E3000F]/15 text-[#E3000F] hover:text-[#E3000F] text-[9px] font-black uppercase tracking-wider rounded-lg border border-[#E3000F]/20 transition-all shadow-sm"
+                                >
+                                  <ExternalLink className="w-3 h-3 shrink-0" />
+                                  Ver Imagen Adjunta
+                                </a>
+                              </div>
+                              <a 
+                                href={log.imageUrl} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="block rounded-lg border border-gray-100 overflow-hidden relative group/img bg-stone-50 cursor-pointer"
+                              >
+                                <img 
+                                  src={log.imageUrl} 
+                                  alt="Adjunto" 
+                                  className="max-h-32 w-full object-cover hover:scale-105 transition-transform duration-300" 
+                                  referrerPolicy="no-referrer"
+                                />
+                              </a>
+                            </div>
+                          )}
                        </div>
                     </div>
                   ))}

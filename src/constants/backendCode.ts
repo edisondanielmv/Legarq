@@ -15,7 +15,7 @@ function initSheets() {
     { name: 'Usuarios', headers: ['id', 'name', 'username', 'password', 'role', 'phone', 'address', 'idNumber', 'permissions', 'email', 'status'] },
     { name: 'Tramites', headers: ['id', 'code', 'title', 'clientUsername', 'status', 'description', 'createdAt', 'driveFolderId', 'driveUrl', 'technicianUsername', 'completedSteps', 'expectedValue', 'otherAgreements', 'clientName', 'idNumber', 'procedureType', 'clientEmail', 'propertyNumber', 'platformNumber'] },
     { name: 'Finanzas', headers: ['id', 'procedureId', 'type', 'category', 'description', 'amount', 'date', 'fileUrl', 'isReimbursable', 'reimburseTo'] },
-    { name: 'Bitacora', headers: ['id', 'procedureId', 'date', 'technicianUsername', 'note', 'isExternal'] },
+    { name: 'Bitacora', headers: ['id', 'procedureId', 'date', 'technicianUsername', 'note', 'isExternal', 'imageUrl'] },
     { name: 'Archivos', headers: ['id', 'procedureId', 'name', 'driveId', 'mimeType', 'url', 'date'] },
     { name: 'TiposTramite', headers: ['id', 'name', 'steps'] },
     { name: 'Cuentas', headers: ['id', 'name'] }
@@ -517,7 +517,7 @@ function getLogs(procId) {
 
 function addLog(data) {
   var id = Utilities.getUuid();
-  SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Bitacora').appendRow([id, data.procedureId, new Date().toISOString(), data.technicianUsername, data.note, data.isExternal]);
+  SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Bitacora').appendRow([id, data.procedureId, new Date().toISOString(), data.technicianUsername, data.note, data.isExternal, data.imageUrl || '']);
   return { id: id };
 }
 
@@ -529,6 +529,9 @@ function updateLog(data) {
     if (String(rows[i][0] || '') === updateId) { 
       sheet.getRange(i+1, 5).setValue(data.note); 
       sheet.getRange(i+1, 6).setValue(data.isExternal);
+      if (data.imageUrl !== undefined) {
+        sheet.getRange(i+1, 7).setValue(data.imageUrl);
+      }
       return { success: true }; 
     }
   }
@@ -562,16 +565,67 @@ function uploadFile(data) {
   var id = Utilities.getUuid();
   var driveId = '';
   var driveUrl = data.url || '';
+  var mime = data.mimeType || '';
+  
   if (data.base64) {
+    if (!mime && data.base64.indexOf(';') !== -1 && data.base64.indexOf(':') !== -1) {
+      try {
+        var parts = data.base64.split(';');
+        if (parts[0] && parts[0].indexOf(':') !== -1) {
+          mime = parts[0].split(':')[1];
+        }
+      } catch (err) {}
+    }
+    if (!mime) {
+      mime = 'application/octet-stream';
+    }
+
     try {
-      var parent = getOrCreateMainFolder();
-      var bytes = Utilities.base64Decode(data.base64.split(',')[1]);
-      var file = parent.createFile(Utilities.newBlob(bytes, data.mimeType, data.name));
+      var parent = null;
+      var procId = String(data.procedureId || '');
+      if (procId) {
+        var tramitesSheet = ss.getSheetByName('Tramites');
+        if (tramitesSheet) {
+          var dataRange = tramitesSheet.getDataRange().getValues();
+          var headers = dataRange[0];
+          var idIdx = headers.indexOf('id');
+          var folderIdIdx = headers.indexOf('driveFolderId');
+          if (idIdx !== -1 && folderIdIdx !== -1) {
+            for (var i = 1; i < dataRange.length; i++) {
+              if (String(dataRange[i][idIdx] || '') === procId) {
+                var folderId = String(dataRange[i][folderIdIdx] || '').trim();
+                if (folderId) {
+                  try {
+                    parent = DriveApp.getFolderById(folderId);
+                  } catch (err) {}
+                }
+                break;
+              }
+            }
+          }
+        }
+      }
+      if (!parent) {
+        parent = getOrCreateMainFolder();
+      }
+      var b64Data = data.base64;
+      if (b64Data.indexOf(',') !== -1) {
+        b64Data = b64Data.split(',')[1];
+      }
+      var bytes = Utilities.base64Decode(b64Data);
+      var file = parent.createFile(Utilities.newBlob(bytes, mime, data.name));
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      driveId = file.getId(); driveUrl = file.getUrl();
-    } catch(e) {}
+      driveId = file.getId(); 
+      driveUrl = file.getUrl();
+    } catch(e) {
+      console.error('Error uploading file to Drive:', e);
+    }
   }
-  ss.getSheetByName('Archivos').appendRow([id, data.procedureId, data.name, driveId, data.mimeType, driveUrl, new Date().toISOString()]);
+  try {
+    ss.getSheetByName('Archivos').appendRow([id, data.procedureId, data.name, driveId, mime, driveUrl, new Date().toISOString()]);
+  } catch (e) {
+    console.error('Error appending row to Archivos sheet:', e);
+  }
   return { id: id, url: driveUrl };
 }
 

@@ -1013,7 +1013,8 @@ function TransactionModal({ isOpen, onClose, onSuccess, editingItem, procedures,
       const result = await api.uploadFile({ 
         procedureId: formData.procedureId, 
         name: `Respaldo_${file.name}`, 
-        base64 
+        base64,
+        mimeType: file.type
       });
       setFormData({ ...formData, fileUrl: result.url });
     } catch (err: any) {

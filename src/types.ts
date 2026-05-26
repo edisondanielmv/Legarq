@@ -68,6 +68,7 @@ export interface ProcedureLog {
   technicianUsername: string;
   note: string;
   isExternal?: boolean;
+  imageUrl?: string;
 }
 
 export interface ProcedureFile {

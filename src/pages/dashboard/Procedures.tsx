@@ -77,7 +77,7 @@ export default function Procedures() {
 
   useEffect(() => {
     fetchProcedures();
-    if (user?.role === 'admin') {
+    if (user?.role === 'admin' || user?.role === 'tech') {
       fetchUsers();
       fetchProcedureTypes();
     }

@@ -192,7 +192,8 @@ export default function QuickFinance() {
       const result = await api.uploadFile({
         procedureId: selectedProcId,
         name: `Caja_Respaldo_${file.name}`,
-        base64
+        base64,
+        mimeType: file.type
       });
       setFileUrl(result.url);
       setSuccessMessage("Archivo subido y vinculado al trámite correctamente.");
@@ -353,20 +354,23 @@ export default function QuickFinance() {
   const getProcessedFinancials = () => {
     const list = [...procFinancials];
     const proc = procedures.find(p => p.id === selectedProcId);
-    if (proc && typeof proc.expectedValue === 'number' && proc.expectedValue > 0) {
-      // Check if there is already a transaction of type 'Cuenta por Cobrar' or with category 'Monto Acordado'
-      const hasAgreedValueRecord = list.some(f => f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado');
-      if (!hasAgreedValueRecord) {
-        list.unshift({
-          id: 'virtual-monto-acordado',
-          procedureId: selectedProcId,
-          type: 'Cuenta por Cobrar',
-          category: 'Monto Acordado',
-          description: 'Monto Acordado (Sincronizado del Trámite)',
-          amount: proc.expectedValue,
-          date: proc.createdAt || new Date().toISOString(),
-          isVirtual: true
-        } as any);
+    if (proc) {
+      const expValue = Number(proc.expectedValue || 0);
+      if (expValue > 0) {
+        // Check if there is already a transaction of type 'Cuenta por Cobrar' or with category 'Monto Acordado'
+        const hasAgreedValueRecord = list.some(f => f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado');
+        if (!hasAgreedValueRecord) {
+          list.unshift({
+            id: 'virtual-monto-acordado',
+            procedureId: selectedProcId,
+            type: 'Cuenta por Cobrar',
+            category: 'Monto Acordado',
+            description: 'Monto Acordado (Sincronizado del Trámite)',
+            amount: expValue,
+            date: proc.createdAt || new Date().toISOString(),
+            isVirtual: true
+          } as any);
+        }
       }
     }
     return list;

@@ -203,6 +203,11 @@ const mockApi = async (action: string, data: any): Promise<any> => {
         procedures: mockProcedures, 
         technicians: mockUsers.filter(u => u.role === 'tech' || u.role === 'admin') 
       };
+    case 'uploadFile':
+      return {
+        id: 'file-' + Date.now(),
+        url: 'https://images.unsplash.com/photo-1544377193-33dcf4d68fb5?q=80&w=600&auto=format&fit=crop'
+      };
     case 'addFinancialItem':
     case 'updateFinancialItem':
     case 'deleteFinancialItem':
@@ -251,7 +256,7 @@ export const api = {
   createAccount: (name: string) => apiCall<{ id: string }>('createAccount', { name }),
   deleteAccount: (id: string) => apiCall<{ success: true }>('deleteAccount', { id }),
   getFiles: (procedureId: string) => apiCall<ProcedureFile[]>('getFiles', { procedureId }),
-  uploadFile: (data: { procedureId: string, name: string, base64: string }) => apiCall<{ id: string, url: string }>('uploadFile', data),
+  uploadFile: (data: { procedureId: string, name: string, base64: string, mimeType?: string }) => apiCall<{ id: string, url: string }>('uploadFile', data),
   getProcedureTypes: () => apiCall<ProcedureType[]>('getProcedureTypes'),
   createProcedureType: (data: { name: string, steps: string }) => apiCall<{ id: string }>('createProcedureType', data),
   updateProcedureType: (data: { id: string, name?: string, steps?: string }) => apiCall<{ success: true }>('updateProcedureType', data),
