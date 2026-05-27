@@ -256,6 +256,20 @@ export default function Procedures() {
     }
   };
 
+  const handleUpdateStatus = async (id: string, status: string) => {
+    setSaving(true);
+    setError('');
+    try {
+      await api.updateProcedureStatus({ id, status });
+      showSuccess('Estado actualizado correctamente.');
+      await fetchProcedures();
+    } catch (err: any) {
+      setError(`Error al actualizar estado: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const filtered = procedures.filter(p => {
     const term = searchTerm.toLowerCase();
     const matchesSearch = (
@@ -523,10 +537,37 @@ export default function Procedures() {
                     <Clock className="w-3 h-3" /> {calculateDaysElapsed(proc.createdAt, proc.completedAt)}
                   </div>
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap">
-                  <span className={clsx("px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-full border", getStatusColor(proc.status))}>
-                    {proc.status}
-                  </span>
+                <td className="px-3 py-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                  {user?.role === 'admin' ? (
+                    <div className="flex items-center w-full">
+                      <select
+                        value={proc.status}
+                        onChange={(e) => handleUpdateStatus(proc.id, e.target.value)}
+                        disabled={saving}
+                        className={clsx(
+                          "w-full text-[8px] font-black uppercase tracking-widest pl-2 pr-6 py-1 rounded-full border focus:outline-none focus:ring-1 cursor-pointer transition-all appearance-none relative bg-no-repeat",
+                          getStatusColor(proc.status)
+                        )}
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                          backgroundRepeat: "no-repeat",
+                          backgroundPosition: "right 0.4rem center",
+                          backgroundSize: "0.5rem"
+                        }}
+                      >
+                        <option value="Ingresado" className="text-gray-900 bg-white">Ingresado</option>
+                        <option value="En proceso" className="text-gray-900 bg-white">En proceso</option>
+                        <option value="Observado" className="text-gray-900 bg-white">Observado</option>
+                        <option value="Subsanado" className="text-gray-900 bg-white">Subsanado</option>
+                        <option value="Suspendido" className="text-gray-900 bg-white">Suspendido</option>
+                        <option value="Finalizado" className="text-gray-900 bg-white">Finalizado</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <span className={clsx("px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-full border", getStatusColor(proc.status))}>
+                      {proc.status}
+                    </span>
+                  )}
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">
                   {proc.driveUrl ? (
@@ -589,16 +630,38 @@ export default function Procedures() {
             <div className="p-3">
               <div className="flex justify-between items-start mb-2">
                 <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className={clsx(
-                      "px-1.5 py-0.5 rounded-full text-[6.5px] font-black uppercase tracking-widest border w-fit",
-                      proc.status === 'Finalizado' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                      proc.status === 'Suspendido' ? "bg-rose-50 text-rose-600 border-rose-100" :
-                      proc.status === 'En proceso' ? "bg-amber-50 text-amber-600 border-amber-100" :
-                      "bg-gray-50 text-gray-600 border-gray-100"
-                    )}>
-                      {proc.status}
-                    </span>
+                  <div className="flex items-center gap-1.5" onClick={(e) => user?.role === 'admin' && e.stopPropagation()}>
+                    {user?.role === 'admin' ? (
+                      <select
+                        value={proc.status}
+                        onChange={(e) => handleUpdateStatus(proc.id, e.target.value)}
+                        disabled={saving}
+                        className={clsx(
+                          "px-2 py-0.5 rounded-full text-[6.5px] font-black uppercase tracking-widest border w-fit focus:outline-none appearance-none cursor-pointer pr-4 relative bg-no-repeat",
+                          getStatusColor(proc.status)
+                        )}
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                          backgroundRepeat: "no-repeat",
+                          backgroundPosition: "right 0.2rem center",
+                          backgroundSize: "0.4rem"
+                        }}
+                      >
+                        <option value="Ingresado" className="text-gray-900 bg-white">Ingresado</option>
+                        <option value="En proceso" className="text-gray-900 bg-white">En proceso</option>
+                        <option value="Observado" className="text-gray-900 bg-white">Observado</option>
+                        <option value="Subsanado" className="text-gray-900 bg-white">Subsanado</option>
+                        <option value="Suspendido" className="text-gray-900 bg-white">Suspendido</option>
+                        <option value="Finalizado" className="text-gray-900 bg-white">Finalizado</option>
+                      </select>
+                    ) : (
+                      <span className={clsx(
+                        "px-1.5 py-0.5 rounded-full text-[6.5px] font-black uppercase tracking-widest border w-fit",
+                        getStatusColor(proc.status)
+                      )}>
+                        {proc.status}
+                      </span>
+                    )}
                     <span className="text-[7.5px] font-mono font-black text-[#E3000F] bg-red-50 px-1.5 py-0.5 rounded-md border border-red-100 tracking-tight">
                       {proc.code || '---'}
                     </span>

@@ -24,7 +24,8 @@ import {
   Trash2,
   Pencil,
   X,
-  Check
+  Check,
+  ChevronDown
 } from 'lucide-react';
 import { Procedure, ProcedureLog } from '../../types';
 
@@ -50,6 +51,7 @@ export default function ReportNote() {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState<string>('');
+  const [isMobileSelectOpen, setIsMobileSelectOpen] = useState(false);
   
   const [noteText, setNoteText] = useState('');
   const [isExternal, setIsExternal] = useState(false);
@@ -439,32 +441,63 @@ export default function ReportNote() {
           <div className="bg-white p-3.5 sm:p-5 rounded-[20px] border border-gray-100 shadow-sm">
             {/* Quick selector for mobile devices */}
             {procedures.length > 0 && (
-              <div className="block lg:hidden mb-3 space-y-1">
+              <div className="block lg:hidden mb-3 space-y-1 relative">
                 <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
                   <Search className="w-3 h-3 text-[#E3000F]" />
                   Seleccionar Trámite (Móvil)
                 </label>
-                <select
-                  value={selectedId}
-                  onChange={(e) => {
-                    setSelectedId(e.target.value);
-                    setStatusMessage(null);
-                  }}
-                  className="w-full h-9 bg-gray-50 border border-gray-200 rounded-lg px-2.5 outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500 text-[11px] font-black tracking-tight transition-all cursor-pointer appearance-none"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='lucide lucide-chevron-down'><path d='m6 9 6 6 6-6'/></svg>")`,
-                    backgroundPosition: 'right 10px center',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundSize: '14px'
-                  }}
+                <div 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2 min-h-[36px] outline-none focus-within:ring-1 focus-within:ring-red-500/50 focus-within:border-red-500 transition-all cursor-text"
+                  onClick={() => setIsMobileSelectOpen(true)}
                 >
-                  <option value="" disabled>-- Elija un trámite --</option>
-                  {procedures.map(p => (
-                    <option key={p.id} value={p.id}>
-                      [{p.code}] {p.title} - {p.clientName}
-                    </option>
-                  ))}
-                </select>
+                  <div className="flex items-center justify-between">
+                    {isMobileSelectOpen ? (
+                      <input
+                        autoFocus
+                        type="text"
+                        placeholder="Buscar trámite..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-transparent outline-none text-[11px] font-black tracking-tight"
+                        onBlur={() => {
+                          // Allow click events on dropdown items to fire before closing
+                          setTimeout(() => setIsMobileSelectOpen(false), 200);
+                        }}
+                      />
+                    ) : (
+                      <div className="text-[11px] font-black tracking-tight text-gray-800 line-clamp-1 pointer-events-none">
+                        {selectedProcedure ? `[${selectedProcedure.code}] ${selectedProcedure.title} - ${selectedProcedure.clientName}` : '-- Elija un trámite --'}
+                      </div>
+                    )}
+                    <ChevronDown className="w-4 h-4 text-gray-500 shrink-0 ml-2" />
+                  </div>
+                </div>
+                
+                {isMobileSelectOpen && (
+                  <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                    {filteredProcedures.length === 0 ? (
+                      <div className="p-3 text-center text-[10px] font-black text-gray-400 uppercase">Sin resultados</div>
+                    ) : (
+                      filteredProcedures.map(p => (
+                        <div
+                          key={p.id}
+                          onMouseDown={(e) => {
+                            // Use onMouseDown to prevent input blur before this fires
+                            e.preventDefault();
+                            setSelectedId(p.id);
+                            setSearchTerm('');
+                            setIsMobileSelectOpen(false);
+                            setStatusMessage(null);
+                          }}
+                          className="p-2.5 border-b border-gray-50 hover:bg-red-50 cursor-pointer active:bg-red-100"
+                        >
+                          <div className="text-[11px] font-black text-gray-900 leading-tight">[{p.code}] {p.title}</div>
+                          <div className="text-[9px] font-bold text-gray-500 mt-0.5">{p.clientName}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
