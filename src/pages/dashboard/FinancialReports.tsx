@@ -124,10 +124,10 @@ export default function FinancialReports() {
       return type === 'cuenta por cobrar' || type === 'por cobrar';
     }).reduce((sum, t) => sum + parseAmount(t.amount), 0);
     
-    // Prioritize the agreed value field if it exists, otherwise use total receivable transactions
+    // Prioritize total receivable transactions if any exist, otherwise fallback to the procedure's expected value
     const rawVal = proc.expectedValue;
     const procExpectedValue = parseAmount(rawVal);
-    const expected = procExpectedValue || receivable || 0;
+    const expected = receivable > 0 ? receivable : (procExpectedValue || 0);
     
     return {
       ...proc,
@@ -199,7 +199,7 @@ export default function FinancialReports() {
     return type === 'egreso' || type === 'gasto';
   }).reduce((sum, t) => sum + parseAmount(t.amount), 0);
   const totalBalance = totalIncome - totalExpense;
-  const totalExpected = (data.procedures || []).reduce((sum, p) => sum + parseAmount(p.expectedValue), 0);
+  const totalExpected = procedureSummary.reduce((sum, p) => sum + p.totalValue, 0);
 
   const handleAddTransaction = () => {
     setEditingItem(null);

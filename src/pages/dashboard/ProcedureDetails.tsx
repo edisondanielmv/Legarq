@@ -898,9 +898,11 @@ export default function ProcedureDetails() {
                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Monto Acordado ($)</span>
                         <input 
                           type="number"
-                          value={draft.procedure.expectedValue || 0}
+                          value={draft.financials.filter(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado')).reduce((sum, f) => sum + Number(f.amount || 0), 0) || draft.procedure.expectedValue || 0}
                           onChange={e => setDraft({...draft, procedure: {...draft.procedure, expectedValue: Number(e.target.value)}})}
-                          className="w-24 sm:w-28 bg-white border-gray-200 rounded-lg py-1.5 px-3 text-xs font-black outline-none focus:ring-2 focus:ring-emerald-500/20 text-right"
+                          disabled={draft.financials.some(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado'))}
+                          title={draft.financials.some(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado')) ? "El monto acordado se calcula a partir de los registros en Movimientos" : ""}
+                          className="w-24 sm:w-28 bg-white border-gray-200 rounded-lg py-1.5 px-3 text-xs font-black outline-none focus:ring-2 focus:ring-emerald-500/20 text-right disabled:bg-gray-100 disabled:text-gray-500"
                         />
                       </div>
                    </div>
@@ -909,7 +911,7 @@ export default function ProcedureDetails() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                    <StatCard 
                      label="V. Acordado" 
-                     value={draft.procedure.expectedValue || 0} 
+                     value={draft.financials.filter(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado')).reduce((sum, f) => sum + Number(f.amount || 0), 0) || draft.procedure.expectedValue || 0} 
                      color="gray" 
                      icon={FileText} 
                    />
@@ -927,8 +929,8 @@ export default function ProcedureDetails() {
                    />
                    <StatCard 
                      label="S. Pendiente" 
-                     value={(typeof draft.procedure.expectedValue === 'number' ? draft.procedure.expectedValue : parseFloat(String(draft.procedure.expectedValue || 0))) - draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0)} 
-                     color={(typeof draft.procedure.expectedValue === 'number' ? draft.procedure.expectedValue : parseFloat(String(draft.procedure.expectedValue || 0))) - draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0) > 0 ? "orange" : "emerald"} 
+                     value={(draft.financials.filter(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado')).reduce((sum, f) => sum + Number(f.amount || 0), 0) || (typeof draft.procedure.expectedValue === 'number' ? draft.procedure.expectedValue : parseFloat(String(draft.procedure.expectedValue || 0)))) - draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0)} 
+                     color={(draft.financials.filter(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado')).reduce((sum, f) => sum + Number(f.amount || 0), 0) || (typeof draft.procedure.expectedValue === 'number' ? draft.procedure.expectedValue : parseFloat(String(draft.procedure.expectedValue || 0)))) - draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0) > 0 ? "orange" : "emerald"} 
                      icon={DollarSign} 
                      highlight
                     />

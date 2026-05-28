@@ -246,13 +246,8 @@ export default function QuickFinance() {
             reimburseTo: type === 'Egreso' && isReimbursable ? reimburseTo : ''
           });
 
-          // Always sync Expected Value of procedure directly with Amount if type is Cuenta por Cobrar
-          if (type === 'Cuenta por Cobrar') {
-            await api.updateProcedure({
-              id: selectedProcId,
-              expectedValue: Number(amount)
-            });
-          }
+          // Note: We no longer override expectedValue directly. 
+          // The application will sum 'Cuenta por Cobrar' records dynamically.
 
           setSuccessMessage(`¡Registro de ${type} actualizado con éxito!`);
           setEditingItem(null); // Exit edit mode
@@ -271,13 +266,8 @@ export default function QuickFinance() {
           reimburseTo: type === 'Egreso' && isReimbursable ? reimburseTo : ''
         });
 
-        // Always sync Expected Value of procedure directly with Amount if type is Cuenta por Cobrar
-        if (type === 'Cuenta por Cobrar') {
-          await api.updateProcedure({
-            id: selectedProcId,
-            expectedValue: Number(amount)
-          });
-        }
+        // Note: We no longer override expectedValue directly. 
+        // The application will sum 'Cuenta por Cobrar' records dynamically.
 
         setSuccessMessage(`¡Registro de ${type} guardado con éxito!`);
       }
