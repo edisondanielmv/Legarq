@@ -7,7 +7,8 @@ import {
   User as UserIcon, Calendar, DollarSign, FileText, Hourglass, 
   Phone, MapPin, Mail, Folder, MessageSquare, Clock, ArrowUpRight, 
   ArrowDownRight, Circle, Check, AlertCircle, RefreshCw, Eye, Home,
-  ClipboardList, Users, ShieldAlert, Briefcase, X, ExternalLink
+  ClipboardList, Users, ShieldAlert, Briefcase, X, ExternalLink,
+  Upload, Image as ImageIcon, Lock, Unlock
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -52,6 +53,43 @@ export default function ProcedureDetails() {
   const [success, setSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'cliente' | 'tramite' | 'inmueble' | 'bitacora' | 'finanzas' | 'archivos'>('tramite');
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const [uploadingImageIds, setUploadingImageIds] = useState<string[]>([]);
+  
+  const handleLogImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, logIdx: number) => {
+    const file = e.target.files?.[0];
+    if (!file || !original.procedure?.id || !draft) return;
+    
+    const logId = draft.logs[logIdx].id || String(logIdx);
+    setUploadingImageIds(prev => [...prev, logId]);
+    setError(null);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const result = await api.uploadFile({
+            procedureId: original.procedure!.id,
+            name: `Municipio_Obs_${Date.now()}_${file.name}`,
+            base64: reader.result as string,
+            mimeType: file.type
+          });
+
+          const newLogs = [...draft.logs];
+          newLogs[logIdx] = { ...newLogs[logIdx], imageUrl: result.url };
+          setDraft({...draft, logs: newLogs});
+        } catch (error: any) {
+          setError(`Error al subir la imagen: ${error.message}`);
+        } finally {
+          setUploadingImageIds(prev => prev.filter(id => id !== logId));
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error: any) {
+       setUploadingImageIds(prev => prev.filter(id => id !== logId));
+       setError(`Error en el proceso de imagen: ${error.message}`);
+    }
+  };
 
   const hasChanges = useMemo(() => {
     if (!draft || !original.procedure) return false;
@@ -231,9 +269,9 @@ export default function ProcedureDetails() {
       const logsToUpdate = draft.logs.filter(l => !l.isNew && !l.isDeleted && l.id && JSON.stringify(l) !== JSON.stringify(original.logs.find(ol => ol.id === l.id)));
 
       for (const logId of logsToDelete) await api.deleteLog(logId);
-      for (const log of logsToCreate) await api.addLog({ procedureId: realId, note: log.note!, isExternal: !!log.isExternal, technicianUsername: currentUser?.username });
+      for (const log of logsToCreate) await api.addLog({ procedureId: realId, note: log.note!, isExternal: !!log.isExternal, technicianUsername: currentUser?.username, imageUrl: log.imageUrl });
       if (logsToUpdate.length > 0) {
-        await api.batchUpdateTable('Bitacora', logsToUpdate.map(l => ({ id: l.id!, changes: { note: l.note, isExternal: l.isExternal } })));
+        await api.batchUpdateTable('Bitacora', logsToUpdate.map(l => ({ id: l.id!, changes: { note: l.note, isExternal: l.isExternal, imageUrl: l.imageUrl } })));
       }
 
       // 4. Handle Finanzas
@@ -798,19 +836,7 @@ export default function ProcedureDetails() {
                           <div className="flex justify-between items-center">
                              <div className="flex items-center gap-3">
                                 <span className="text-[10px] font-black text-gray-900 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">{log.technicianUsername || 'Sistema'}</span>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                   <input 
-                                     type="checkbox" 
-                                     checked={log.isExternal} 
-                                     onChange={e => {
-                                        const newLogs = [...draft.logs];
-                                        newLogs[idx].isExternal = e.target.checked;
-                                        setDraft({...draft, logs: newLogs});
-                                     }}
-                                     className="w-3.5 h-3.5 text-[#E3000F] rounded border-gray-300 pointer-events-none sm:pointer-events-auto"
-                                   />
-                                   <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Visible Cliente</span>
-                                </label>
+                                
                              </div>
                              <button 
                               onClick={() => {
@@ -834,37 +860,101 @@ export default function ProcedureDetails() {
                               newLogs[idx].note = e.target.value;
                               setDraft({...draft, logs: newLogs});
                             }}
-                            className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-medium text-gray-600 min-h-[60px] p-0 resize-none"
+                            className="w-full bg-stone-50 border border-stone-200/60 rounded-xl outline-none focus:ring-1 focus:ring-red-500/50 focus:border-red-500 text-xs font-medium text-gray-800 min-h-[60px] p-3 resize-none transition-all"
                             placeholder="Ingrese los detalles de este avance..."
                           />
-                          {log.imageUrl && (
-                            <div className="mt-2 max-w-xs space-y-2">
-                              <div className="flex items-center">
-                                <a 
-                                  href={log.imageUrl} 
-                                  target="_blank" 
-                                  rel="noreferrer" 
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#E3000F]/10 hover:bg-[#E3000F]/15 text-[#E3000F] hover:text-[#E3000F] text-[9px] font-black uppercase tracking-wider rounded-lg border border-[#E3000F]/20 transition-all shadow-sm"
-                                >
-                                  <ExternalLink className="w-3 h-3 shrink-0" />
-                                  Ver Imagen Adjunta
-                                </a>
-                              </div>
-                              <a 
-                                href={log.imageUrl} 
-                                target="_blank" 
-                                rel="noreferrer" 
-                                className="block rounded-lg border border-gray-100 overflow-hidden relative group/img bg-stone-50 cursor-pointer"
-                              >
-                                <img 
-                                  src={log.imageUrl} 
-                                  alt="Adjunto" 
-                                  className="max-h-32 w-full object-cover hover:scale-105 transition-transform duration-300" 
-                                  referrerPolicy="no-referrer"
-                                />
-                              </a>
-                            </div>
-                          )}
+                                                     {/* Image Upload Area inside Note */}
+                           <div className="space-y-1 p-3 bg-stone-50 rounded-xl border border-stone-200/50 mt-2">
+                             <label className="text-[10px] font-black text-gray-950 uppercase tracking-widest flex items-center gap-1">
+                               <ImageIcon className="w-3.5 h-3.5 text-[#E3000F]" />
+                               Captura / Observación (Opcional)
+                             </label>
+                             <div className="mt-2 text-left">
+                               {uploadingImageIds.includes(log.id || String(idx)) ? (
+                                 <div className="flex items-center gap-2 py-2 px-3 bg-white rounded-lg border border-dashed border-red-200/80 w-fit">
+                                   <Hourglass className="w-3.5 h-3.5 text-[#E3000F] animate-spin shrink-0" />
+                                   <span className="text-[9px] font-black text-stone-700 uppercase tracking-wider animate-pulse">
+                                     Subiendo archivo...
+                                   </span>
+                                 </div>
+                               ) : log.imageUrl ? (
+                                 <div className="flex items-center gap-2 p-2 bg-white rounded-lg border border-stone-200/60 shadow-sm w-fit group">
+                                   <div className="w-8 h-8 rounded bg-stone-50 border border-stone-200 overflow-hidden flex items-center justify-center shrink-0">
+                                     <img 
+                                       src={log.imageUrl} 
+                                       alt="Adjunto" 
+                                       className="w-full h-full object-cover" 
+                                       referrerPolicy="no-referrer"
+                                     />
+                                   </div>
+                                   <div className="min-w-0 pr-4">
+                                     <span className="text-[7.5px] font-bold text-emerald-600 block uppercase tracking-wider leading-none mt-0.5">
+                                       ✓ Adjunto
+                                     </span>
+                                   </div>
+                                   <button
+                                     type="button"
+                                     onClick={() => {
+                                        const newLogs = [...draft.logs];
+                                        newLogs[idx] = { ...newLogs[idx], imageUrl: '' };
+                                        setDraft({...draft, logs: newLogs});
+                                     }}
+                                     className="p-1 px-2 mx-1 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 rounded border border-rose-100 transition-colors shrink-0 text-[8.5px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Trash2 className="w-3 h-3" /> Remover
+                                    </button>
+                                 </div>
+                               ) : (
+                                 <label className="flex flex-col items-center justify-center py-2 px-3 bg-white hover:bg-stone-100/60 border border-dashed border-stone-300 rounded-lg cursor-pointer transition-all gap-1 group w-fit">
+                                   <div className="flex items-center gap-1.5">
+                                     <Upload className="w-3.5 h-3.5 text-stone-400 group-hover:text-[#E3000F] transition-colors" />
+                                     <span className="text-[9px] font-black text-stone-600 group-hover:text-stone-900 uppercase tracking-widest transition-colors mb-0.5">
+                                       Click para adjuntar imagen
+                                     </span>
+                                   </div>
+                                   <input
+                                     type="file"
+                                     accept="image/*"
+                                     onChange={(e) => handleLogImageUpload(e, idx)}
+                                     className="hidden"
+                                   />
+                                 </label>
+                               )}
+                             </div>
+                           </div>
+
+                           {/* Visibility Toggler */}
+                           <div className="flex items-center gap-2.5 pt-3 border-t border-gray-100 mt-3">
+                             <button
+                               type="button"
+                               onClick={() => {
+                                 const newLogs = [...draft.logs];
+                                 newLogs[idx] = { ...newLogs[idx], isExternal: !newLogs[idx].isExternal };
+                                 setDraft({...draft, logs: newLogs});
+                               }}
+                               className={ "relative inline-flex h-4 w-7 sm:h-5 sm:w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none " + (!log.isExternal ? "bg-red-600" : "bg-gray-200") }
+                             >
+                               <span className="sr-only">Comentario externo</span>
+                               <span
+                                 className={ "pointer-events-none inline-block h-3 w-3 sm:h-4 sm:w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out " + (!log.isExternal ? "translate-x-3 sm:translate-x-4" : "translate-x-0") }
+                               />
+                             </button>
+                             <div className="flex items-center gap-1">
+                               {!log.isExternal ? (
+                                 <Lock className="w-3 h-3 text-rose-500 animate-pulse" />
+                               ) : (
+                                 <Unlock className="w-3 h-3 text-emerald-500" />
+                               )}
+                               <div>
+                                 <span className="text-[9px] font-black text-gray-900 uppercase tracking-wider block">
+                                   {!log.isExternal ? "Nota Solo Interna" : "Visible al Cliente"}
+                                 </span>
+                                 <span className="hidden sm:block text-[7.5px] text-gray-400 font-bold uppercase tracking-wide">
+                                   {!log.isExternal ? "Solo personal autorizado" : "Nota visible en consulta pública"}
+                                 </span>
+                               </div>
+                             </div>
+                           </div>
                        </div>
                     </div>
                   ))}
