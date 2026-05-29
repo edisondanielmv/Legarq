@@ -35,6 +35,18 @@ export default function QuickFinance() {
   const [procFinancials, setProcFinancials] = useState<FinancialItem[]>([]);
   const [isProcSummaryLoading, setIsProcSummaryLoading] = useState(false);
   
+  const injectLegarq = (procs: Procedure[]) => {
+    const legarqProc = {
+      id: 'LEGARQ_INTERNAL',
+      title: 'Administración y Operación Interna',
+      clientName: 'Empresa LEGARQ',
+      clientUsername: 'legarq_interno',
+      code: 'LEGARQ-01',
+      expectedValue: 0
+    } as any;
+    return [legarqProc, ...procs];
+  };
+
   // Load initial procedures and accounts list
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -105,7 +117,7 @@ export default function QuickFinance() {
         api.getAccounts(),
         api.getUsers(user?.role || 'admin').catch(() => [])
       ]);
-      setProcedures(procsList || []);
+      setProcedures(injectLegarq(procsList || []));
       setAccounts(accsList || []);
       
       // Filter out client users so we display system staff ("el equipo")
@@ -281,7 +293,7 @@ export default function QuickFinance() {
       
       // Refresh database info on current page
       const updatedProcs = await api.getProcedures({ role: user?.role || 'admin', username: user?.username || '' });
-      setProcedures(updatedProcs || []);
+      setProcedures(injectLegarq(updatedProcs || []));
       
       // Force refresh current summary listing
       const updatedFins = await api.getFinancials(selectedProcId);
@@ -327,7 +339,7 @@ export default function QuickFinance() {
       
       // Refresh procedures & financials lists
       const updatedProcs = await api.getProcedures({ role: user?.role || 'admin', username: user?.username || '' });
-      setProcedures(updatedProcs || []);
+      setProcedures(injectLegarq(updatedProcs || []));
       
       const updatedFins = await api.getFinancials(selectedProcId);
       setProcFinancials(updatedFins || []);

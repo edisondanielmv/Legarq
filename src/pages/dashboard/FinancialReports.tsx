@@ -51,9 +51,20 @@ export default function FinancialReports() {
       }
       
       // Merge data
+      const legarqProc = {
+        id: 'LEGARQ_INTERNAL',
+        title: 'Administración y Operación Interna',
+        clientName: 'Empresa LEGARQ',
+        clientUsername: 'legarq_interno',
+        code: 'LEGARQ-01',
+        expectedValue: 0
+      } as any;
+      
+      const combinedProcedures = allProcedures.length > 0 ? allProcedures : (summary?.procedures || []);
+
       setData({
         transactions: summary?.transactions || [],
-        procedures: allProcedures.length > 0 ? allProcedures : (summary?.procedures || [])
+        procedures: [legarqProc, ...combinedProcedures]
       });
       
       setAccounts(accs || []);
