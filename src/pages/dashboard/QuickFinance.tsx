@@ -366,19 +366,36 @@ export default function QuickFinance() {
     return list;
   };
 
+  const parseAmount = (val: any) => {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+      return parseFloat(val.replace(/[$,]/g, '')) || 0;
+    }
+    return 0;
+  };
+
   // Calculations for selected procedure
   const getSelectedProcSummary = () => {
     const proc = procedures.find(p => p.id === selectedProcId);
     if (!proc) return null;
 
-    const agreedValue = proc.expectedValue || 0;
-    const paidSum = procFinancials
+    const receivable = getProcessedFinancials()
+      .filter(f => {
+        const type = f.type?.toLowerCase() || '';
+        const cat = f.category?.toLowerCase() || '';
+        return type === 'cuenta por cobrar' || type === 'por cobrar' || type === 'valor acordado' || cat === 'monto acordado';
+      })
+      .reduce((sum, f) => sum + parseAmount(f.amount), 0);
+      
+    const agreedValue = receivable;
+
+    const paidSum = getProcessedFinancials()
       .filter(f => f.type === 'Ingreso' || f.category === 'Abono Cliente')
-      .reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
+      .reduce((sum, f) => sum + parseAmount(f.amount), 0);
     
-    const expensesSum = procFinancials
+    const expensesSum = getProcessedFinancials()
       .filter(f => f.type === 'Egreso')
-      .reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
+      .reduce((sum, f) => sum + parseAmount(f.amount), 0);
 
     const balanceDue = agreedValue - paidSum;
 
@@ -522,11 +539,19 @@ export default function QuickFinance() {
             {/* Selected Procedure Instant Quick Stats */}
             {selectedProcId && summary && (
               <div className="bg-stone-900 text-white rounded-2xl p-3.5 space-y-2.5 shadow-md border border-stone-800 animate-in slide-in-from-bottom duration-200">
-                <div className="flex justify-between items-center border-b border-stone-800 pb-1.5">
-                  <span className="text-[9px] font-black text-[#C5B39A] uppercase tracking-wider flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> Balance del Trámite
-                  </span>
-                  <span className="text-[8px] font-mono bg-stone-800 text-stone-300 px-1.5 py-0.2 rounded">
+                <div className="flex justify-between items-start border-b border-stone-800 pb-2">
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-black text-[#C5B39A] uppercase tracking-wider flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> Balance del Trámite
+                    </span>
+                    <div className="text-[11px] font-bold text-stone-300 leading-tight">
+                      {summary.proc.title}
+                    </div>
+                    <div className="text-[9px] text-gray-400">
+                      {summary.proc.clientName} {summary.proc.idNumber ? `(${summary.proc.idNumber})` : `@${summary.proc.clientUsername}`}
+                    </div>
+                  </div>
+                  <span className="text-[8px] font-mono bg-stone-800 text-stone-300 px-1.5 py-0.2 rounded mt-0.5 shrink-0">
                     {summary.proc.code}
                   </span>
                 </div>

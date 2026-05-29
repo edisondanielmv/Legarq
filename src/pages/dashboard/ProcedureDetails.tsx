@@ -447,6 +447,38 @@ export default function ProcedureDetails() {
 
   const progress = calculateProgress();
 
+  const parseAmount = (val: any) => {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+      return parseFloat(val.replace(/[$,]/g, '')) || 0;
+    }
+    return 0;
+  };
+
+  const getReceivable = () => {
+    return draft.financials
+      .filter(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.type === 'por cobrar' || f.type === 'Valor Acordado' || f.category === 'Monto Acordado'))
+      .reduce((sum, f) => sum + parseAmount(f.amount), 0);
+  };
+  
+  const getExpectedVal = () => {
+    return typeof draft.procedure.expectedValue === 'number' 
+      ? draft.procedure.expectedValue 
+      : parseFloat(String(draft.procedure.expectedValue || '0'));
+  };
+
+  const agreedAmount = getReceivable() > 0 ? getReceivable() : getExpectedVal();
+  
+  const totalPaid = draft.financials
+    .filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono' || f.category === 'Abono Cliente'))
+    .reduce((sum, f) => sum + parseAmount(f.amount), 0);
+    
+  const totalExpenses = draft.financials
+    .filter(f => !f.isDeleted && (f.type === 'Egreso' || f.type === 'Gasto'))
+    .reduce((sum, f) => sum + parseAmount(f.amount), 0);
+    
+  const balanceDue = agreedAmount - totalPaid;
+
   return (
     <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 pb-20 sm:pb-32 px-3 sm:px-4">
       {saving && <LoadingOverlay message="Procesando... Por favor espere." />}
@@ -988,7 +1020,7 @@ export default function ProcedureDetails() {
                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Monto Acordado ($)</span>
                         <input 
                           type="number"
-                          value={draft.financials.filter(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado')).reduce((sum, f) => sum + Number(f.amount || 0), 0) || draft.procedure.expectedValue || 0}
+                          value={agreedAmount}
                           onChange={e => setDraft({...draft, procedure: {...draft.procedure, expectedValue: Number(e.target.value)}})}
                           disabled={draft.financials.some(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado'))}
                           title={draft.financials.some(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado')) ? "El monto acordado se calcula a partir de los registros en Movimientos" : ""}
@@ -1001,26 +1033,22 @@ export default function ProcedureDetails() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                    <StatCard 
                      label="V. Acordado" 
-                     value={draft.financials.filter(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado')).reduce((sum, f) => sum + Number(f.amount || 0), 0) || draft.procedure.expectedValue || 0} 
-                     color="gray" 
+                     value={agreedAmount} color="gray" 
                      icon={FileText} 
                    />
                    <StatCard 
                      label="Abonado" 
-                     value={draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0)} 
-                     color="emerald" 
+                     value={totalPaid} color="emerald" 
                      icon={ArrowUpRight} 
                    />
                    <StatCard 
                      label="Gastos" 
-                     value={draft.financials.filter(f => !f.isDeleted && (f.type === 'Egreso' || f.type === 'Gasto')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0)} 
-                     color="red" 
+                     value={totalExpenses} color="red" 
                      icon={ArrowDownRight} 
                    />
                    <StatCard 
                      label="S. Pendiente" 
-                     value={(draft.financials.filter(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado')).reduce((sum, f) => sum + Number(f.amount || 0), 0) || (typeof draft.procedure.expectedValue === 'number' ? draft.procedure.expectedValue : parseFloat(String(draft.procedure.expectedValue || 0)))) - draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0)} 
-                     color={(draft.financials.filter(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado')).reduce((sum, f) => sum + Number(f.amount || 0), 0) || (typeof draft.procedure.expectedValue === 'number' ? draft.procedure.expectedValue : parseFloat(String(draft.procedure.expectedValue || 0)))) - draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0) > 0 ? "orange" : "emerald"} 
+                     value={balanceDue} color={balanceDue > 0 ? "orange" : "emerald"} 
                      icon={DollarSign} 
                      highlight
                     />

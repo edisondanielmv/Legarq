@@ -111,7 +111,8 @@ export default function FinancialReports() {
     
     const income = procTransactions.filter(t => {
       const type = (t.type || '').trim().toLowerCase();
-      return type === 'ingreso' || type === 'abono';
+      const cat = (t.category || '').trim().toLowerCase();
+      return type === 'ingreso' || type === 'abono' || cat === 'abono cliente';
     }).reduce((sum, t) => sum + parseAmount(t.amount), 0);
     
     const expense = procTransactions.filter(t => {
@@ -121,7 +122,8 @@ export default function FinancialReports() {
     
     const receivable = procTransactions.filter(t => {
       const type = (t.type || '').trim().toLowerCase();
-      return type === 'cuenta por cobrar' || type === 'por cobrar';
+      const cat = (t.category || '').trim().toLowerCase();
+      return type === 'cuenta por cobrar' || type === 'por cobrar' || type === 'valor acordado' || cat === 'monto acordado';
     }).reduce((sum, t) => sum + parseAmount(t.amount), 0);
     
     // Prioritize total receivable transactions if any exist, otherwise fallback to the procedure's expected value
@@ -144,6 +146,7 @@ export default function FinancialReports() {
     const matchesSearch = 
       (item.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.clientUsername || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.clientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.procedureType || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     if (filterType === 'pending') return matchesSearch && item.pending > 0;
@@ -442,13 +445,13 @@ export default function FinancialReports() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Trámite / Cliente</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Monto Acordado</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Entregado</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Por Cobrar</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Salido</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Utilidad</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Estado</th>
+                    <th className="px-3 py-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest">Trámite / Cliente</th>
+                    <th className="px-3 py-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Monto Acordado</th>
+                    <th className="px-3 py-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Ingresos</th>
+                    <th className="px-3 py-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Egresos</th>
+                    <th className="px-3 py-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Saldo por Cobrar</th>
+                    <th className="px-3 py-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Utilidad</th>
+                    <th className="px-3 py-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Estado</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -459,33 +462,33 @@ export default function FinancialReports() {
                   ) : (
                     filteredProcedures.map((item) => (
                       <tr key={item.id} className="hover:bg-gray-50 transition-colors group">
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col">
-                            <span className="text-sm font-bold text-gray-900 group-hover:text-[#E3000F] transition-colors">{item.title}</span>
-                            <span className="text-[10px] text-gray-500">{item.clientUsername}</span>
+                        <td className="px-3 py-2.5 max-w-[200px]">
+                          <div className="flex flex-col truncate">
+                            <span className="text-xs font-bold text-gray-900 group-hover:text-[#E3000F] transition-colors truncate">{item.title}</span>
+                            <span className="text-[9px] text-gray-500 truncate">{item.clientName || item.clientUsername}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="text-sm font-bold text-gray-900">${item.totalValue.toLocaleString()}</span>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className="text-xs font-bold text-gray-900">${item.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="text-sm font-bold text-green-600">${item.totalIncome.toLocaleString()}</span>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className="text-xs font-bold text-green-600">${item.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="text-sm font-bold text-amber-600">${item.pending.toLocaleString()}</span>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className="text-xs font-bold text-red-600">${item.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="text-sm font-bold text-red-600">${item.totalExpense.toLocaleString()}</span>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className="text-xs font-bold text-amber-600">${item.pending.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-3 py-2.5 text-right">
                           <span className={clsx(
-                            "text-sm font-bold",
+                            "text-xs font-black",
                             item.projectedProfit >= 0 ? "text-blue-600" : "text-red-600"
                           )}>
-                            ${item.projectedProfit.toLocaleString()}
+                            ${item.projectedProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-center">
+                        <td className="px-3 py-2.5 text-center">
                           <span className={clsx(
                             "px-2 py-1 rounded-full text-[10px] font-bold uppercase",
                             item.pending <= 0 && item.totalValue > 0 ? "bg-green-100 text-green-700" : 
@@ -512,7 +515,7 @@ export default function FinancialReports() {
                     <div className="flex justify-between items-start">
                       <div className="overflow-hidden">
                         <h3 className="font-bold text-gray-900 text-[11px] leading-tight truncate">{item.title}</h3>
-                        <p className="text-[9px] text-gray-400 truncate mt-0.5">{item.clientUsername}</p>
+                        <p className="text-[9px] text-gray-400 truncate mt-0.5">{item.clientName || item.clientUsername}</p>
                       </div>
                       <span className={clsx(
                         "px-2 py-0.5 rounded-full text-[8px] font-bold uppercase shrink-0",
@@ -526,23 +529,27 @@ export default function FinancialReports() {
 
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                       <div className="flex flex-col">
-                        <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Valor Acordado</span>
-                        <span className="text-[11px] font-black text-gray-900">${item.totalValue.toLocaleString()}</span>
+                        <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Monto Acordado</span>
+                        <span className="text-[11px] font-black text-gray-900">${item.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
                       <div className="flex flex-col text-right">
-                        <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Saldo Neto</span>
+                        <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Utilidad</span>
                         <span className={clsx(
                           "text-[11px] font-black",
-                          item.balance >= 0 ? "text-green-600" : "text-red-600"
-                        )}>${item.balance.toLocaleString()}</span>
+                          item.projectedProfit >= 0 ? "text-blue-600" : "text-red-600"
+                        )}>${item.projectedProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
                       <div className="flex flex-col">
                         <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Ingresos</span>
-                        <span className="text-[11px] font-bold text-green-600">${item.totalIncome.toLocaleString()}</span>
+                        <span className="text-[11px] font-bold text-green-600">${item.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
                       <div className="flex flex-col text-right">
                         <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Egresos</span>
-                        <span className="text-[11px] font-bold text-red-600">${item.totalExpense.toLocaleString()}</span>
+                        <span className="text-[11px] font-bold text-red-600">${item.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Por Cobrar</span>
+                        <span className="text-[11px] font-bold text-amber-600">${item.pending.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
                     </div>
                   </div>
