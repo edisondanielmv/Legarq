@@ -533,23 +533,28 @@ export default function QuickFinance() {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-stone-800/60 p-2 rounded-lg border border-stone-800/80">
-                    <div className="text-[7px] text-gray-400 font-bold uppercase tracking-wider">Acuñado</div>
-                    <div className="text-xs font-black text-[#C5B39A]">${summary.agreedValue.toLocaleString()}</div>
+                    <div className="text-[7px] text-gray-400 font-bold uppercase tracking-wider">Monto Acordado</div>
+                    <div className="text-xs font-black text-[#C5B39A]">${summary.agreedValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                   </div>
                   <div className="bg-stone-800/60 p-2 rounded-lg border border-stone-800/80">
-                    <div className="text-[7px] text-gray-400 font-bold uppercase tracking-wider">Cobrado</div>
-                    <div className="text-xs font-black text-emerald-400">${summary.paidSum.toLocaleString()}</div>
+                    <div className="text-[7px] text-gray-400 font-bold uppercase tracking-wider">Ingresos / Abonos</div>
+                    <div className="text-xs font-black text-emerald-400">${summary.paidSum.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                   </div>
-                </div>
-
-                <div className="flex justify-between items-center px-2 py-1.5 rounded-lg bg-[#E3000F]/15 border border-[#E3000F]/20">
-                  <span className="text-[7px] font-black tracking-widest uppercase text-stone-300">Pendiente</span>
-                  <span className={clsx(
-                    "text-xs font-black",
-                    summary.balanceDue > 0 ? "text-red-400" : "text-emerald-400"
+                  <div className="bg-stone-800/60 p-2 rounded-lg border border-stone-800/80">
+                    <div className="text-[7px] text-gray-400 font-bold uppercase tracking-wider">Egresos / Gastos</div>
+                    <div className="text-xs font-black text-amber-500">${summary.expensesSum.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                  </div>
+                  <div className={clsx(
+                    "flex flex-col justify-center p-2 rounded-lg border",
+                    summary.balanceDue > 0 ? "bg-[#E3000F]/15 border-[#E3000F]/20" : "bg-emerald-500/10 border-emerald-500/20"
                   )}>
-                    ${summary.balanceDue.toLocaleString()}
-                  </span>
+                    <div className={clsx("text-[7px] font-bold uppercase tracking-wider", summary.balanceDue > 0 ? "text-red-300/80" : "text-emerald-300/80")}>
+                      Saldo Pendiente
+                    </div>
+                    <div className={clsx("text-xs font-black", summary.balanceDue > 0 ? "text-red-400" : "text-emerald-400")}>
+                      ${summary.balanceDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
