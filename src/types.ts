@@ -54,6 +54,8 @@ export interface FinancialItem {
   fileUrl?: string;
   isReimbursable?: boolean;
   reimburseTo?: string;
+  registeredBy?: string;
+  createdAt?: string;
 }
 
 export interface Account {

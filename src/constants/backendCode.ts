@@ -14,7 +14,7 @@ function initSheets() {
   var sheets = [
     { name: 'Usuarios', headers: ['id', 'name', 'username', 'password', 'role', 'phone', 'address', 'idNumber', 'permissions', 'email', 'status'] },
     { name: 'Tramites', headers: ['id', 'code', 'title', 'clientUsername', 'status', 'description', 'createdAt', 'driveFolderId', 'driveUrl', 'technicianUsername', 'completedSteps', 'expectedValue', 'otherAgreements', 'clientName', 'idNumber', 'procedureType', 'clientEmail', 'propertyNumber', 'platformNumber'] },
-    { name: 'Finanzas', headers: ['id', 'procedureId', 'type', 'category', 'description', 'amount', 'date', 'fileUrl', 'isReimbursable', 'reimburseTo'] },
+    { name: 'Finanzas', headers: ['id', 'procedureId', 'type', 'category', 'description', 'amount', 'date', 'fileUrl', 'isReimbursable', 'reimburseTo', 'createdAt', 'registeredBy'] },
     { name: 'Bitacora', headers: ['id', 'procedureId', 'date', 'technicianUsername', 'note', 'isExternal', 'imageUrl'] },
     { name: 'Archivos', headers: ['id', 'procedureId', 'name', 'driveId', 'mimeType', 'url', 'date'] },
     { name: 'TiposTramite', headers: ['id', 'name', 'steps'] },
@@ -486,7 +486,7 @@ function addFinancialItem(data) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Finanzas');
   var id = Utilities.getUuid();
   var h = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  var rowData = Object.assign({}, data, { id: id, date: new Date().toISOString() });
+  var rowData = Object.assign({}, data, { id: id, date: data.date || new Date().toISOString() });
   var row = h.map(function(col) { return rowData[col] || ''; });
   sheet.appendRow(row);
   return { id: id };

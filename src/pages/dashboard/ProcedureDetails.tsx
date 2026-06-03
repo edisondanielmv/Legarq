@@ -280,9 +280,16 @@ export default function ProcedureDetails() {
       const finsToUpdate = draft.financials.filter(f => !f.isNew && !f.isDeleted && f.id && JSON.stringify(f) !== JSON.stringify(original.financials.find(of => of.id === f.id)));
 
       for (const finId of finsToDelete) await api.deleteFinancialItem(finId);
-      for (const fin of finsToCreate) await api.addFinancialItem({ ...fin as any, procedureId: realId });
+      for (const fin of finsToCreate) {
+        await api.addFinancialItem({
+          ...fin as any,
+          procedureId: realId,
+          createdAt: new Date().toISOString(),
+          registeredBy: currentUser?.username || 'Sistema'
+        });
+      }
       if (finsToUpdate.length > 0) {
-        await api.batchUpdateTable('Finanzas', finsToUpdate.map(f => ({ id: f.id!, changes: { description: f.description, amount: f.amount, type: f.type, category: f.category, isReimbursable: f.isReimbursable, reimburseTo: f.reimburseTo } })));
+        await api.batchUpdateTable('Finanzas', finsToUpdate.map(f => ({ id: f.id!, changes: { description: f.description, amount: f.amount, type: f.type, category: f.category, isReimbursable: f.isReimbursable, reimburseTo: f.reimburseTo, date: f.date } })));
       }
 
       setSuccess('Expediente actualizado correctamente');
@@ -1094,10 +1101,31 @@ export default function ProcedureDetails() {
                                   className="w-full bg-transparent border-none outline-none focus:ring-0 text-[10px] font-black text-gray-900 p-0 placeholder:text-gray-200"
                                   placeholder="Descripción..."
                                 />
-                                <div className="flex mt-0.5 text-[7px] font-black text-gray-400 uppercase tracking-widest gap-2">
+                                <div className="flex flex-wrap items-center mt-0.5 text-[7px] font-black text-gray-400 uppercase tracking-widest gap-2 leading-none">
                                    <span>{fin.category}</span>
                                    <span>•</span>
-                                   <span>{format(new Date(fin.date || Date.now()), "dd/MM/yy")}</span>
+                                   <input
+                                     type="date"
+                                     value={fin.date ? fin.date.split('T')[0] : ''}
+                                     onChange={e => {
+                                       const newFins = [...draft.financials];
+                                       newFins[idx].date = e.target.value ? new Date(e.target.value + "T12:00:00Z").toISOString() : '';
+                                       setDraft({...draft, financials: newFins});
+                                     }}
+                                     className="bg-transparent border-none outline-none focus:ring-0 p-0 text-[8px] font-black w-[70px] text-gray-500 hover:text-gray-900 cursor-pointer -mt-0.5" 
+                                   />
+                                   {fin.registeredBy && (
+                                     <>
+                                       <span>•</span>
+                                       <span>{fin.registeredBy}</span>
+                                     </>
+                                   )}
+                                   {fin.createdAt && (
+                                     <>
+                                       <span>•</span>
+                                       <span>{fin.createdAt.split('T')[0]}</span>
+                                     </>
+                                   )}
                                 </div>
                               </div>
                               

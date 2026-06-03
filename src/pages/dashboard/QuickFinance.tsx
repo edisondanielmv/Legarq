@@ -252,7 +252,7 @@ export default function QuickFinance() {
             category,
             description: description.trim() || `${type} rápido`,
             amount: Number(amount),
-            date: new Date(date).toISOString(),
+            date: new Date(date + "T12:00:00Z").toISOString(),
             fileUrl,
             isReimbursable: type === 'Egreso' ? isReimbursable : false,
             reimburseTo: type === 'Egreso' && isReimbursable ? reimburseTo : ''
@@ -272,7 +272,9 @@ export default function QuickFinance() {
           category,
           description: description.trim() || `${type} rápido`,
           amount: Number(amount),
-          date: new Date(date).toISOString(),
+          date: new Date(date + "T12:00:00Z").toISOString(),
+          createdAt: new Date().toISOString(),
+          registeredBy: user?.username || 'Sistema',
           fileUrl,
           isReimbursable: type === 'Egreso' ? isReimbursable : false,
           reimburseTo: type === 'Egreso' && isReimbursable ? reimburseTo : ''
@@ -930,10 +932,12 @@ export default function QuickFinance() {
                             <span className="text-xs font-black text-gray-900 leading-tight block">
                               {f.description}
                             </span>
+                            <div className="flex flex-wrap gap-2 text-[8px] text-gray-400 font-bold uppercase tracking-wide">
+                              <span>{f.category}</span>
+                              {f.registeredBy && <span>• {f.registeredBy}</span>}
+                              {f.createdAt && <span>• {f.createdAt.split('T')[0]}</span>}
+                            </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wide">
-                                {f.category}
-                              </span>
                               {f.fileUrl && (
                                 <a 
                                   href={f.fileUrl} 
@@ -990,9 +994,10 @@ export default function QuickFinance() {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-150">
-                          <th className="p-2.5 text-[9px] font-black text-gray-400 uppercase tracking-wider">Fecha</th>
+                          <th className="p-2.5 text-[9px] font-black text-gray-400 uppercase tracking-wider">Fecha Ope.</th>
                           <th className="p-2.5 text-[9px] font-black text-gray-400 uppercase tracking-wider">Detalle</th>
                           <th className="p-2.5 text-[9px] font-black text-gray-400 uppercase tracking-wider">Tipo/Categoría</th>
+                          <th className="p-2.5 text-[9px] font-black text-gray-400 uppercase tracking-wider">Registro</th>
                           <th className="p-2.5 text-[9px] font-black text-gray-400 uppercase tracking-wider text-right">Monto</th>
                           <th className="p-2.5 text-[9px] font-black text-gray-400 uppercase tracking-wider text-center">Acciones</th>
                         </tr>
@@ -1017,6 +1022,12 @@ export default function QuickFinance() {
                                     Ver Comprobante
                                   </a>
                                 )}
+                              </td>
+                              <td className="p-2.5">
+                                <div className="flex flex-col text-[8px] text-gray-400 font-bold uppercase tracking-wider">
+                                  <span>{f.registeredBy || '---'}</span>
+                                  <span>{f.createdAt ? f.createdAt.split('T')[0] : '---'}</span>
+                                </div>
                               </td>
                               <td className="p-2.5 space-y-1">
                                 <div className="flex flex-wrap gap-1 items-center">
