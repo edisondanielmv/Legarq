@@ -4,8 +4,8 @@ import { api } from '../../lib/api';
 import { DollarSign, Hourglass, TrendingUp, TrendingDown, Wallet, Search, Filter, ArrowUpRight, ArrowDownRight, Briefcase, User as UserIcon, Mail, Plus, Edit2, Trash2, X, Check, AlertCircle, Upload, FileCheck, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import autoTable from 'jspdf-autotable';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, AreaChart, Area } from 'recharts';
 import { FileDown } from 'lucide-react';
 import { es } from 'date-fns/locale';
 import clsx from 'clsx';
@@ -26,7 +26,7 @@ export default function FinancialReports() {
     setExpandedProcs(prev => ({ ...prev, [id]: !prev[id] }));
   };
   const [filterType, setFilterType] = useState('all');
-  const [reportView, setReportView] = useState<'procedures' | 'categories' | 'cashflow' | 'transactions'>('procedures');
+  const [reportView, setReportView] = useState<'procedures' | 'categories' | 'cashflow' | 'transactions' | 'summary'>('procedures');
   const [transactionTypeFilter, setTransactionTypeFilter] = useState('all');
   const [accountTypeFilter, setAccountTypeFilter] = useState('all');
   const [transactionSort, setTransactionSort] = useState('date-desc');
@@ -299,6 +299,167 @@ export default function FinancialReports() {
     }
   };
 
+  const generateProcedurePDF = (item: any) => {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(16);
+    doc.setFont('', 'bold');
+    doc.text('ESTADO DE CUENTA DE TRÁMITE', 14, 20);
+    
+    doc.setFontSize(10);
+    doc.setFont('', 'normal');
+    doc.text(`Fecha de Emisión: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 28);
+    
+    // Client and Procedure details
+    doc.setFontSize(11);
+    doc.setFont('', 'bold');
+    doc.text('DETALLE DEL TRÁMITE', 14, 40);
+    
+    doc.setFontSize(10);
+    doc.setFont('', 'normal');
+    doc.text(`Código: ${item.code || 'N/A'}`, 14, 48);
+    doc.text(`Cliente: ${item.clientName || item.clientUsername || 'N/A'}`, 14, 54);
+    
+    const linesTitle = doc.splitTextToSize(`Descripción: ${item.title || 'N/A'}`, 90);
+    doc.text(linesTitle, 14, 60);
+
+    let y = 80;
+
+    // Default procedure info:
+    doc.setFontSize(11);
+    doc.setFont('', 'bold');
+    doc.text('RESUMEN FINANCIERO', 14, y);
+    
+    const summaryData = [
+       ['Monto Acordado', `$${(item.totalValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
+       ['Total Ingresos (Abonos)', `$${(item.totalIncome || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
+       ['Total Egresos (Gastos)', `$${(item.totalExpense || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
+       ['Saldo por Cobrar', `$${(item.pending || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`]
+    ];
+
+    autoTable(doc, {
+       startY: y + 5,
+       head: [['Concepto', 'Total']],
+       body: summaryData,
+       theme: 'grid',
+       headStyles: { fillColor: [40, 40, 40] },
+       margin: { left: 14 },
+       tableWidth: 100
+    });
+    
+    y = (doc as any).lastAutoTable.finalY + 15;
+    
+    // Chart / Timeline (if transactions exist)
+    const tx = item.transactions || [];
+    if (tx.length > 0) {
+       doc.setFontSize(10);
+       doc.setFont('', 'bold');
+       doc.text('TENDENCIA DE PAGOS O EGRESOS', 14, y);
+       y += 10;
+       
+       const sortedTx = [...tx].sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+       let balance = item.totalValue || 0;
+       const balanceData = [{ date: 'Inicio', balance, desc: 'Acordado' }];
+       
+       sortedTx.forEach(t => {
+          const amt = t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0;
+          if (t.type === 'Ingreso' || t.type === 'Abono') {
+             balance -= amt;
+          }
+          balanceData.push({ date: t.date?.split('T')[0] || '', balance, desc: t.type === 'Egreso' ? 'Egreso' : 'Pago' });
+       });
+       
+       const chartHeight = 30;
+       const chartWidth = 180;
+       const startX = 14;
+       const chartY = y + chartHeight;
+       
+       const maxB = Math.max(...balanceData.map(d => d.balance), 100);
+       const minB = Math.min(...balanceData.map(d => d.balance), 0);
+       const rangeB = maxB - minB || 1;
+       
+       doc.setDrawColor(200);
+       doc.setLineWidth(0.5);
+       doc.line(startX, chartY, startX + chartWidth, chartY); // x
+       doc.line(startX, chartY - chartHeight, startX, chartY); // y
+       
+       doc.setFontSize(7);
+       doc.setTextColor(150);
+       doc.text(`${maxB.toFixed(0)}`, startX - 2, chartY - chartHeight + 2, { align: 'right' });
+       doc.text(`${minB.toFixed(0)}`, startX - 2, chartY, { align: 'right' });
+       
+       const stepX = chartWidth / Math.max(1, balanceData.length - 1);
+       doc.setDrawColor(59, 130, 246);
+       doc.setLineWidth(1.0);
+       let px = startX;
+       let py = chartY - ((balanceData[0].balance - minB) / rangeB) * chartHeight;
+       for(let i=1; i<balanceData.length; i++) {
+          let cx = startX + i * stepX;
+          let cy = chartY - ((balanceData[i].balance - minB) / rangeB) * chartHeight;
+          doc.line(px, py, cx, cy);
+          doc.setFillColor(59, 130, 246);
+          doc.circle(cx, cy, 0.8, 'F');
+          px = cx; py = cy;
+       }
+       doc.setTextColor(0);
+       
+       y = chartY + 15;
+    }
+    
+    // Incomes Table
+    const incomes = tx.filter((t: any) => t.type === 'Ingreso' || t.type === 'Abono');
+    if (incomes.length > 0) {
+      doc.setFontSize(10);
+      doc.setFont('', 'bold');
+      doc.text('DETALLE DE INGRESOS', 14, y);
+      
+      const incomeData = incomes.map((t: any) => [
+         t.date ? t.date.split('T')[0] : '',
+         t.description || '',
+         t.category || '',
+         `$${(t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+      ]);
+      
+      autoTable(doc, {
+         startY: y + 5,
+         head: [['Fecha', 'Descripción', 'Categoría', 'Monto']],
+         body: incomeData,
+         theme: 'grid',
+         headStyles: { fillColor: [34, 197, 94] },
+         margin: { left: 14 }
+      });
+      y = (doc as any).lastAutoTable.finalY + 15;
+    }
+
+    // Expenses Table
+    const expenses = tx.filter((t: any) => t.type === 'Egreso' || t.type === 'Gasto');
+    if (expenses.length > 0) {
+      doc.setFontSize(10);
+      doc.setFont('', 'bold');
+      doc.text('DETALLE DE EGRESOS', 14, y);
+      
+      const expenseData = expenses.map((t: any) => [
+         t.date ? t.date.split('T')[0] : '',
+         t.description || '',
+         t.category || '',
+         `-$${(t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+      ]);
+      
+      autoTable(doc, {
+         startY: y + 5,
+         head: [['Fecha', 'Descripción', 'Categoría', 'Monto']],
+         body: expenseData,
+         theme: 'grid',
+         headStyles: { fillColor: [239, 68, 68] },
+         margin: { left: 14 }
+      });
+      y = (doc as any).lastAutoTable.finalY + 15;
+    }
+    
+    doc.save(`estado-cuenta-${item.code || item.id}.pdf`);
+  };
+
   const generateMonthlyPDF = (monthStr: string) => {
     const doc = new jsPDF();
     const monthName = format(new Date(monthStr + '-01T12:00:00Z'), 'MMMM yyyy', { locale: es }).toUpperCase();
@@ -318,20 +479,150 @@ export default function FinancialReports() {
        return type === 'egreso' || type === 'gasto';
     });
     
-    let y = 30;
-    
     const incomeTotal = incomes.reduce((sum, t) => sum + (t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0), 0);
     const expenseTotal = expenses.reduce((sum, t) => sum + (t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0), 0);
     const netTotal = incomeTotal - expenseTotal;
-    
+
+    let y = 30;
+
     doc.setFontSize(10);
-    doc.text(`INGRESOS TOTALES: $${incomeTotal.toFixed(2)}`, 14, y);
-    y += 7;
-    doc.text(`EGRESOS TOTALES: $${expenseTotal.toFixed(2)}`, 14, y);
-    y += 7;
-    doc.text(`FLUJO NETO: $${netTotal.toFixed(2)}`, 14, y);
+    const d = new Date(monthStr + '-01T12:00:00Z');
+    const monthNameEs = format(d, 'MMMM', { locale: es });
+    const yearNameEs = format(d, 'yyyy');
     
+    const p1 = `Durante el mes de ${monthNameEs} de ${yearNameEs}, el desempeño financiero de las operaciones muestra que se generaron ingresos por un total de ${incomeTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}. Estos ingresos corresponden a los pagos y abonos registrados por los usuarios durante el periodo.`;
+    const p2 = `En paralelo, la estructura de egresos ascendió a ${expenseTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}, destinados a cubrir los gastos propios del área y devoluciones si corresponde.`;
+    const p3 = `El balance neto para el ciclo se establece en ${netTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}, indicando un ${netTotal >= 0 ? 'balance positivo' : 'saldo negativo'} al cierre del mes de ${monthNameEs}.`;
+
+    const docWidth = doc.internal.pageSize.getWidth();
+    const margin = 14;
+    const maxLineWidth = docWidth - margin * 2;
+
+    const lines1 = doc.splitTextToSize(p1, maxLineWidth);
+    doc.text(lines1, margin, y);
+    y += (lines1.length * 5) + 5;
+
+    const lines2 = doc.splitTextToSize(p2, maxLineWidth);
+    doc.text(lines2, margin, y);
+    y += (lines2.length * 5) + 5;
+
+    const lines3 = doc.splitTextToSize(p3, maxLineWidth);
+    doc.text(lines3, margin, y);
+    y += (lines3.length * 5) + 15;
+
+    doc.setFontSize(10);
+    doc.setFont('', 'bold');
+    doc.text(`INGRESOS TOTALES: ${incomeTotal.toFixed(2)}`, 14, y);
+    y += 7;
+    doc.text(`EGRESOS TOTALES: ${expenseTotal.toFixed(2)}`, 14, y);
+    y += 7;
+    doc.text(`FLUJO NETO: ${netTotal.toFixed(2)}`, 14, y);
+    doc.setFont('', 'normal');
     y += 15;
+
+    // --- GRÁFICO DE LÍNEAS DIARIO ---
+    doc.setFontSize(10);
+    doc.setFont('', 'bold');
+    doc.text('TENDENCIA DIARIA DE FLUJO DE EFECTIVO', margin, y);
+    y += 8;
+    
+    // Preparar datos diarios
+    const diasDelMes = new Date(parseInt(monthStr.substring(0,4)), parseInt(monthStr.substring(5,7)), 0).getDate();
+    const dailyData = Array.from({length: diasDelMes}, (_, i) => {
+       const dStr = `${monthStr}-${(i+1).toString().padStart(2, '0')}`;
+       const inc = incomes.filter(t => t.date && t.date.startsWith(dStr)).reduce((s,t) => s + (t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0), 0);
+       const exp = expenses.filter(t => t.date && t.date.startsWith(dStr)).reduce((s,t) => s + (t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0), 0);
+       return { day: i+1, inc, exp, net: inc - exp };
+    });
+
+    const maxVal = Math.max(...dailyData.map(d => Math.max(d.inc, d.exp, Math.abs(d.net))), 100);
+    const minVal = Math.min(...dailyData.map(d => Math.min(d.net, 0))); // for negative net flow
+    const totalRange = maxVal - minVal;
+    
+    const chartHeight = 35;
+    const chartWidth = maxLineWidth - 10;
+    const chartY = y + chartHeight; // Bottom of chart
+    const startX = margin + 10;
+    
+    // Draw axes
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.5);
+    doc.line(startX, chartY, startX + chartWidth, chartY); // x axis
+    doc.line(startX, chartY - chartHeight, startX, chartY); // y axis
+    
+    // Zero line if minVal < 0
+    const zeroY = chartY - ((0 - minVal) / totalRange) * chartHeight;
+    if (minVal < 0) {
+       doc.setDrawColor(220, 220, 220);
+       doc.line(startX, zeroY, startX + chartWidth, zeroY);
+    }
+    
+    const stepX = chartWidth / (diasDelMes - 1);
+    
+    // Labels Y
+    doc.setFontSize(7);
+    doc.setTextColor(150);
+    doc.text(`${maxVal.toFixed(0)}`, margin, chartY - chartHeight + 3);
+    doc.text(`${minVal.toFixed(0)}`, margin, chartY);
+
+    // Draw lines Function
+    const drawLine = (key: 'inc' | 'exp' | 'net', r:number, g:number, b:number) => {
+       doc.setDrawColor(r,g,b);
+       doc.setLineWidth(1.0);
+       let px = startX;
+       let py = chartY - ((dailyData[0][key] - minVal) / totalRange) * chartHeight;
+       for(let i=1; i<diasDelMes; i++) {
+          let cx = startX + i * stepX;
+          let cy = chartY - ((dailyData[i][key] - minVal) / totalRange) * chartHeight;
+          doc.line(px, py, cx, cy);
+          px = cx; py = cy;
+       }
+    };
+    
+    drawLine('inc', 34, 197, 94); // green
+    drawLine('exp', 239, 68, 68); // red
+    // drawLine('net', 59, 130, 246); // blue
+
+    // Legend
+    doc.setFillColor(34, 197, 94); doc.rect(startX, chartY + 5, 3, 3, 'F'); doc.setTextColor(100); doc.text('Ingresos', startX + 5, chartY + 8);
+    doc.setFillColor(239, 68, 68); doc.rect(startX + 25, chartY + 5, 3, 3, 'F'); doc.text('Egresos', startX + 30, chartY + 8);
+    // doc.setFillColor(59, 130, 246); doc.rect(startX + 50, chartY + 5, 3, 3, 'F'); doc.text('Flujo Neto', startX + 55, chartY + 8);
+
+    doc.setTextColor(0);
+    doc.setFont('', 'normal');
+    
+    y = chartY + 20;
+
+    // Top Expense Categories
+    const expenseCategories = expenses.reduce((acc: any, t) => {
+       const cat = t.category || 'OTROS';
+       const amount = t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0;
+       acc[cat] = (acc[cat] || 0) + amount;
+       return acc;
+    }, {});
+    const topExpenseCategories = Object.entries(expenseCategories).sort((a: any, b: any) => b[1] - a[1]).slice(0, 5);
+
+    if (topExpenseCategories.length > 0) {
+        doc.setFontSize(10);
+        doc.setFont('', 'bold');
+        doc.text('PRINCIPALES CATEGORÍAS DE EGRESOS', 14, y);
+        
+        autoTable(doc, {
+           startY: y + 5,
+           head: [['Categoría', 'Monto']],
+           body: topExpenseCategories.map(([cat, amt]) => [cat, `${Number(amt).toFixed(2)}`]),
+           theme: 'grid',
+           headStyles: { fillColor: [150, 150, 150] },
+           margin: { left: 14 },
+           tableWidth: 100
+        });
+        y = (doc as any).lastAutoTable.finalY + 15;
+    } else {
+        y += 15;
+    }
+
+    doc.setFontSize(10);
+    doc.setFont('', 'bold');
     doc.text('DETALLE DE INGRESOS', 14, y);
     
     const incomeData = incomes.map(t => [
@@ -341,7 +632,7 @@ export default function FinancialReports() {
        `$${(t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0).toFixed(2)}`
     ]);
     
-    (doc as any).autoTable({
+    autoTable(doc, {
        startY: y + 5,
        head: [['Fecha', 'Descripción', 'Categoría', 'Monto']],
        body: incomeData,
@@ -359,7 +650,7 @@ export default function FinancialReports() {
        `$${(t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0).toFixed(2)}`
     ]);
     
-    (doc as any).autoTable({
+    autoTable(doc, {
        startY: y + 5,
        head: [['Fecha', 'Descripción', 'Categoría', 'Monto']],
        body: expenseData,
@@ -469,6 +760,15 @@ export default function FinancialReports() {
               )}
             >
               Flujo
+            </button>
+            <button 
+              onClick={() => setReportView('summary')}
+              className={clsx(
+                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all",
+                reportView === 'summary' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              Resumen
             </button>
             <button 
               onClick={() => setReportView('transactions')}
@@ -624,7 +924,13 @@ export default function FinancialReports() {
                           <tr>
                             <td colSpan={8} className="p-0 bg-gray-50/50 border-b border-gray-100">
                               <div className="px-8 py-3 w-full max-w-full overflow-hidden">
-                                <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Registro de Transacciones</h4>
+                                <div className="flex justify-between items-center mb-2">
+                                  <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Registro de Transacciones</h4>
+                                  <button onClick={(e) => { e.stopPropagation(); generateProcedurePDF(item); }} className="inline-flex items-center gap-1.5 text-[9px] font-bold text-gray-600 hover:text-black uppercase tracking-widest bg-white border border-gray-200 px-2.5 py-1 rounded-md shadow-sm transition-colors cursor-pointer">
+                                    <FileDown className="w-3 h-3" />
+                                    Descargar PDF
+                                  </button>
+                                </div>
                                 <div className="space-y-1.5">
                                   {item.transactions.map((t: any) => (
                                     <div key={t.id} onClick={() => t.procedureId && navigate('/dashboard/quick-finance', { state: { procedureId: t.procedureId, editFinancialItemId: t.id } })} className={clsx("flex items-center justify-between text-[10px] bg-white border border-gray-100 rounded-md p-1.5", t.procedureId && "cursor-pointer hover:bg-gray-50 transition-colors")}>
@@ -656,7 +962,13 @@ export default function FinancialReports() {
                         {expandedProcs[item.id] && (!item.transactions || item.transactions.length === 0) && (
                           <tr>
                             <td colSpan={8} className="p-3 text-center text-[10px] text-gray-400 bg-gray-50/50 border-b border-gray-100">
-                              No hay movimientos registrados.
+                              <div className="flex items-center justify-center gap-4">
+                                <span>No hay movimientos registrados.</span>
+                                <button onClick={(e) => { e.stopPropagation(); generateProcedurePDF(item); }} className="inline-flex items-center gap-1 text-[9px] font-bold text-gray-600 hover:text-black uppercase tracking-widest bg-white border border-gray-200 px-2 py-1 rounded-md shadow-sm transition-colors cursor-pointer">
+                                  <FileDown className="w-2.5 h-2.5" />
+                                  Descargar Reporte PDF
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         )}
@@ -727,7 +1039,13 @@ export default function FinancialReports() {
                     
                     {expandedProcs[item.id] && (
                       <div className="bg-gray-50/50 p-3 pt-0 border-t border-gray-100">
-                        <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2 mt-2">Registro de Transacciones</h4>
+                        <div className="flex justify-between items-center mb-2 mt-2">
+                          <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Registro de Transacciones</h4>
+                          <button onClick={(e) => { e.stopPropagation(); generateProcedurePDF(item); }} className="inline-flex items-center gap-1.5 text-[9px] font-bold text-gray-600 hover:text-black uppercase tracking-widest bg-white border border-gray-200 px-2.5 py-1 rounded-md shadow-sm transition-colors cursor-pointer">
+                            <FileDown className="w-3 h-3" />
+                            PDF
+                          </button>
+                        </div>
                         {item.transactions && item.transactions.length > 0 ? (
                           <div className="space-y-1.5 pl-5">
                             {item.transactions.map((t: any) => (
@@ -757,6 +1075,12 @@ export default function FinancialReports() {
                         ) : (
                           <div className="text-center text-[10px] text-gray-400 p-2 italic">
                             No hay transacciones registradas.
+                            <div className="mt-2 text-center">
+                              <button onClick={(e) => { e.stopPropagation(); generateProcedurePDF(item); }} className="inline-flex items-center gap-1.5 text-[9px] font-bold text-gray-600 hover:text-black uppercase tracking-widest bg-white border border-gray-200 px-2.5 py-1 rounded-md shadow-sm transition-colors cursor-pointer">
+                                <FileDown className="w-3 h-3" />
+                                Descargar Reporte PDF
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1418,6 +1742,166 @@ export default function FinancialReports() {
             )}
           </div>
         </div>
+        </div>
+      )}
+
+      
+      {reportView === 'summary' && (
+        <div className="space-y-6">
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <div className="w-full sm:w-64">
+                <select
+                  value={transactionMonth}
+                  onChange={(e) => setTransactionMonth(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold uppercase tracking-wider text-gray-700 appearance-none focus:outline-none focus:ring-2 focus:ring-black focus:bg-white cursor-pointer"
+                >
+                  <option value="all">Todos los meses</option>
+                  {cashFlowList.map((c: any) => (
+                    <option key={c.month} value={c.month}>
+                      {format(new Date(c.month + '-01T12:00:00Z'), 'MMMM yyyy', { locale: es })}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button 
+                onClick={() => {
+                  if (transactionMonth === 'all') {
+                    alert('Por favor, selecciona un mes específico para generar el informe PDF.');
+                    return;
+                  }
+                  if (transactionMonth) {
+                    generateMonthlyPDF(transactionMonth);
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-black text-white rounded-lg text-xs font-black uppercase tracking-widest transition-all shadow-sm"
+              >
+                <FileDown className="w-4 h-4" />
+                Descargar Informe PDF
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-6 w-full">
+              {(() => {
+                let inc = 0;
+                let exp = 0;
+                let title = '';
+                let chartDt = [];
+
+                if (transactionMonth === 'all') {
+                  title = 'RESUMEN EJECUTIVO GLOBAL';
+                  inc = totalIncome;
+                  exp = totalExpense;
+                  chartDt = cashFlowList.map((c: any) => ({
+                    name: format(new Date(c.month + '-01T12:00:00Z'), 'MMM yyyy', { locale: es }),
+                    Ingresos: c.income,
+                    Egresos: c.expense,
+                    FlujoNeto: c.income - c.expense
+                  })).reverse();
+                } else {
+                  const d = new Date(transactionMonth + '-01T12:00:00Z');
+                  title = `RESUMEN - ${format(d, 'MMMM yyyy', { locale: es }).toUpperCase()}`;
+                  const mData = cashFlowSummary[transactionMonth];
+                  if (mData) {
+                    inc = mData.income;
+                    exp = mData.expense;
+                  }
+                  
+                  const diasDelMes = new Date(parseInt(transactionMonth.substring(0,4)), parseInt(transactionMonth.substring(5,7)), 0).getDate();
+                  chartDt = Array.from({length: diasDelMes}, (_, i) => {
+                     const dStr = `${transactionMonth}-${(i+1).toString().padStart(2, '0')}`;
+                     const mInc = filteredTransactions.filter(t => (t.type === 'Ingreso' || t.type === 'Abono') && t.date && t.date.startsWith(dStr)).reduce((s, t) => s + (t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0), 0);
+                     const mExp = filteredTransactions.filter(t => (t.type === 'Egreso' || t.type === 'Gasto') && t.date && t.date.startsWith(dStr)).reduce((s, t) => s + (t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0), 0);
+                     return { name: (i+1).toString(), Ingresos: mInc, Egresos: mExp, FlujoNeto: mInc - mExp };
+                  });
+                }
+
+                const net = inc - exp;
+
+                return (
+                  <div className="flex flex-col xl:flex-row gap-6">
+                    <div className="xl:w-1/3 flex flex-col gap-4">
+                      <div className="bg-gray-50 border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                        <div className="p-4 bg-gray-100 border-b border-gray-200">
+                          <h4 className="text-xs font-black text-gray-900 tracking-widest text-center truncate">{title}</h4>
+                        </div>
+                        <div className="p-5 flex flex-col gap-4">
+                           <div className="flex justify-between items-center bg-green-50/50 p-2.5 rounded-lg border border-green-100">
+                              <span className="text-xs font-bold text-gray-600">Total Ingresos</span>
+                              <span className="text-sm font-black text-green-700">${inc.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                           </div>
+                           <div className="flex justify-between items-center bg-red-50/50 p-2.5 rounded-lg border border-red-100">
+                              <span className="text-xs font-bold text-gray-600">Total Egresos</span>
+                              <span className="text-sm font-black text-red-700">${exp.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                           </div>
+                           <div className="flex justify-between items-center bg-blue-50/50 p-2.5 rounded-lg border border-blue-100">
+                              <span className="text-xs font-bold text-gray-600">Flujo Neto</span>
+                              <span className={clsx(
+                                "text-sm font-black",
+                                net >= 0 ? "text-blue-700" : "text-red-700"
+                              )}>${net.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="xl:w-2/3 bg-gray-50 border border-gray-100 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                      <div className="p-4 bg-gray-100 border-b border-gray-200">
+                         <h4 className="text-xs font-black text-gray-900 tracking-widest">TENDENCIA ${transactionMonth === 'all' ? 'HISTÓRICA' : 'DEL MES'}</h4>
+                      </div>
+                      <div className="p-4 flex-1 min-h-[250px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          {transactionMonth === 'all' ? (
+                            <BarChart data={chartDt} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#6B7280' }} />
+                              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#6B7280' }} tickFormatter={(value) => `${value}`} />
+                              <RechartsTooltip 
+                                cursor={{ fill: 'transparent' }} 
+                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px' }}
+                                formatter={(val: number) => [`${val.toLocaleString(undefined, { minimumFractionDigits: 2 })}`]}
+                              />
+                              <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
+                              <Bar dataKey="Ingresos" fill="#22C55E" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                              <Bar dataKey="Egresos" fill="#EF4444" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                            </BarChart>
+                          ) : (
+                            <AreaChart data={chartDt} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                              <defs>
+                                <linearGradient id="colorInc" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#22C55E" stopOpacity={0.5}/>
+                                  <stop offset="95%" stopColor="#22C55E" stopOpacity={0}/>
+                                </linearGradient>
+                                <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#EF4444" stopOpacity={0.5}/>
+                                  <stop offset="95%" stopColor="#EF4444" stopOpacity={0}/>
+                                </linearGradient>
+                                <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.5}/>
+                                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#6B7280' }} />
+                              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#6B7280' }} tickFormatter={(value) => `${value}`} />
+                              <RechartsTooltip 
+                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px' }}
+                                formatter={(val: number) => [`${val.toLocaleString(undefined, { minimumFractionDigits: 2 })}`]}
+                              />
+                              <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
+                              <Area type="monotone" dataKey="Ingresos" stroke="#22C55E" fillOpacity={1} fill="url(#colorInc)" />
+                              <Area type="monotone" dataKey="Egresos" stroke="#EF4444" fillOpacity={1} fill="url(#colorExp)" />
+                              <Area type="monotone" dataKey="FlujoNeto" stroke="#3B82F6" fillOpacity={1} fill="url(#colorNet)" />
+                            </AreaChart>
+                          )}
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
         </div>
       )}
 
