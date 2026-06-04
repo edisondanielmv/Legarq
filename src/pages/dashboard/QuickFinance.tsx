@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { Procedure, FinancialItem, Account, User } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   DollarSign, 
   HelpCircle, 
@@ -25,6 +26,9 @@ import {
 import clsx from 'clsx';
 
 export default function QuickFinance() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [handledEditId, setHandledEditId] = useState('');
   const { user } = useAuth();
   const [procedures, setProcedures] = useState<Procedure[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -107,6 +111,22 @@ export default function QuickFinance() {
   useEffect(() => {
     fetchInitialData();
   }, []);
+
+  useEffect(() => {
+    if (location.state?.procedureId && !selectedProcId) {
+      setSelectedProcId(location.state.procedureId);
+    }
+  }, [location.state, selectedProcId]);
+  
+  useEffect(() => {
+    if (location.state?.editFinancialItemId && procFinancials.length > 0 && handledEditId !== location.state.editFinancialItemId) {
+      const target = procFinancials.find(f => f.id === location.state.editFinancialItemId);
+      if (target) {
+        setEditingItem(target);
+        setHandledEditId(location.state.editFinancialItemId);
+      }
+    }
+  }, [location.state, procFinancials, handledEditId]);
 
   const fetchInitialData = async () => {
     try {

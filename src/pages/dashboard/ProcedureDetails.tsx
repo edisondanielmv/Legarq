@@ -51,7 +51,7 @@ export default function ProcedureDetails() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'cliente' | 'tramite' | 'inmueble' | 'bitacora' | 'finanzas' | 'archivos'>('tramite');
+  const [activeTab, setActiveTab] = useState<'cliente' | 'tramite' | 'inmueble' | 'bitacora' | 'archivos'>('tramite');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const [uploadingImageIds, setUploadingImageIds] = useState<string[]>([]);
@@ -642,7 +642,7 @@ export default function ProcedureDetails() {
              <TabButton label="Cliente" icon={UserIcon} active={activeTab === 'cliente'} onClick={() => setActiveTab('cliente')} />
              <TabButton label="Predio" icon={Home} active={activeTab === 'inmueble'} onClick={() => setActiveTab('inmueble')} />
              <TabButton label="Notas" icon={ClipboardList} active={activeTab === 'bitacora'} onClick={() => setActiveTab('bitacora')} count={draft.logs.length} />
-             <TabButton label="Presupuesto" icon={DollarSign} active={activeTab === 'finanzas'} onClick={() => setActiveTab('finanzas')} count={draft.financials.length} />
+             
              <TabButton label="Drive" icon={Folder} active={activeTab === 'archivos'} onClick={() => setActiveTab('archivos')} />
           </div>
 
@@ -1008,174 +1008,7 @@ export default function ProcedureDetails() {
               </motion.div>
             )}
 
-            {activeTab === 'finanzas' && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
-                {/* Finance Header (Compact) */}
-                <div className="bg-white p-4 sm:p-5 rounded-[24px] sm:rounded-[28px] border border-gray-100 shadow-sm">
-                   <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
-                          <DollarSign className="w-4 h-4 text-emerald-600" />
-                        </div>
-                        <div>
-                          <h3 className="text-xs font-black text-gray-900 uppercase tracking-tight">Gestión Financiera</h3>
-                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none mt-0.5">Control de pagos y gastos</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3 bg-gray-50 p-1.5 pl-3 rounded-xl border border-gray-100">
-                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Monto Acordado ($)</span>
-                        <input 
-                          type="number"
-                          value={agreedAmount}
-                          onChange={e => setDraft({...draft, procedure: {...draft.procedure, expectedValue: Number(e.target.value)}})}
-                          disabled={draft.financials.some(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado'))}
-                          title={draft.financials.some(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado')) ? "El monto acordado se calcula a partir de los registros en Movimientos" : ""}
-                          className="w-24 sm:w-28 bg-white border-gray-200 rounded-lg py-1.5 px-3 text-xs font-black outline-none focus:ring-2 focus:ring-emerald-500/20 text-right disabled:bg-gray-100 disabled:text-gray-500"
-                        />
-                      </div>
-                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                   <StatCard 
-                     label="V. Acordado" 
-                     value={agreedAmount} color="gray" 
-                     icon={FileText} 
-                   />
-                   <StatCard 
-                     label="Abonado" 
-                     value={totalPaid} color="emerald" 
-                     icon={ArrowUpRight} 
-                   />
-                   <StatCard 
-                     label="Gastos" 
-                     value={totalExpenses} color="red" 
-                     icon={ArrowDownRight} 
-                   />
-                   <StatCard 
-                     label="S. Pendiente" 
-                     value={balanceDue} color={balanceDue > 0 ? "orange" : "emerald"} 
-                     icon={DollarSign} 
-                     highlight
-                    />
-                 </div>
-
-                 <div className="bg-white p-4 sm:p-5 rounded-[24px] sm:rounded-[28px] border border-gray-100 shadow-sm">
-                   <div className="flex justify-between items-center gap-4 mb-4">
-                      <h3 className="text-xs font-black text-gray-900 uppercase tracking-tight flex items-center gap-2">
-                        <RefreshCw className="w-3 h-3 text-gray-400" /> Movimientos
-                      </h3>
-                      <div className="flex gap-2">
-                         <button onClick={() => addFinancialLocal('Ingreso')} className="h-8 px-3 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
-                            <Plus className="w-3 h-3" /> Abono
-                         </button>
-                         <button onClick={() => addFinancialLocal('Egreso')} className="h-8 px-3 bg-red-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-red-600 transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
-                            <Plus className="w-3 h-3" /> Gasto
-                         </button>
-                      </div>
-                   </div>
-
-                   <div className="space-y-2">
-                      {draft.financials.filter(f => !f.isDeleted).map((fin, idx) => (
-                        <div key={fin.id} className={clsx(
-                          "flex items-center gap-3 p-2.5 rounded-xl border transition-all",
-                          fin.isNew ? "border-amber-200 bg-amber-50/20" : "border-gray-50 hover:bg-gray-50/70"
-                        )}>
-                           <div className={clsx(
-                             "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border",
-                             fin.type === 'Ingreso' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : (fin.type === 'Egreso' ? "bg-red-50 text-red-600 border-red-100" : "bg-blue-50 text-blue-600 border-blue-100")
-                           )}>
-                             {fin.type === 'Ingreso' ? <ArrowUpRight className="w-3.5 h-3.5" /> : (fin.type === 'Egreso' ? <ArrowDownRight className="w-3.5 h-3.5" /> : <DollarSign className="w-3.5 h-3.5" />)}
-                           </div>
-
-                           <div className="flex-1 grid grid-cols-12 gap-3 items-center">
-                              <div className="col-span-7">
-                                <input 
-                                  value={fin.description}
-                                  onChange={e => {
-                                    const newFins = [...draft.financials];
-                                    newFins[idx].description = e.target.value;
-                                    setDraft({...draft, financials: newFins});
-                                  }}
-                                  className="w-full bg-transparent border-none outline-none focus:ring-0 text-[10px] font-black text-gray-900 p-0 placeholder:text-gray-200"
-                                  placeholder="Descripción..."
-                                />
-                                <div className="flex flex-wrap items-center mt-0.5 text-[7px] font-black text-gray-400 uppercase tracking-widest gap-2 leading-none">
-                                   <span>{fin.category}</span>
-                                   <span>•</span>
-                                   <input
-                                     type="date"
-                                     value={fin.date ? fin.date.split('T')[0] : ''}
-                                     onChange={e => {
-                                       const newFins = [...draft.financials];
-                                       newFins[idx].date = e.target.value ? new Date(e.target.value + "T12:00:00Z").toISOString() : '';
-                                       setDraft({...draft, financials: newFins});
-                                     }}
-                                     className="bg-transparent border-none outline-none focus:ring-0 p-0 text-[8px] font-black w-[70px] text-gray-500 hover:text-gray-900 cursor-pointer -mt-0.5" 
-                                   />
-                                   {fin.registeredBy && (
-                                     <>
-                                       <span>•</span>
-                                       <span>{fin.registeredBy}</span>
-                                     </>
-                                   )}
-                                   {fin.createdAt && (
-                                     <>
-                                       <span>•</span>
-                                       <span>{fin.createdAt.split('T')[0]}</span>
-                                     </>
-                                   )}
-                                </div>
-                              </div>
-                              
-                              <div className="col-span-4">
-                                <div className="relative flex items-center justify-end bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
-                                  <span className="text-gray-400 font-bold text-[10px] mr-1">$</span>
-                                  <input 
-                                    type="number"
-                                    value={fin.amount || ''}
-                                    onChange={e => {
-                                      const newFins = [...draft.financials];
-                                      newFins[idx].amount = Number(e.target.value);
-                                      setDraft({...draft, financials: newFins});
-                                    }}
-                                    className="w-full bg-transparent border-none outline-none focus:ring-0 text-[10px] font-black text-gray-900 p-0 text-right"
-                                    placeholder="0.00"
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="col-span-1 flex justify-end">
-                                 <button 
-                                  onClick={() => {
-                                    const newFins = [...draft.financials];
-                                    if (fin.isNew) {
-                                       newFins.splice(idx, 1);
-                                    } else {
-                                       newFins[idx].isDeleted = true;
-                                    }
-                                    setDraft({...draft, financials: newFins});
-                                  }}
-                                  className="p-1 text-gray-300 hover:text-red-500 transition-colors"
-                                 >
-                                    <Trash2 className="w-3 h-3" />
-                                 </button>
-                              </div>
-                           </div>
-                        </div>
-                      ))}
-
-                      {draft.financials.filter(f => !f.isDeleted).length === 0 && (
-                        <div className="py-8 text-center border border-dashed border-gray-100 rounded-2xl">
-                           <DollarSign className="w-8 h-8 text-gray-100 mx-auto mb-2 opacity-50" />
-                           <p className="text-gray-300 font-black text-[8px] uppercase tracking-widest leading-none">Sin movimientos registrados</p>
-                        </div>
-                      )}
-                   </div>
-                </div>
-              </motion.div>
-            )}
+            
 
             {activeTab === 'archivos' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">

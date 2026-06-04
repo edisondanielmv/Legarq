@@ -162,8 +162,8 @@ function getProcedure(data) {
   var proc = procs.find(function(p) {
     var pid = String(p.id || '').trim();
     var pcode = String(p.code || '').trim().toLowerCase();
-    var target = searchId.toLowerCase();
-    return pid === searchId || pcode === target || pid.toLowerCase() === target;
+    var target = String(searchId).toLowerCase();
+    return pid === searchId || pcode === target || String(pid).toLowerCase() === target;
   });
 
   if (!proc) throw new Error('Trámite no encontrado con identificador: ' + searchId);
@@ -332,7 +332,7 @@ function deleteProcedure(data) {
     var code = String(rows[i][codeIndex] || '').trim();
     
     // Comparación robusta
-    if (uuid === idToDelete || code === idToDelete || (uuid.toLowerCase() === idToDelete.toLowerCase()) || (code.toLowerCase() === idToDelete.toLowerCase())) {
+    if (uuid === idToDelete || code === idToDelete || (String(uuid).toLowerCase() === idToDelete.toLowerCase()) || (String(code).toLowerCase() === idToDelete.toLowerCase())) {
       var realId = uuid; 
       var driveFolderId = String(rows[i][folderIdIndex] || '').trim();
       var clientUser = String(rows[i][clientUsernameIndex] || '').trim();

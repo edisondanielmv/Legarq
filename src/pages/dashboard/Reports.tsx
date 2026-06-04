@@ -106,9 +106,9 @@ export default function Reports() {
     if (!matchesStatus) return false;
 
     const matchesSearch = 
-      log.note.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ((procedure?.title || '').toLowerCase().includes(searchTerm.toLowerCase())) ||
-      ((procedure?.clientName || procedure?.clientUsername || '').toLowerCase().includes(searchTerm.toLowerCase()));
+      String(log.note || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (String(procedure?.title || '').toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (String(procedure?.clientName || procedure?.clientUsername || '').toLowerCase().includes(searchTerm.toLowerCase()));
     
     return matchesTech && matchesDate && matchesSearch;
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) || [];
@@ -152,9 +152,9 @@ export default function Reports() {
       const proceduresWithFilteredLogs = (data?.procedures || []).filter(proc => {
         const procLogs = filteredLogs.filter(l => l.procedureId === proc.id);
         const matchesSearch = 
-          proc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (proc.clientName || proc.clientUsername || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (proc.code || '').toLowerCase().includes(searchTerm.toLowerCase());
+          String(proc.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          String(proc.clientName || proc.clientUsername || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          String(proc.code || '').toLowerCase().includes(searchTerm.toLowerCase());
         
         // Filter by state
         const matchesStatus = selectedStatus === 'all' || proc.status === selectedStatus;
@@ -509,9 +509,9 @@ export default function Reports() {
                 {(data?.procedures || []).filter(p => {
                   const procLogs = filteredLogs.filter(l => l.procedureId === p.id);
                   const matchesSearch = 
-                    p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    (p.clientName || p.clientUsername || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    (p.code || '').toLowerCase().includes(searchTerm.toLowerCase());
+                    String(p.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    String(p.clientName || p.clientUsername || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    String(p.code || '').toLowerCase().includes(searchTerm.toLowerCase());
                   
                   // Filter by status match
                   const matchesStatus = selectedStatus === 'all' || p.status === selectedStatus;

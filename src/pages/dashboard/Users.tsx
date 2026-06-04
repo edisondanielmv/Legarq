@@ -117,8 +117,8 @@ export default function Users() {
 
   const filtered = users.filter(u => 
     u.role !== 'client' && (
-      (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (u.username || '').toLowerCase().includes(searchTerm.toLowerCase())
+      String(u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(u.username || '').toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
 

@@ -1,21 +1,36 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { DollarSign, Hourglass, TrendingUp, TrendingDown, Wallet, Search, Filter, ArrowUpRight, ArrowDownRight, Briefcase, User as UserIcon, Mail, Plus, Edit2, Trash2, X, Check, AlertCircle, Upload, FileCheck, Settings } from 'lucide-react';
+import { DollarSign, Hourglass, TrendingUp, TrendingDown, Wallet, Search, Filter, ArrowUpRight, ArrowDownRight, Briefcase, User as UserIcon, Mail, Plus, Edit2, Trash2, X, Check, AlertCircle, Upload, FileCheck, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { FileDown } from 'lucide-react';
 import { es } from 'date-fns/locale';
 import clsx from 'clsx';
 import { Procedure, FinancialItem, Account, User } from '../../types';
 import LoadingOverlay from '../../components/LoadingOverlay';
 
 export default function FinancialReports() {
+  const navigate = useNavigate();
   const [data, setData] = useState<{ procedures: Procedure[], transactions: FinancialItem[] }>({ procedures: [], transactions: [] });
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [staff, setStaff] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedProcs, setExpandedProcs] = useState<{ [key: string]: boolean }>({});
+
+  const toggleExpand = (id: string) => {
+    setExpandedProcs(prev => ({ ...prev, [id]: !prev[id] }));
+  };
   const [filterType, setFilterType] = useState('all');
-  const [reportView, setReportView] = useState<'procedures' | 'categories' | 'cashflow'>('procedures');
+  const [reportView, setReportView] = useState<'procedures' | 'categories' | 'cashflow' | 'transactions'>('procedures');
+  const [transactionTypeFilter, setTransactionTypeFilter] = useState('all');
+  const [accountTypeFilter, setAccountTypeFilter] = useState('all');
+  const [transactionSort, setTransactionSort] = useState('date-desc');
+  const [transactionMonth, setTransactionMonth] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   
@@ -121,18 +136,18 @@ export default function FinancialReports() {
     const procTransactions = filteredTransactions.filter(t => String(t.procedureId).trim() === String(proc.id).trim());
     
     const income = procTransactions.filter(t => {
-      const type = (t.type || '').trim().toLowerCase();
+      const type = String(t.type || '').trim().toLowerCase();
       const cat = (t.category || '').trim().toLowerCase();
       return type === 'ingreso' || type === 'abono' || cat === 'abono cliente';
     }).reduce((sum, t) => sum + parseAmount(t.amount), 0);
     
     const expense = procTransactions.filter(t => {
-      const type = (t.type || '').trim().toLowerCase();
+      const type = String(t.type || '').trim().toLowerCase();
       return type === 'egreso' || type === 'gasto';
     }).reduce((sum, t) => sum + parseAmount(t.amount), 0);
     
     const receivable = procTransactions.filter(t => {
-      const type = (t.type || '').trim().toLowerCase();
+      const type = String(t.type || '').trim().toLowerCase();
       const cat = (t.category || '').trim().toLowerCase();
       return type === 'cuenta por cobrar' || type === 'por cobrar' || type === 'valor acordado' || cat === 'monto acordado';
     }).reduce((sum, t) => sum + parseAmount(t.amount), 0);
@@ -149,16 +164,17 @@ export default function FinancialReports() {
       totalValue: expected,
       pending: Math.max(0, expected - income),
       projectedProfit: expected - expense,
-      balance: income - expense
+      balance: income - expense,
+      transactions: procTransactions
     };
   });
 
   const filteredProcedures = procedureSummary.filter(item => {
     const matchesSearch = 
-      (item.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.clientUsername || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.clientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.procedureType || '').toLowerCase().includes(searchTerm.toLowerCase());
+      String(item.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(item.clientUsername || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(item.clientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(item.procedureType || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     if (filterType === 'pending') return matchesSearch && item.pending > 0;
     if (filterType === 'paid') return matchesSearch && item.pending <= 0 && item.totalValue > 0;
@@ -167,10 +183,13 @@ export default function FinancialReports() {
 
   // Process data for Category Summary
   const categorySummary = filteredTransactions.reduce((acc: any, t) => {
-    const type = (t.type || '').trim().toLowerCase();
+    const type = String(t.type || '').trim().toLowerCase();
     const isIncome = type === 'ingreso' || type === 'abono';
     const isExpense = type === 'egreso' || type === 'gasto';
     if (!isIncome && !isExpense) return acc;
+
+    if (accountTypeFilter === 'Ingreso' && !isIncome) return acc;
+    if (accountTypeFilter === 'Egreso' && !isExpense) return acc;
 
     const cat = t.category || 'Sin Categoría';
     if (!acc[cat]) acc[cat] = { category: cat, income: 0, expense: 0, count: 0 };
@@ -186,14 +205,13 @@ export default function FinancialReports() {
   // Process data for Cash Flow
   const cashFlowSummary = filteredTransactions.reduce((acc: any, t) => {
     if (!t.date) return acc;
-    const type = (t.type || '').trim().toLowerCase();
+    const type = String(t.type || '').trim().toLowerCase();
     const isIncome = type === 'ingreso' || type === 'abono';
     const isExpense = type === 'egreso' || type === 'gasto';
     if (!isIncome && !isExpense) return acc;
 
-    const date = new Date(t.date);
-    if (isNaN(date.getTime())) return acc;
-    const monthKey = format(date, 'yyyy-MM');
+    if (!t.date || t.date.length < 7) return acc;
+    const monthKey = t.date.substring(0, 7);
     if (!acc[monthKey]) acc[monthKey] = { month: monthKey, income: 0, expense: 0 };
     const amt = parseAmount(t.amount);
     if (isIncome) acc[monthKey].income += amt;
@@ -204,12 +222,12 @@ export default function FinancialReports() {
   const cashFlowList = Object.values(cashFlowSummary).sort((a: any, b: any) => b.month.localeCompare(a.month));
 
   const totalIncome = filteredTransactions.filter(t => {
-    const type = (t.type || '').trim().toLowerCase();
+    const type = String(t.type || '').trim().toLowerCase();
     return type === 'ingreso' || type === 'abono';
   }).reduce((sum, t) => sum + parseAmount(t.amount), 0);
   
   const totalExpense = filteredTransactions.filter(t => {
-    const type = (t.type || '').trim().toLowerCase();
+    const type = String(t.type || '').trim().toLowerCase();
     return type === 'egreso' || type === 'gasto';
   }).reduce((sum, t) => sum + parseAmount(t.amount), 0);
   const totalBalance = totalIncome - totalExpense;
@@ -281,10 +299,88 @@ export default function FinancialReports() {
     }
   };
 
+  const generateMonthlyPDF = (monthStr: string) => {
+    const doc = new jsPDF();
+    const monthName = format(new Date(monthStr + '-01T12:00:00Z'), 'MMMM yyyy', { locale: es }).toUpperCase();
+    
+    // Add title
+    doc.setFontSize(16);
+    doc.text(`REPORTE FINANCIERO MENSUAL - ${monthName}`, 14, 20);
+    
+    // Filter transactions for this month
+    const monthTransactions = filteredTransactions.filter(t => t.date && t.date.substring(0, 7) === monthStr);
+    const incomes = monthTransactions.filter(t => {
+       const type = String(t.type || '').trim().toLowerCase();
+       return type === 'ingreso' || type === 'abono';
+    });
+    const expenses = monthTransactions.filter(t => {
+       const type = String(t.type || '').trim().toLowerCase();
+       return type === 'egreso' || type === 'gasto';
+    });
+    
+    let y = 30;
+    
+    const incomeTotal = incomes.reduce((sum, t) => sum + (t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0), 0);
+    const expenseTotal = expenses.reduce((sum, t) => sum + (t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0), 0);
+    const netTotal = incomeTotal - expenseTotal;
+    
+    doc.setFontSize(10);
+    doc.text(`INGRESOS TOTALES: $${incomeTotal.toFixed(2)}`, 14, y);
+    y += 7;
+    doc.text(`EGRESOS TOTALES: $${expenseTotal.toFixed(2)}`, 14, y);
+    y += 7;
+    doc.text(`FLUJO NETO: $${netTotal.toFixed(2)}`, 14, y);
+    
+    y += 15;
+    doc.text('DETALLE DE INGRESOS', 14, y);
+    
+    const incomeData = incomes.map(t => [
+       t.date ? t.date.split('T')[0] : '',
+       t.description || '',
+       t.category || '',
+       `$${(t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0).toFixed(2)}`
+    ]);
+    
+    (doc as any).autoTable({
+       startY: y + 5,
+       head: [['Fecha', 'Descripción', 'Categoría', 'Monto']],
+       body: incomeData,
+       theme: 'grid',
+       headStyles: { fillColor: [34, 197, 94] }
+    });
+    
+    y = (doc as any).lastAutoTable.finalY + 15;
+    doc.text('DETALLE DE EGRESOS', 14, y);
+    
+    const expenseData = expenses.map(t => [
+       t.date ? t.date.split('T')[0] : '',
+       t.description || '',
+       t.category || '',
+       `$${(t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0).toFixed(2)}`
+    ]);
+    
+    (doc as any).autoTable({
+       startY: y + 5,
+       head: [['Fecha', 'Descripción', 'Categoría', 'Monto']],
+       body: expenseData,
+       theme: 'grid',
+       headStyles: { fillColor: [239, 68, 68] }
+    });
+    
+    doc.save(`reporte-financiero-${monthStr}.pdf`);
+  };
+
+  const chartData = [...cashFlowList].reverse().map((c: any) => ({
+    name: format(new Date(c.month + '-01T12:00:00Z'), 'MMM yy', { locale: es }).toUpperCase(),
+    Ingresos: c.income,
+    Egresos: c.expense,
+    'Flujo Neto': c.income - c.expense
+  }));
+
   if (loading) return <div className="flex justify-center items-center h-64"><Hourglass className="w-8 h-8 animate-pulse text-[#E3000F]" /></div>;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12 relative">
+    <div className="space-y-3 md:space-y-4 max-w-7xl mx-auto pb-12 relative">
       {saving && <LoadingOverlay />}
       
       {isScriptOutdated && (
@@ -374,6 +470,15 @@ export default function FinancialReports() {
             >
               Flujo
             </button>
+            <button 
+              onClick={() => setReportView('transactions')}
+              className={clsx(
+                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all",
+                reportView === 'transactions' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              Movimientos
+            </button>
           </div>
         </div>
       </div>
@@ -456,60 +561,106 @@ export default function FinancialReports() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="px-3 py-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest">Trámite / Cliente</th>
-                    <th className="px-3 py-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Monto Acordado</th>
-                    <th className="px-3 py-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Ingresos</th>
-                    <th className="px-3 py-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Egresos</th>
-                    <th className="px-3 py-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Saldo por Cobrar</th>
-                    <th className="px-3 py-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Utilidad</th>
-                    <th className="px-3 py-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Estado</th>
+                    <th className="px-2 py-1.5 w-6"></th>
+                    <th className="px-2 py-1.5 text-[9px] font-bold text-gray-400 uppercase tracking-widest">Trámite / Cliente</th>
+                    <th className="px-2 py-1.5 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Monto Acordado</th>
+                    <th className="px-2 py-1.5 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Ingresos</th>
+                    <th className="px-2 py-1.5 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Egresos</th>
+                    <th className="px-2 py-1.5 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Saldo por Cobrar</th>
+                    <th className="px-2 py-1.5 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Utilidad</th>
+                    <th className="px-2 py-1.5 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Estado</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filteredProcedures.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center text-gray-400 italic">No se encontraron registros financieros.</td>
+                      <td colSpan={8} className="px-6 py-12 text-center text-gray-400 italic">No se encontraron registros financieros.</td>
                     </tr>
                   ) : (
                     filteredProcedures.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50 transition-colors group">
-                        <td className="px-3 py-2.5 max-w-[200px]">
-                          <div className="flex flex-col truncate">
-                            <span className="text-xs font-bold text-gray-900 group-hover:text-[#E3000F] transition-colors truncate">{item.title}</span>
-                            <span className="text-[9px] text-gray-500 truncate">{item.clientName || item.clientUsername}</span>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2.5 text-right">
-                          <span className="text-xs font-bold text-gray-900">${item.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        </td>
-                        <td className="px-3 py-2.5 text-right">
-                          <span className="text-xs font-bold text-green-600">${item.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        </td>
-                        <td className="px-3 py-2.5 text-right">
-                          <span className="text-xs font-bold text-red-600">${item.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        </td>
-                        <td className="px-3 py-2.5 text-right">
-                          <span className="text-xs font-bold text-amber-600">${item.pending.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        </td>
-                        <td className="px-3 py-2.5 text-right">
-                          <span className={clsx(
-                            "text-xs font-black",
-                            item.projectedProfit >= 0 ? "text-blue-600" : "text-red-600"
-                          )}>
-                            ${item.projectedProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
-                          <span className={clsx(
-                            "px-2 py-1 rounded-full text-[10px] font-bold uppercase",
-                            item.pending <= 0 && item.totalValue > 0 ? "bg-green-100 text-green-700" : 
-                            item.totalIncome > 0 ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-600"
-                          )}>
-                            {item.pending <= 0 && item.totalValue > 0 ? 'Liquidado' : 
-                             item.totalIncome > 0 ? 'Abonado' : 'Pendiente'}
-                          </span>
-                        </td>
-                      </tr>
+                      <React.Fragment key={item.id}>
+                        <tr onClick={() => toggleExpand(item.id)} className="hover:bg-gray-50 transition-colors group cursor-pointer">
+                          <td className="px-2 py-1.5 w-6 text-center">
+                            {expandedProcs[item.id] ? <ChevronUp className="w-3.5 h-3.5 text-gray-400 inline-block" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-400 inline-block" />}
+                          </td>
+                          <td className="px-2 py-1.5 max-w-[200px]">
+                            <div className="flex flex-col truncate">
+                              <span className="text-xs font-bold text-gray-900 group-hover:text-[#E3000F] transition-colors truncate">{item.title}</span>
+                              <span className="text-[9px] text-gray-500 truncate">{item.clientName || item.clientUsername}</span>
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 text-right">
+                            <span className="text-xs font-bold text-gray-900">${item.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          </td>
+                          <td className="px-2 py-1.5 text-right">
+                            <span className="text-xs font-bold text-green-600">${item.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          </td>
+                          <td className="px-2 py-1.5 text-right">
+                            <span className="text-xs font-bold text-red-600">${item.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          </td>
+                          <td className="px-2 py-1.5 text-right">
+                            <span className="text-xs font-bold text-amber-600">${item.pending.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          </td>
+                          <td className="px-2 py-1.5 text-right">
+                            <span className={clsx(
+                              "text-xs font-black",
+                              item.projectedProfit >= 0 ? "text-blue-600" : "text-red-600"
+                            )}>
+                              ${item.projectedProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </span>
+                          </td>
+                          <td className="px-2 py-1.5 text-center">
+                            <span className={clsx(
+                              "px-2 py-1 rounded-full text-[10px] font-bold uppercase",
+                              item.pending <= 0 && item.totalValue > 0 ? "bg-green-100 text-green-700" : 
+                              item.totalIncome > 0 ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-600"
+                            )}>
+                              {item.pending <= 0 && item.totalValue > 0 ? 'Liquidado' : 
+                               item.totalIncome > 0 ? 'Abonado' : 'Pendiente'}
+                            </span>
+                          </td>
+                        </tr>
+                        {expandedProcs[item.id] && item.transactions && item.transactions.length > 0 && (
+                          <tr>
+                            <td colSpan={8} className="p-0 bg-gray-50/50 border-b border-gray-100">
+                              <div className="px-8 py-3 w-full max-w-full overflow-hidden">
+                                <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Registro de Transacciones</h4>
+                                <div className="space-y-1.5">
+                                  {item.transactions.map((t: any) => (
+                                    <div key={t.id} onClick={() => t.procedureId && navigate('/dashboard/quick-finance', { state: { procedureId: t.procedureId, editFinancialItemId: t.id } })} className={clsx("flex items-center justify-between text-[10px] bg-white border border-gray-100 rounded-md p-1.5", t.procedureId && "cursor-pointer hover:bg-gray-50 transition-colors")}>
+                                      <div className="flex items-center gap-3">
+                                        <span className={clsx(
+                                          "w-2 h-2 rounded-full shrink-0",
+                                          t.type === 'Ingreso' ? "bg-green-500" : t.type === 'Egreso' ? "bg-red-500" : "bg-amber-500"
+                                        )}></span>
+                                        <span className="font-bold text-gray-700 w-16 shrink-0">{t.date ? t.date.split('T')[0] : '---'}</span>
+                                        <span className="text-gray-900 font-medium truncate max-w-[300px]">{t.description}</span>
+                                        <span className="text-gray-400 text-[9px] font-black uppercase tracking-widest shrink-0">{t.category}</span>
+                                      </div>
+                                      <div className="flex items-center gap-4 shrink-0">
+                                        {t.registeredBy && <span className="text-gray-400 text-[8px] uppercase tracking-wider">Por: {t.registeredBy}</span>}
+                                        <span className={clsx(
+                                          "font-bold text-right w-20",
+                                          t.type === 'Ingreso' ? "text-green-600" : t.type === 'Egreso' ? "text-red-600" : "text-amber-600"
+                                        )}>
+                                          {t.type === 'Egreso' ? '-' : ''}${Number(t.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        {expandedProcs[item.id] && (!item.transactions || item.transactions.length === 0) && (
+                          <tr>
+                            <td colSpan={8} className="p-3 text-center text-[10px] text-gray-400 bg-gray-50/50 border-b border-gray-100">
+                              No hay movimientos registrados.
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     ))
                   )}
                 </tbody>
@@ -522,47 +673,94 @@ export default function FinancialReports() {
                 <div className="p-8 text-center text-gray-400 italic text-xs">No se encontraron registros.</div>
               ) : (
                 filteredProcedures.map((item) => (
-                  <div key={item.id} className="p-3 space-y-3 hover:bg-gray-50 transition-colors">
-                    <div className="flex justify-between items-start">
-                      <div className="overflow-hidden">
-                        <h3 className="font-bold text-gray-900 text-[11px] leading-tight truncate">{item.title}</h3>
-                        <p className="text-[9px] text-gray-400 truncate mt-0.5">{item.clientName || item.clientUsername}</p>
-                      </div>
-                      <span className={clsx(
-                        "px-2 py-0.5 rounded-full text-[8px] font-bold uppercase shrink-0",
-                        item.pending <= 0 && item.totalValue > 0 ? "bg-green-100 text-green-700" : 
-                        item.totalIncome > 0 ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-600"
-                      )}>
-                        {item.pending <= 0 && item.totalValue > 0 ? 'Liquidado' : 
-                         item.totalIncome > 0 ? 'Abonado' : 'Pendiente'}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                      <div className="flex flex-col">
-                        <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Monto Acordado</span>
-                        <span className="text-[11px] font-black text-gray-900">${item.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                      </div>
-                      <div className="flex flex-col text-right">
-                        <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Utilidad</span>
+                  <div key={item.id} className="flex flex-col">
+                    <div 
+                      onClick={() => toggleExpand(item.id)}
+                      className="p-3 space-y-3 hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex items-start gap-2 overflow-hidden flex-1">
+                          <button className="mt-0.5 text-gray-400 shrink-0">
+                            {expandedProcs[item.id] ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                          </button>
+                          <div className="overflow-hidden">
+                            <h3 className="font-bold text-gray-900 text-[11px] leading-tight truncate">{item.title}</h3>
+                            <p className="text-[9px] text-gray-400 truncate mt-0.5">{item.clientName || item.clientUsername}</p>
+                          </div>
+                        </div>
                         <span className={clsx(
-                          "text-[11px] font-black",
-                          item.projectedProfit >= 0 ? "text-blue-600" : "text-red-600"
-                        )}>${item.projectedProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          "px-2 py-0.5 rounded-full text-[8px] font-bold uppercase shrink-0",
+                          item.pending <= 0 && item.totalValue > 0 ? "bg-green-100 text-green-700" : 
+                          item.totalIncome > 0 ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-600"
+                        )}>
+                          {item.pending <= 0 && item.totalValue > 0 ? 'Liquidado' : 
+                          item.totalIncome > 0 ? 'Abonado' : 'Pendiente'}
+                        </span>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Ingresos</span>
-                        <span className="text-[11px] font-bold text-green-600">${item.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                      </div>
-                      <div className="flex flex-col text-right">
-                        <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Egresos</span>
-                        <span className="text-[11px] font-bold text-red-600">${item.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Por Cobrar</span>
-                        <span className="text-[11px] font-bold text-amber-600">${item.pending.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 pl-5">
+                        <div className="flex flex-col">
+                          <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Monto Acordado</span>
+                          <span className="text-[11px] font-black text-gray-900">${item.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex flex-col text-right">
+                          <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Utilidad</span>
+                          <span className={clsx(
+                            "text-[11px] font-black",
+                            item.projectedProfit >= 0 ? "text-blue-600" : "text-red-600"
+                          )}>${item.projectedProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Ingresos</span>
+                          <span className="text-[11px] font-bold text-green-600">${item.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex flex-col text-right">
+                          <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Egresos</span>
+                          <span className="text-[11px] font-bold text-red-600">${item.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[8px] text-gray-400 uppercase font-bold tracking-wider">Por Cobrar</span>
+                          <span className="text-[11px] font-bold text-amber-600">${item.pending.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
                       </div>
                     </div>
+                    
+                    {expandedProcs[item.id] && (
+                      <div className="bg-gray-50/50 p-3 pt-0 border-t border-gray-100">
+                        <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2 mt-2">Registro de Transacciones</h4>
+                        {item.transactions && item.transactions.length > 0 ? (
+                          <div className="space-y-1.5 pl-5">
+                            {item.transactions.map((t: any) => (
+                              <div key={t.id} onClick={() => t.procedureId && navigate('/dashboard/quick-finance', { state: { procedureId: t.procedureId, editFinancialItemId: t.id } })} className={clsx("flex flex-col bg-white border border-gray-100 rounded-md p-2 space-y-1", t.procedureId && "cursor-pointer hover:bg-gray-50 transition-colors")}>
+                                <div className="flex justify-between items-start gap-2">
+                                  <div className="flex items-center gap-1.5 flex-1 overflow-hidden">
+                                    <span className={clsx(
+                                      "w-1.5 h-1.5 rounded-full shrink-0",
+                                      t.type === 'Ingreso' ? "bg-green-500" : t.type === 'Egreso' ? "bg-red-500" : "bg-amber-500"
+                                    )}></span>
+                                    <span className="text-[10px] text-gray-900 font-bold truncate">{t.description}</span>
+                                  </div>
+                                  <span className={clsx(
+                                    "font-black text-[10px] shrink-0",
+                                    t.type === 'Ingreso' ? "text-green-600" : t.type === 'Egreso' ? "text-red-600" : "text-amber-600"
+                                  )}>
+                                    {t.type === 'Egreso' ? '-' : ''}${Number(t.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center text-[8px] font-bold text-gray-400 uppercase tracking-wider pl-3">
+                                  <span>{t.date ? t.date.split('T')[0] : '---'} • {t.category}</span>
+                                  {t.registeredBy && <span>Por: {t.registeredBy}</span>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center text-[10px] text-gray-400 p-2 italic">
+                            No hay transacciones registradas.
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -583,6 +781,19 @@ export default function FinancialReports() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-xs md:text-sm focus:ring-[#E3000F] focus:border-[#E3000F] outline-none"
               />
+            </div>
+            <div className="relative min-w-[200px]">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <select
+                value={accountTypeFilter}
+                onChange={(e) => setAccountTypeFilter(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-[#E3000F] appearance-none cursor-pointer"
+              >
+                <option value="all">Todas las Cuentas</option>
+                <option value="Ingreso">Cuentas de Ingreso</option>
+                <option value="Egreso">Cuentas de Egreso</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
           </div>
 
@@ -630,15 +841,24 @@ export default function FinancialReports() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {(data.transactions || [])
+                      {filteredTransactions
                         .filter(t => 
-                          (t.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (t.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (data.procedures?.find(p => String(p.id) === String(t.procedureId))?.title || '').toLowerCase().includes(searchTerm.toLowerCase())
+                          String(t.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          String(t.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          String(data.procedures?.find(p => String(p.id) === String(t.procedureId))?.title || '').toLowerCase().includes(searchTerm.toLowerCase())
                         )
+                        .filter(t => {
+                          if (accountTypeFilter === 'all') return true;
+                          const tType = String(t.type || '').trim().toLowerCase();
+                          const isIncome = tType === 'ingreso' || tType === 'abono';
+                          const isExpense = tType === 'egreso' || tType === 'gasto';
+                          if (accountTypeFilter === 'Ingreso' && isIncome) return true;
+                          if (accountTypeFilter === 'Egreso' && isExpense) return true;
+                          return false;
+                        })
                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         .map(t => (
-                        <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                        <tr key={t.id} onClick={() => t.procedureId && navigate('/dashboard/quick-finance', { state: { procedureId: t.procedureId, editFinancialItemId: t.id } })} className={clsx("hover:bg-gray-50 transition-colors", t.procedureId && "cursor-pointer")}>
                           <td className="px-4 py-3 whitespace-nowrap">
                             <span className="text-xs text-gray-500">{format(new Date(t.date), 'dd/MM/yy')}</span>
                           </td>
@@ -706,27 +926,45 @@ export default function FinancialReports() {
 
                 {/* Mobile View Card List */}
                 <div className="md:hidden divide-y divide-gray-100">
-                  {((data.transactions || [])
+                  {(filteredTransactions
                     .filter(t => 
-                      (t.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      (t.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      (data.procedures?.find(p => String(p.id) === String(t.procedureId))?.title || '').toLowerCase().includes(searchTerm.toLowerCase())
+                      String(t.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      String(t.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      String(data.procedures?.find(p => String(p.id) === String(t.procedureId))?.title || '').toLowerCase().includes(searchTerm.toLowerCase())
                     )
+                    .filter(t => {
+                      if (accountTypeFilter === 'all') return true;
+                      const tType = String(t.type || '').trim().toLowerCase();
+                      const isIncome = tType === 'ingreso' || tType === 'abono';
+                      const isExpense = tType === 'egreso' || tType === 'gasto';
+                      if (accountTypeFilter === 'Ingreso' && isIncome) return true;
+                      if (accountTypeFilter === 'Egreso' && isExpense) return true;
+                      return false;
+                    })
                     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).length === 0) ? (
                       <div className="p-8 text-center text-gray-400 italic text-xs">No se encontraron transacciones.</div>
                     ) : (
-                      (data.transactions || [])
+                      filteredTransactions
                         .filter(t => 
-                          (t.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (t.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (data.procedures?.find(p => String(p.id) === String(t.procedureId))?.title || '').toLowerCase().includes(searchTerm.toLowerCase())
+                          String(t.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          String(t.category || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          String(data.procedures?.find(p => String(p.id) === String(t.procedureId))?.title || '').toLowerCase().includes(searchTerm.toLowerCase())
                         )
+                        .filter(t => {
+                          if (accountTypeFilter === 'all') return true;
+                          const tType = String(t.type || '').trim().toLowerCase();
+                          const isIncome = tType === 'ingreso' || tType === 'abono';
+                          const isExpense = tType === 'egreso' || tType === 'gasto';
+                          if (accountTypeFilter === 'Ingreso' && isIncome) return true;
+                          if (accountTypeFilter === 'Egreso' && isExpense) return true;
+                          return false;
+                        })
                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         .map(t => {
-                          const isIncome = t.type === 'Ingreso' || t.type === 'Abono' || (t.type || '').trim().toLowerCase() === 'ingreso' || (t.type || '').trim().toLowerCase() === 'abono';
-                          const isReceivable = t.type === 'Cuenta por Cobrar' || t.type === 'Por Cobrar' || (t.type || '').trim().toLowerCase() === 'cuenta por cobrar';
+                          const isIncome = t.type === 'Ingreso' || t.type === 'Abono' || String(t.type || '').trim().toLowerCase() === 'ingreso' || String(t.type || '').trim().toLowerCase() === 'abono';
+                          const isReceivable = t.type === 'Cuenta por Cobrar' || t.type === 'Por Cobrar' || String(t.type || '').trim().toLowerCase() === 'cuenta por cobrar';
                           return (
-                            <div key={t.id} className="p-3 space-y-2 hover:bg-gray-50 transition-colors">
+                            <div key={t.id} onClick={() => t.procedureId && navigate('/dashboard/quick-finance', { state: { procedureId: t.procedureId, editFinancialItemId: t.id } })} className={clsx("p-3 space-y-2 hover:bg-gray-50 transition-colors", t.procedureId && "cursor-pointer")}>
                               <div className="flex justify-between items-start">
                                 <div className="space-y-0.5 max-w-[70%]">
                                   <span className="text-[10px] text-gray-400 font-bold">{format(new Date(t.date), 'dd/MM/yyyy')}</span>
@@ -796,9 +1034,290 @@ export default function FinancialReports() {
         </div>
       )}
 
+      {reportView === 'transactions' && (
+        <div className="space-y-6">
+          <div className="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-3 md:gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar por detalle..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-black focus:bg-white transition-all"
+              />
+            </div>
+            
+            <div className="flex gap-2 flex-col sm:flex-row">
+              <div className="relative min-w-[140px]">
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <select
+                  value={transactionMonth}
+                  onChange={(e) => setTransactionMonth(e.target.value)}
+                  className="w-full pl-8 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold uppercase tracking-wider text-gray-700 appearance-none focus:outline-none focus:ring-2 focus:ring-black focus:bg-white cursor-pointer"
+                >
+                  <option value="all">Todos los meses</option>
+                  {cashFlowList.map((c: any) => (
+                    <option key={c.month} value={c.month}>
+                      {format(new Date(c.month + '-01T12:00:00Z'), 'MMMM yyyy', { locale: es })} ({new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(c.income - c.expense)})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+              </div>
+              
+              <div className="relative min-w-[130px]">
+                <select
+                  value={transactionTypeFilter}
+                  onChange={(e) => setTransactionTypeFilter(e.target.value)}
+                  className="w-full pl-3 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold uppercase tracking-wider text-gray-700 appearance-none focus:outline-none focus:ring-2 focus:ring-black focus:bg-white cursor-pointer"
+                >
+                  <option value="all">Todos (Ing/Egr)</option>
+                  <option value="Ingreso">Solo Ingresos</option>
+                  <option value="Egreso">Solo Egresos</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+              </div>
+
+              <div className="relative min-w-[140px]">
+                <select
+                  value={transactionSort}
+                  onChange={(e) => setTransactionSort(e.target.value)}
+                  className="w-full pl-3 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold uppercase tracking-wider text-gray-700 appearance-none focus:outline-none focus:ring-2 focus:ring-black focus:bg-white cursor-pointer"
+                >
+                  <option value="date-desc">Más recientes</option>
+                  <option value="date-asc">Más antiguos</option>
+                  <option value="amount-desc">Monto (Mayor)</option>
+                  <option value="amount-asc">Monto (Menor)</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto hidden md:block">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="px-4 py-2.5 text-[9px] font-bold text-gray-400 uppercase tracking-widest">Fecha / Registro</th>
+                    <th className="px-4 py-2.5 text-[9px] font-bold text-gray-400 uppercase tracking-widest">Detalle / Categoría</th>
+                    <th className="px-4 py-2.5 text-[9px] font-bold text-gray-400 uppercase tracking-widest">Trámite</th>
+                    <th className="px-4 py-2.5 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Tipo</th>
+                    <th className="px-4 py-2.5 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-right">Monto</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {(()=>{
+                    let list = [...filteredTransactions].filter(t => t.type === 'Ingreso' || t.type === 'Egreso' || t.type === 'Gasto');
+                    
+                    if (searchTerm) {
+                      const q = searchTerm.toLowerCase();
+                      list = list.filter(t => 
+                        String(t.description || '').toLowerCase().includes(q) || 
+                        String(t.category || '').toLowerCase().includes(q)
+                      );
+                    }
+                    
+                    if (transactionTypeFilter !== 'all') {
+                      list = list.filter(t => {
+                        const type = (t.type || '').trim();
+                        if (transactionTypeFilter === 'Ingreso') return type === 'Ingreso' || type === 'Abono';
+                        if (transactionTypeFilter === 'Egreso') return type === 'Egreso' || type === 'Gasto';
+                        return true;
+                      });
+                    }
+                    
+                    if (transactionMonth !== 'all') {
+                      list = list.filter(t => {
+                        if (!t.date) return false;
+                        const tMonth = t.date.substring(0, 7);
+                        return tMonth === transactionMonth;
+                      });
+                    }
+
+                    list.sort((a,b) => {
+                       switch(transactionSort) {
+                         case 'amount-desc': return Number(b.amount || 0) - Number(a.amount || 0);
+                         case 'amount-asc': return Number(a.amount || 0) - Number(b.amount || 0);
+                         case 'date-asc': return new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime();
+                         case 'date-desc':
+                         default:
+                             return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+                       }
+                    });
+
+                    if (list.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={4} className="px-6 py-12 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                            No se encontraron movimientos financieros.
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return list.map(t => {
+                      const proc = t.procedureId ? data.procedures.find(p => p.id === t.procedureId) : null;
+                      return (
+                      <tr key={t.id} onClick={() => t.procedureId && navigate('/dashboard/quick-finance', { state: { procedureId: t.procedureId, editFinancialItemId: t.id } })} className={clsx("hover:bg-gray-50 transition-colors", t.procedureId && "cursor-pointer")}>
+                        <td className="px-4 py-2.5">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-gray-900">{t.date ? t.date.split('T')[0] : '---'}</span>
+                            {t.registeredBy && <span className="text-[9px] text-gray-400 uppercase tracking-widest">Por: {t.registeredBy}</span>}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 max-w-[300px]">
+                          <div className="flex flex-col truncate">
+                            <span className="text-xs font-medium text-gray-900 truncate">{t.description}</span>
+                            <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest truncate">{t.category}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          {proc ? (
+                            <div className="flex flex-col truncate max-w-[150px]">
+                              <span className="text-[10px] font-bold text-gray-900 truncate">{proc.code}</span>
+                              <span className="text-[9px] text-gray-500 truncate">{proc.clientName}</span>
+                            </div>
+                          ) : (
+                            <span className="text-[9px] text-gray-400">N/A</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          <span className={clsx(
+                            "px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest",
+                            t.type === 'Ingreso' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                          )}>
+                             {t.type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <span className={clsx(
+                            "text-xs font-black",
+                            t.type === 'Ingreso' ? "text-green-600" : "text-red-600"
+                          )}>
+                             {t.type === 'Egreso' ? '-' : ''}${"" + Number(t.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        </td>
+                      </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="md:hidden divide-y divide-gray-100">
+               {(()=>{
+                    let list = [...filteredTransactions].filter(t => t.type === 'Ingreso' || t.type === 'Egreso' || t.type === 'Gasto');
+                    
+                    if (searchTerm) {
+                      const q = searchTerm.toLowerCase();
+                      list = list.filter(t => 
+                        String(t.description || '').toLowerCase().includes(q) || 
+                        String(t.category || '').toLowerCase().includes(q)
+                      );
+                    }
+                    
+                    if (transactionTypeFilter !== 'all') {
+                      list = list.filter(t => {
+                        const type = (t.type || '').trim();
+                        if (transactionTypeFilter === 'Ingreso') return type === 'Ingreso' || type === 'Abono';
+                        if (transactionTypeFilter === 'Egreso') return type === 'Egreso' || type === 'Gasto';
+                        return true;
+                      });
+                    }
+                    
+                    if (transactionMonth !== 'all') {
+                      list = list.filter(t => {
+                        if (!t.date) return false;
+                        const tMonth = t.date.substring(0, 7);
+                        return tMonth === transactionMonth;
+                      });
+                    }
+
+                    list.sort((a,b) => {
+                       switch(transactionSort) {
+                         case 'amount-desc': return Number(b.amount || 0) - Number(a.amount || 0);
+                         case 'amount-asc': return Number(a.amount || 0) - Number(b.amount || 0);
+                         case 'date-asc': return new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime();
+                         case 'date-desc':
+                         default:
+                             return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+                       }
+                    });
+
+                    if (list.length === 0) {
+                      return (
+                        <div className="p-8 text-center text-gray-400 italic text-xs">No se encontraron movimientos.</div>
+                      );
+                    }
+
+                                        return list.map(t => {
+                      const proc = t.procedureId ? data.procedures.find(p => p.id === t.procedureId) : null;
+                      return (
+                      <div key={t.id} onClick={() => t.procedureId && navigate('/dashboard/quick-finance', { state: { procedureId: t.procedureId, editFinancialItemId: t.id } })} className={clsx("p-3 flex flex-col space-y-1.5 hover:bg-gray-50/50", t.procedureId && "cursor-pointer")}>
+                        <div className="flex justify-between items-start gap-2">
+                          <span className="text-[11px] font-bold text-gray-900 leading-tight">{t.description}</span>
+                          <span className={clsx(
+                            "text-[11px] font-black shrink-0",
+                            t.type === 'Ingreso' ? "text-green-600" : "text-red-600"
+                          )}>
+                            {t.type === 'Egreso' ? '-' : ''}${"" + Number(t.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        {proc && (
+                          <div className="flex flex-col gap-0.5 bg-gray-50 p-1.5 rounded-md border border-gray-100 mt-1.5 mb-1.5">
+                            <span className="text-[10px] font-bold text-gray-900">{proc.code}</span>
+                            <span className="text-[9px] text-gray-500 truncate">{proc.clientName}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                          <span>{t.date ? t.date.split('T')[0] : '---'} • {t.category}</span>
+                          <span className={clsx(
+                             "px-1.5 py-0.5 rounded-sm text-[8px] tracking-widest",
+                             t.type === 'Ingreso' ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                          )}>{t.type}</span>
+                        </div>
+                        {t.registeredBy && (
+                          <div className="text-[8px] text-gray-400 uppercase tracking-wider">Por: {t.registeredBy}</div>
+                        )}
+                      </div>
+                      );
+                    });
+                  })()}
+            </div>
+          </div>
+        </div>
+      )}
+
       {reportView === 'cashflow' && (
-        <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="space-y-6">
+        <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden mb-6">
           <div className="p-4 bg-gray-50 border-b border-gray-200">
+            <h3 className="text-sm font-bold text-gray-900 uppercase">Tendencia del Flujo de Caja</h3>
+          </div>
+          <div className="p-4 h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6B7280' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6B7280' }} tickFormatter={(value) => `${value}`} />
+                <RechartsTooltip 
+                  cursor={{ fill: 'transparent' }} 
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  formatter={(value: number) => [`${value.toFixed(2)}`]}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
+                <Bar dataKey="Ingresos" fill="#22C55E" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="Egresos" fill="#EF4444" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
+          <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
             <h3 className="text-sm font-bold text-gray-900 uppercase">Flujo de Caja Mensual</h3>
           </div>
 
@@ -812,6 +1331,7 @@ export default function FinancialReports() {
                   <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Egresos</th>
                   <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Flujo Neto</th>
                   <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Tendencia</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -819,7 +1339,7 @@ export default function FinancialReports() {
                   <tr key={item.month} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <span className="text-sm font-bold text-gray-900 uppercase">
-                        {format(new Date(item.month + '-01'), 'MMMM yyyy', { locale: es })}
+                        {format(new Date(item.month + '-01T12:00:00Z'), 'MMMM yyyy', { locale: es })}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -861,7 +1381,7 @@ export default function FinancialReports() {
                   <div key={item.month} className="p-3.5 space-y-3 hover:bg-gray-50/50 transition-colors">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-black text-gray-900 uppercase tracking-tight">
-                        {format(new Date(item.month + '-01'), 'MMMM yyyy', { locale: es })}
+                        {format(new Date(item.month + '-01T12:00:00Z'), 'MMMM yyyy', { locale: es })}
                       </span>
                       <span className={clsx(
                         "flex items-center gap-1 text-[8px] font-black uppercase px-2 py-0.5 rounded-full",
@@ -897,6 +1417,7 @@ export default function FinancialReports() {
               })
             )}
           </div>
+        </div>
         </div>
       )}
 
