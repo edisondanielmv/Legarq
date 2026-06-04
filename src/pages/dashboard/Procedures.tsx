@@ -7,7 +7,7 @@ import { differenceInDays } from 'date-fns';
 import clsx from 'clsx';
 import { Procedure, User, ProcedureType } from '../../types';
 import LoadingOverlay from '../../components/LoadingOverlay';
-import { BulkUpload } from '../../components/BulkUpload';
+
 
 export default function Procedures() {
   const { user } = useAuth();
@@ -20,6 +20,7 @@ export default function Procedures() {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'Todos' | 'En proceso' | 'Suspendido' | 'Finalizado'>('Todos');
+  const [procFilter, setProcFilter] = useState('Todos');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -280,7 +281,8 @@ export default function Procedures() {
       String(p.idNumber || '').toLowerCase().includes(term)
     );
     const matchesStatus = statusFilter === 'Todos' || p.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesProc = procFilter === 'Todos' || p.id === procFilter;
+    return matchesSearch && matchesStatus && matchesProc;
   });
 
   const getStatusColor = (status: string) => {
@@ -333,21 +335,8 @@ export default function Procedures() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <a
-            href="/consulta"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 md:flex-none bg-white text-gray-900 border border-gray-100 h-9 md:h-10 px-3 md:px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-all font-black text-[8px] md:text-[9px] uppercase tracking-widest shadow-sm active:scale-95"
-          >
-            <Eye className="w-3 h-3 md:w-3.5 md:h-3.5 text-[#E3000F]" /> <span className="hidden xs:inline">Consultar</span><span className="xs:hidden">Ver</span>
-          </a>
           {user?.role === 'admin' && (
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <BulkUpload 
-                onSuccess={fetchProcedures} 
-                procedureTypes={procedureTypes} 
-                technicians={users.filter(u => u.role === 'tech')} 
-              />
               <button
                 onClick={() => setShowNewModal(true)}
                 className="flex-1 md:flex-none bg-[#1A1A1A] text-white h-9 md:h-10 px-3 md:px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#E3000F] transition-all shadow-xl shadow-gray-200 font-black text-[8px] md:text-[9px] uppercase tracking-widest active:scale-95"
@@ -362,15 +351,30 @@ export default function Procedures() {
       {/* Filters, Search & Status Selectors */}
       <div className="bg-white p-2 sm:p-3 rounded-[24px] border border-gray-100 shadow-sm space-y-2">
         <div className="flex flex-col md:flex-row gap-2 items-center">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
-            <input
-              type="text"
-              placeholder="Buscar proyectos..."
-              className="w-full pl-9 pr-4 py-2 bg-gray-50 border-transparent rounded-[18px] focus:ring-2 focus:ring-[#E3000F]/10 focus:bg-white border outline-none transition-all text-[10px] sm:text-xs font-black text-gray-900 placeholder:text-gray-400 placeholder:font-black placeholder:uppercase placeholder:text-[8px] placeholder:tracking-widest"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="relative flex-1 w-full flex flex-col md:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
+              <input
+                type="text"
+                placeholder="Buscar proyectos..."
+                className="w-full pl-9 pr-4 py-2 bg-gray-50 border-transparent rounded-[18px] focus:ring-2 focus:ring-[#E3000F]/10 focus:bg-white border outline-none transition-all text-[10px] sm:text-xs font-black text-gray-900 placeholder:text-gray-400 placeholder:font-black placeholder:uppercase placeholder:text-[8px] placeholder:tracking-widest"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="w-full md:w-64 shrink-0 relative">
+              <select
+                value={procFilter}
+                onChange={(e) => setProcFilter(e.target.value)}
+                className="w-full px-4 py-2 bg-gray-50 border-transparent rounded-[18px] focus:ring-2 focus:ring-[#E3000F]/10 focus:bg-white border outline-none transition-all text-[10px] sm:text-xs font-black text-gray-900 appearance-none pr-8 cursor-pointer truncate"
+                style={{ backgroundImage: "url(\"data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '8px auto' }}
+              >
+                <option value="Todos">SELECCIONAR TRÁMITE</option>
+                {procedures.map(p => (
+                  <option key={p.id} value={p.id}>{p.code} - {p.clientName || p.clientUsername}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="flex items-center gap-2 text-[8px] font-black text-gray-400 uppercase tracking-widest px-3 py-1 shrink-0 self-end md:self-auto">
             <span className="bg-[#1A1A1A] text-white px-2 py-0.5 rounded-md font-mono">{filtered.length}</span> Trámites filtrados
