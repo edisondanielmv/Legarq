@@ -909,8 +909,22 @@ export default function QuickFinance() {
               ) : (
                 <>
                   {/* MOBILE-ONLY CARD STACK: Compact, simple listings that never overflow or cause side-scroll */}
-                  <div className="block sm:hidden space-y-2.5">
-                    {getProcessedFinancials().map(f => {
+                  {(() => {
+  const all = getProcessedFinancials();
+  const tAcordados = all.filter(f => f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado');
+  const tIngresos = all.filter(f => f.type === 'Ingreso' || f.category === 'Abono Cliente');
+  const tEgresos = all.filter(f => f.type === 'Egreso' || f.category === 'Gasto');
+  const tOtros = all.filter(f => !tAcordados.includes(f) && !tIngresos.includes(f) && !tEgresos.includes(f));
+  const groups = [
+    { title: 'Montos Acordados', data: tAcordados, colorClass: 'text-blue-600 border-blue-100' },
+    { title: 'Ingresos', data: tIngresos, colorClass: 'text-green-600 border-green-100' },
+    { title: 'Egresos', data: tEgresos, colorClass: 'text-red-600 border-red-100' },
+    { title: 'Otros Movimientos', data: tOtros, colorClass: 'text-amber-600 border-amber-100' }
+  ];
+  return groups.map(group => group.data.length > 0 && (
+    <div key={group.title} className="block sm:hidden space-y-2.5 mb-4 last:mb-0">
+      <h5 className={clsx("text-[10px] font-black uppercase tracking-widest border-b pb-1 mb-2", group.colorClass)}>{group.title}</h5>
+      {group.data.map((f: any) => {
                       const isEditingThis = editingItem?.id === f.id;
                       return (
                         <div 
@@ -1007,7 +1021,9 @@ export default function QuickFinance() {
                         </div>
                       );
                     })}
-                  </div>
+    </div>
+  ));
+})()}
 
                   {/* DESKTOP TABLE VIEW: Elegantly presented for bigger displays */}
                   <div className="hidden sm:block overflow-x-auto border border-gray-150 rounded-xl">
@@ -1022,8 +1038,24 @@ export default function QuickFinance() {
                           <th className="p-2.5 text-[9px] font-black text-gray-400 uppercase tracking-wider text-center">Acciones</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {getProcessedFinancials().map(f => {
+                      {(() => {
+  const all = getProcessedFinancials();
+  const tAcordados = all.filter(f => f.type === 'Cuenta por Cobrar' || f.category === 'Monto Acordado');
+  const tIngresos = all.filter(f => f.type === 'Ingreso' || f.category === 'Abono Cliente');
+  const tEgresos = all.filter(f => f.type === 'Egreso' || f.category === 'Gasto');
+  const tOtros = all.filter(f => !tAcordados.includes(f) && !tIngresos.includes(f) && !tEgresos.includes(f));
+  const groups = [
+    { title: 'Montos Acordados', data: tAcordados, colorClass: 'text-blue-700 bg-blue-50/50' },
+    { title: 'Ingresos', data: tIngresos, colorClass: 'text-green-700 bg-green-50/50' },
+    { title: 'Egresos', data: tEgresos, colorClass: 'text-red-700 bg-red-50/50' },
+    { title: 'Otros Movimientos', data: tOtros, colorClass: 'text-amber-700 bg-amber-50/50' }
+  ];
+  return groups.map(group => group.data.length > 0 && (
+    <tbody key={group.title} className="divide-y divide-gray-100">
+      <tr className={clsx("border-b border-gray-100", group.colorClass)}>
+         <td colSpan={6} className={clsx("p-2 px-3 text-[10px] uppercase font-black tracking-widest", group.colorClass)}>{group.title}</td>
+      </tr>
+      {group.data.map((f: any) => {
                           const isEditingThis = editingItem?.id === f.id;
                           return (
                             <tr key={f.id} className={clsx("hover:bg-gray-50/40 transition-colors", isEditingThis && "bg-blue-50/30")}>
@@ -1105,7 +1137,9 @@ export default function QuickFinance() {
                             </tr>
                           );
                         })}
-                      </tbody>
+    </tbody>
+  ));
+})()}
                     </table>
                   </div>
                 </>
