@@ -407,9 +407,45 @@ export default function FinancialReports() {
        y = chartY + 15;
     }
     
+    // Check for new pages needed
+    const checkPageBreak = (currentY: number, requiredSpace: number) => {
+      if (currentY + requiredSpace > doc.internal.pageSize.getHeight()) {
+        doc.addPage();
+        return 20; // New Y position
+      }
+      return currentY;
+    };
+
+    // Montos Acordados Table
+    const acordados = tx.filter((t: any) => t.type === 'Cuenta por Cobrar' || t.category === 'Monto Acordado');
+    if (acordados.length > 0) {
+      y = checkPageBreak(y, 30);
+      doc.setFontSize(10);
+      doc.setFont('', 'bold');
+      doc.text('DETALLE DE MONTOS ACORDADOS', 14, y);
+      
+      const acordadoData = acordados.map((t: any) => [
+         t.date ? t.date.split('T')[0] : '',
+         t.description || '',
+         t.category || '',
+         `$${(t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+      ]);
+      
+      autoTable(doc, {
+         startY: y + 5,
+         head: [['Fecha', 'Descripción', 'Categoría', 'Monto']],
+         body: acordadoData,
+         theme: 'grid',
+         headStyles: { fillColor: [59, 130, 246] }, // blue-500
+         margin: { left: 14 }
+      });
+      y = (doc as any).lastAutoTable.finalY + 15;
+    }
+
     // Incomes Table
     const incomes = tx.filter((t: any) => t.type === 'Ingreso' || t.type === 'Abono');
     if (incomes.length > 0) {
+      y = checkPageBreak(y, 30);
       doc.setFontSize(10);
       doc.setFont('', 'bold');
       doc.text('DETALLE DE INGRESOS', 14, y);
@@ -435,6 +471,7 @@ export default function FinancialReports() {
     // Expenses Table
     const expenses = tx.filter((t: any) => t.type === 'Egreso' || t.type === 'Gasto');
     if (expenses.length > 0) {
+      y = checkPageBreak(y, 30);
       doc.setFontSize(10);
       doc.setFont('', 'bold');
       doc.text('DETALLE DE EGRESOS', 14, y);
@@ -452,6 +489,32 @@ export default function FinancialReports() {
          body: expenseData,
          theme: 'grid',
          headStyles: { fillColor: [239, 68, 68] },
+         margin: { left: 14 }
+      });
+      y = (doc as any).lastAutoTable.finalY + 15;
+    }
+
+    // Others Table
+    const otros = tx.filter((t: any) => !acordados.includes(t) && !incomes.includes(t) && !expenses.includes(t));
+    if (otros.length > 0) {
+      y = checkPageBreak(y, 30);
+      doc.setFontSize(10);
+      doc.setFont('', 'bold');
+      doc.text('DETALLE DE OTROS MOVIMIENTOS', 14, y);
+      
+      const otrosData = otros.map((t: any) => [
+         t.date ? t.date.split('T')[0] : '',
+         t.description || '',
+         t.category || '',
+         `$${(t.amount ? Number(t.amount.toString().replace(/[^0-9.-]+/g,"")) : 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+      ]);
+      
+      autoTable(doc, {
+         startY: y + 5,
+         head: [['Fecha', 'Descripción', 'Categoría', 'Monto']],
+         body: otrosData,
+         theme: 'grid',
+         headStyles: { fillColor: [245, 158, 11] }, // amber-500
          margin: { left: 14 }
       });
       y = (doc as any).lastAutoTable.finalY + 15;
