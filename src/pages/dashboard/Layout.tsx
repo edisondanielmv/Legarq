@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LayoutDashboard, Users, LogOut, FileText, DollarSign, Settings, Menu, X, ClipboardList, Eye, Database, MessageSquare, Coins } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, FileText, DollarSign, Settings, Menu, X, ClipboardList, Eye, Database, MessageSquare, Coins, ChevronLeft } from 'lucide-react';
 import clsx from 'clsx';
 import { APPS_SCRIPT_URL } from '../../lib/api';
 
@@ -124,15 +124,22 @@ export default function DashboardLayout() {
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col md:flex-row">
       {/* Mobile Header */}
-      <div className="md:hidden bg-white text-gray-900 h-14 flex items-center justify-between px-4 z-50 border-b border-gray-100">
-        <Link to="/" className="flex items-center justify-center">
-          <img 
-            src="https://lh3.googleusercontent.com/d/1nlBpfXAIZ5TwE9vMBBp_D1-mRz2HhJnb" 
-            alt="LEGARQ" 
-            className="h-10 w-auto object-contain"
-            referrerPolicy="no-referrer"
-          />
-        </Link>
+      <div className="md:hidden bg-white text-gray-900 h-14 flex items-center justify-between px-4 z-50 border-b border-gray-100 sticky top-0">
+        <div className="flex items-center gap-2">
+          {location.pathname !== '/dashboard' && (
+            <button onClick={() => navigate(-1)} className="p-1.5 text-gray-500 hover:text-gray-900 bg-gray-50 border border-gray-200 shadow-sm rounded-md transition-colors cursor-pointer active:scale-95">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
+          <Link to="/" className="flex items-center justify-center">
+            <img 
+              src="https://lh3.googleusercontent.com/d/1nlBpfXAIZ5TwE9vMBBp_D1-mRz2HhJnb" 
+              alt="LEGARQ" 
+              className="h-10 w-auto object-contain"
+              referrerPolicy="no-referrer"
+            />
+          </Link>
+        </div>
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-gray-600">
           {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -162,11 +169,21 @@ export default function DashboardLayout() {
           </div>
         )}
         <header className="hidden md:flex bg-white/80 backdrop-blur-md border-b border-gray-100 h-10 sm:h-12 items-center px-4 md:px-5 sticky top-0 z-30">
-          <div className="flex items-center gap-2">
-            <div className="w-0.5 h-4 bg-[#E3000F] rounded-full hidden md:block" />
-            <h1 className="text-xs md:text-base font-black text-gray-900 tracking-tight">
-              Sistema de <span className="text-[#E3000F]">Gestión</span>
-            </h1>
+          <div className="flex items-center gap-3">
+            {location.pathname !== '/dashboard' && (
+              <button 
+                onClick={() => navigate(-1)} 
+                className="flex items-center gap-1.5 text-[9px] font-bold text-gray-600 hover:text-gray-900 transition-colors bg-white hover:bg-gray-50 px-2 py-1.5 rounded-lg border border-gray-200 cursor-pointer active:scale-95 uppercase tracking-widest shadow-sm"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" /> Volver
+              </button>
+            )}
+            <div className="flex items-center gap-2 border-l border-gray-200 pl-3">
+              <div className="w-0.5 h-4 bg-[#E3000F] rounded-full hidden md:block" />
+              <h1 className="text-xs md:text-base font-black text-gray-900 tracking-tight">
+                Sistema de <span className="text-[#E3000F]">Gestión</span>
+              </h1>
+            </div>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#FDFDFD]">

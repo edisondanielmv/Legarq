@@ -464,12 +464,14 @@ export default function QuickFinance() {
         
         {/* Compact Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-50 pb-4 mb-4">
-          <div className="space-y-0.5">
-            <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-1.5">
-              <Coins className="w-4.5 h-4.5 text-[#E3000F]" />
-              Caja Rápida de Administrador
-            </h2>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-1.5">
+                <Coins className="w-4.5 h-4.5 text-[#E3000F]" />
+                Caja Rápida de Administrador
+              </h2>
+            </div>
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider pl-1">
               Registra cobros, gastos y valores acordados al instante (Versión Móvil Compacta)
             </p>
           </div>

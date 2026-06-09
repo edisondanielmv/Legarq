@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
-import { Plus, Search, Hourglass, FileText, User as UserIcon, Calendar, Briefcase, ExternalLink, CheckCircle2, Eye, Hash, ArrowRight, X, Clock, FolderOpen, Upload, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
+import { Plus, Search, Hourglass, FileText, User as UserIcon, Calendar, Briefcase, ExternalLink, CheckCircle2, Eye, Hash, ArrowRight, X, Clock, FolderOpen, Upload, Trash2, RefreshCw, AlertCircle, Settings } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 import clsx from 'clsx';
 import { Procedure, User, ProcedureType } from '../../types';

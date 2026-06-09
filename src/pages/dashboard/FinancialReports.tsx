@@ -162,7 +162,7 @@ export default function FinancialReports() {
       totalIncome: income,
       totalExpense: expense,
       totalValue: expected,
-      pending: Math.max(0, expected - income - expense),
+      pending: Math.max(0, expected - income),
       projectedProfit: expected - expense,
       balance: income - expense,
       transactions: procTransactions
@@ -900,83 +900,171 @@ export default function FinancialReports() {
       </div>
 
       {reportView === 'receivables' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
-              <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>
-                  <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-left">Trámite / Cliente</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Monto Acordado</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Total Ingresos</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Total Egresos</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Por Cobrar</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {procedureSummary
-                  .filter(p => p.pending > 0.01)
-                  .sort((a, b) => b.pending - a.pending)
-                  .map(item => (
-                    <tr key={item.procedureId} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-gray-900">{item.title}</span>
-                          <span className="text-[10px] text-gray-500 truncate max-w-[200px]">{item.clientName || item.clientUsername || 'Sin cliente'}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="text-xs font-bold text-gray-900">${item.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="text-xs font-bold text-green-600">${item.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="text-xs font-bold text-red-600">${item.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="text-xs font-bold text-orange-600">${item.pending.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={clsx(
-                          "px-2 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md whitespace-nowrap",
-                          item.pending <= 0 && item.totalValue > 0 ? "bg-green-100 text-green-700 border border-green-200" : 
-                          item.totalIncome > 0 ? "bg-orange-100 text-orange-700 border border-orange-200" : "bg-gray-100 text-gray-600 border border-gray-200"
-                        )}>
-                          {item.pending <= 0 && item.totalValue > 0 ? 'Liquidado' : 
-                           item.totalIncome > 0 ? 'Abonado' : 'Pendiente'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {procedureSummary.filter(p => p.pending > 0.01).length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-gray-400 text-xs italic">
-                        No hay cuentas por cobrar
-                      </td>
-                    </tr>
-                  )}
-              </tbody>
-              <tfoot className="bg-gray-50 border-t border-gray-100">
-                <tr>
-                  <td className="px-4 py-3 text-right font-black text-gray-900 text-[10px] uppercase tracking-widest">Totales</td>
-                  <td className="px-4 py-3 text-right font-black text-gray-900 text-xs">
-                    ${procedureSummary.filter(p => p.pending > 0.01).reduce((sum, p) => sum + p.totalValue, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </td>
-                  <td className="px-4 py-3 text-right font-black text-green-600 text-xs">
-                    ${procedureSummary.filter(p => p.pending > 0.01).reduce((sum, p) => sum + p.totalIncome, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </td>
-                  <td className="px-4 py-3 text-right font-black text-red-600 text-xs">
-                    ${procedureSummary.filter(p => p.pending > 0.01).reduce((sum, p) => sum + p.totalExpense, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </td>
-                  <td className="px-4 py-3 text-right font-black text-orange-600 text-xs">
-                    ${procedureSummary.filter(p => p.pending > 0.01).reduce((sum, p) => sum + p.pending, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+        <div className="space-y-6">
+          {['En proceso', 'Suspendido', 'Finalizado', 'Otro'].map(statusGroup => {
+            const groupProcedures = procedureSummary.filter(p => p.pending > 0.01 && (
+              statusGroup === 'Otro' ? !['En proceso', 'Suspendido', 'Finalizado'].includes(p.status || '') : (p.status || (p.projectedProfit !== undefined ? 'En proceso' : 'Otro')) === statusGroup || (!p.status && statusGroup === 'En proceso')
+            )).sort((a, b) => b.pending - a.pending);
+
+            if (groupProcedures.length === 0) return null;
+
+            const getStatusColor = (status: string) => {
+              switch (status) {
+                case 'En proceso': return 'bg-amber-50 text-amber-600 border-amber-100';
+                case 'Suspendido': return 'bg-rose-50 text-rose-600 border-rose-100';
+                case 'Finalizado': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+                default: return 'bg-gray-50 text-gray-600 border-gray-100';
+              }
+            };
+
+            return (
+              <div key={statusGroup} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">{statusGroup}</h3>
+                  <span className={clsx(
+                    "px-2 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md border",
+                    getStatusColor(statusGroup)
+                  )}>
+                    {groupProcedures.length} Trámites
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[800px]">
+                    <thead className="bg-gray-50 border-b border-gray-100">
+                      <tr>
+                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-left">Trámite / Cliente</th>
+                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Monto Acordado</th>
+                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Total Ingresos</th>
+                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Total Egresos</th>
+                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Por Cobrar</th>
+                        <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Estado de Pago</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {groupProcedures.map(item => (
+                        <React.Fragment key={item.id}>
+                        <tr onClick={() => toggleExpand(item.id)} className="hover:bg-gray-50 transition-colors group cursor-pointer">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 flex justify-center">
+                                {expandedProcs[item.id] ? <ChevronUp className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#E3000F]" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#E3000F]" />}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-xs font-bold text-gray-900 group-hover:text-[#E3000F] transition-colors">{item.title}</span>
+                                <span className="text-[10px] text-gray-500 truncate max-w-[200px]">{item.clientName || item.clientUsername || 'Sin cliente'}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="text-xs font-bold text-gray-900">${item.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="text-xs font-bold text-green-600">${item.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="text-xs font-bold text-red-600">${item.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="text-xs font-bold text-orange-600">${item.pending.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={clsx(
+                              "px-2 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md whitespace-nowrap",
+                              item.pending <= 0 && item.totalValue > 0 ? "bg-green-100 text-green-700 border border-green-200" : 
+                              item.totalIncome > 0 ? "bg-orange-100 text-orange-700 border border-orange-200" : "bg-gray-100 text-gray-600 border border-gray-200"
+                            )}>
+                              {item.pending <= 0 && item.totalValue > 0 ? 'Liquidado' : 
+                               item.totalIncome > 0 ? 'Abonado' : 'Pendiente'}
+                            </span>
+                          </td>
+                        </tr>
+                        {expandedProcs[item.id] && item.transactions && item.transactions.length > 0 && (
+                          <tr>
+                            <td colSpan={6} className="p-0 bg-gray-50/50 border-b border-gray-100">
+                              <div className="px-8 py-3 w-full max-w-full overflow-hidden">
+                                <div className="flex justify-between items-center mb-2">
+                                  <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Registro de Transacciones</h4>
+                                  <button onClick={(e) => { e.stopPropagation(); generateProcedurePDF(item); }} className="inline-flex items-center gap-1.5 text-[9px] font-bold text-gray-600 hover:text-black uppercase tracking-widest bg-white border border-gray-200 px-2.5 py-1 rounded-md shadow-sm transition-colors cursor-pointer">
+                                    <FileDown className="w-3 h-3" />
+                                    Descargar PDF
+                                  </button>
+                                </div>
+                                
+                                {(() => {
+                                  const groupTransactions = (typeList: string[], categoryList: string[] = []) => item.transactions.filter((t: any) => typeList.includes(t.type) || categoryList.includes(t.category));
+                                  const renderGroup = (title: string, txs: any[], colorClass: string, dotClass: string) => txs.length > 0 && (
+                                    <div className="mb-3 last:mb-0">
+                                      <h5 className={clsx("text-[9px] font-bold uppercase tracking-widest mb-1.5 pl-1", colorClass)}>{title}</h5>
+                                      <div className="space-y-1.5">
+                                        {txs.map((t: any) => (
+                                          <div key={t.id} onClick={() => t.procedureId && navigate('/dashboard/quick-finance', { state: { procedureId: t.procedureId, editFinancialItemId: t.id } })} className={clsx("flex items-center justify-between text-[10px] bg-white border border-gray-100 rounded-md p-1.5", t.procedureId && "cursor-pointer hover:bg-gray-50 transition-colors")}>
+                                            <div className="flex items-center gap-3">
+                                              <span className={clsx("w-2 h-2 rounded-full shrink-0", dotClass)}></span>
+                                              <span className="font-bold text-gray-700 w-16 shrink-0">{t.date ? t.date.split('T')[0] : '---'}</span>
+                                              <span className="text-gray-900 font-medium truncate max-w-[300px]">{t.description}</span>
+                                              <span className="text-gray-400 text-[9px] font-black uppercase tracking-widest shrink-0">{t.category}</span>
+                                            </div>
+                                            <div className="flex items-center gap-4 shrink-0">
+                                              {t.registeredBy && <span className="text-gray-400 text-[8px] uppercase tracking-wider">Por: {t.registeredBy}</span>}
+                                              <span className={clsx("font-bold text-right w-20", colorClass)}>
+                                                {t.type === 'Egreso' || t.type === 'Gasto' ? '-' : ''}${Number(t.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+
+                                  const tAcordados = groupTransactions(['Cuenta por Cobrar'], ['Monto Acordado']);
+                                  const tIngresos = groupTransactions(['Ingreso', 'Abono']);
+                                  const tEgresos = groupTransactions(['Egreso', 'Gasto']);
+                                  const tOtros = item.transactions.filter((t: any) => !tAcordados.includes(t) && !tIngresos.includes(t) && !tEgresos.includes(t));
+
+                                  return (
+                                    <div className="space-y-2">
+                                      {renderGroup('Montos Acordados', tAcordados, 'text-blue-600', 'bg-blue-500')}
+                                      {renderGroup('Ingresos', tIngresos, 'text-green-600', 'bg-green-500')}
+                                      {renderGroup('Egresos', tEgresos, 'text-red-600', 'bg-red-500')}
+                                      {renderGroup('Otros Movimientos', tOtros, 'text-amber-600', 'bg-amber-500')}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-gray-50 border-t border-gray-100">
+                      <tr>
+                        <td className="px-4 py-3 text-right font-black text-gray-900 text-[10px] uppercase tracking-widest">Totales</td>
+                        <td className="px-4 py-3 text-right font-black text-gray-900 text-xs">
+                          ${groupProcedures.reduce((sum, p) => sum + p.totalValue, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-4 py-3 text-right font-black text-green-600 text-xs">
+                          ${groupProcedures.reduce((sum, p) => sum + p.totalIncome, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-4 py-3 text-right font-black text-red-600 text-xs">
+                          ${groupProcedures.reduce((sum, p) => sum + p.totalExpense, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-4 py-3 text-right font-black text-orange-600 text-xs">
+                          ${groupProcedures.reduce((sum, p) => sum + p.pending, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            );
+          })}
+          {procedureSummary.filter(p => p.pending > 0.01).length === 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+              <span className="text-gray-400 text-xs italic">No hay cuentas por cobrar</span>
+            </div>
+          )}
         </div>
       )}
 
