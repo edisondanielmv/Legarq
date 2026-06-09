@@ -26,7 +26,7 @@ export default function FinancialReports() {
     setExpandedProcs(prev => ({ ...prev, [id]: !prev[id] }));
   };
   const [filterType, setFilterType] = useState('all');
-  const [reportView, setReportView] = useState<'procedures' | 'categories' | 'cashflow' | 'transactions' | 'summary'>('procedures');
+  const [reportView, setReportView] = useState<'procedures' | 'categories' | 'cashflow' | 'transactions' | 'summary' | 'receivables'>('procedures');
   const [transactionTypeFilter, setTransactionTypeFilter] = useState('all');
   const [accountTypeFilter, setAccountTypeFilter] = useState('all');
   const [transactionSort, setTransactionSort] = useState('date-desc');
@@ -162,7 +162,7 @@ export default function FinancialReports() {
       totalIncome: income,
       totalExpense: expense,
       totalValue: expected,
-      pending: Math.max(0, expected - income),
+      pending: Math.max(0, expected - income - expense),
       projectedProfit: expected - expense,
       balance: income - expense,
       transactions: procTransactions
@@ -232,6 +232,7 @@ export default function FinancialReports() {
   }).reduce((sum, t) => sum + parseAmount(t.amount), 0);
   const totalBalance = totalIncome - totalExpense;
   const totalExpected = procedureSummary.reduce((sum, p) => sum + p.totalValue, 0);
+  const cuentasPorCobrar = procedureSummary.reduce((sum, p) => sum + p.pending, 0);
 
   const handleAddTransaction = () => {
     setEditingItem(null);
@@ -796,20 +797,29 @@ export default function FinancialReports() {
           >
             <Plus className="w-3.5 h-3.5" /> Nuevo
           </button>
-          <div className="flex bg-gray-100 p-1 rounded-lg">
+          <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto scrollbar-hide">
             <button 
               onClick={() => setReportView('procedures')}
               className={clsx(
-                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all",
+                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all whitespace-nowrap",
                 reportView === 'procedures' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
               )}
             >
               Trámites
             </button>
             <button 
+              onClick={() => setReportView('receivables')}
+              className={clsx(
+                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all whitespace-nowrap",
+                reportView === 'receivables' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              Cuentas por Cobrar
+            </button>
+            <button 
               onClick={() => setReportView('categories')}
               className={clsx(
-                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all",
+                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all whitespace-nowrap",
                 reportView === 'categories' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
               )}
             >
@@ -818,7 +828,7 @@ export default function FinancialReports() {
             <button 
               onClick={() => setReportView('cashflow')}
               className={clsx(
-                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all",
+                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all whitespace-nowrap",
                 reportView === 'cashflow' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
               )}
             >
@@ -827,7 +837,7 @@ export default function FinancialReports() {
             <button 
               onClick={() => setReportView('summary')}
               className={clsx(
-                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all",
+                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all whitespace-nowrap",
                 reportView === 'summary' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
               )}
             >
@@ -836,7 +846,7 @@ export default function FinancialReports() {
             <button 
               onClick={() => setReportView('transactions')}
               className={clsx(
-                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all",
+                "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all whitespace-nowrap",
                 reportView === 'transactions' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
               )}
             >
@@ -855,7 +865,7 @@ export default function FinancialReports() {
             </div>
             <span className="text-[6.5px] sm:text-[7px] font-black text-green-600 bg-green-50 px-1 sm:px-1.5 py-0.5 rounded-full uppercase tracking-widest">Ingresos</span>
           </div>
-          <p className="text-sm sm:text-lg md:text-xl font-black text-gray-900">${totalIncome.toLocaleString()}</p>
+          <p className="text-sm sm:text-lg md:text-xl font-black text-gray-900">${totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
 
         <div className="bg-white p-2.5 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
@@ -865,7 +875,7 @@ export default function FinancialReports() {
             </div>
             <span className="text-[6.5px] sm:text-[7px] font-black text-[#E3000F] bg-red-50 px-1 sm:px-1.5 py-0.5 rounded-full uppercase tracking-widest">Egresos</span>
           </div>
-          <p className="text-sm sm:text-lg md:text-xl font-black text-gray-900">${totalExpense.toLocaleString()}</p>
+          <p className="text-sm sm:text-lg md:text-xl font-black text-gray-900">${totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
 
         <div className="bg-white p-2.5 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
@@ -875,7 +885,7 @@ export default function FinancialReports() {
             </div>
             <span className="text-[6.5px] sm:text-[7px] font-black text-blue-600 bg-blue-50 px-1 sm:px-1.5 py-0.5 rounded-full uppercase tracking-widest">Saldo</span>
           </div>
-          <p className="text-sm sm:text-lg md:text-xl font-black text-gray-900">${totalBalance.toLocaleString()}</p>
+          <p className="text-sm sm:text-lg md:text-xl font-black text-gray-900">${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
 
         <div className="bg-white p-2.5 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
@@ -883,11 +893,92 @@ export default function FinancialReports() {
             <div className="p-1 bg-gray-50 rounded-lg">
               <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600" />
             </div>
-            <span className="text-[6.5px] sm:text-[7px] font-black text-gray-600 bg-gray-50 px-1 sm:px-1.5 py-0.5 rounded-full uppercase tracking-widest">Proyectado</span>
+            <span className="text-[6.5px] sm:text-[7px] font-black text-gray-600 bg-gray-50 px-1 sm:px-1.5 py-0.5 rounded-full uppercase tracking-widest">Cuentas por cobrar</span>
           </div>
-          <p className="text-sm sm:text-lg md:text-xl font-black text-gray-900">${totalExpected.toLocaleString()}</p>
+          <p className="text-sm sm:text-lg md:text-xl font-black text-gray-900">${cuentasPorCobrar.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
       </div>
+
+      {reportView === 'receivables' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[800px]">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr>
+                  <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-left">Trámite / Cliente</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Monto Acordado</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Total Ingresos</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Total Egresos</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Por Cobrar</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {procedureSummary
+                  .filter(p => p.pending > 0.01)
+                  .sort((a, b) => b.pending - a.pending)
+                  .map(item => (
+                    <tr key={item.procedureId} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-gray-900">{item.title}</span>
+                          <span className="text-[10px] text-gray-500 truncate max-w-[200px]">{item.clientName || item.clientUsername || 'Sin cliente'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-xs font-bold text-gray-900">${item.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-xs font-bold text-green-600">${item.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-xs font-bold text-red-600">${item.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-xs font-bold text-orange-600">${item.pending.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={clsx(
+                          "px-2 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md whitespace-nowrap",
+                          item.pending <= 0 && item.totalValue > 0 ? "bg-green-100 text-green-700 border border-green-200" : 
+                          item.totalIncome > 0 ? "bg-orange-100 text-orange-700 border border-orange-200" : "bg-gray-100 text-gray-600 border border-gray-200"
+                        )}>
+                          {item.pending <= 0 && item.totalValue > 0 ? 'Liquidado' : 
+                           item.totalIncome > 0 ? 'Abonado' : 'Pendiente'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {procedureSummary.filter(p => p.pending > 0.01).length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-gray-400 text-xs italic">
+                        No hay cuentas por cobrar
+                      </td>
+                    </tr>
+                  )}
+              </tbody>
+              <tfoot className="bg-gray-50 border-t border-gray-100">
+                <tr>
+                  <td className="px-4 py-3 text-right font-black text-gray-900 text-[10px] uppercase tracking-widest">Totales</td>
+                  <td className="px-4 py-3 text-right font-black text-gray-900 text-xs">
+                    ${procedureSummary.filter(p => p.pending > 0.01).reduce((sum, p) => sum + p.totalValue, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </td>
+                  <td className="px-4 py-3 text-right font-black text-green-600 text-xs">
+                    ${procedureSummary.filter(p => p.pending > 0.01).reduce((sum, p) => sum + p.totalIncome, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </td>
+                  <td className="px-4 py-3 text-right font-black text-red-600 text-xs">
+                    ${procedureSummary.filter(p => p.pending > 0.01).reduce((sum, p) => sum + p.totalExpense, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </td>
+                  <td className="px-4 py-3 text-right font-black text-orange-600 text-xs">
+                    ${procedureSummary.filter(p => p.pending > 0.01).reduce((sum, p) => sum + p.pending, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
 
       {reportView === 'procedures' && (
         <>
