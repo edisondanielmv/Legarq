@@ -349,40 +349,35 @@ export default function Procedures() {
       </div>
 
       {/* Filters, Search & Status Selectors */}
-      <div className="bg-white p-2 sm:p-3 rounded-[24px] border border-gray-100 shadow-sm space-y-2">
-        <div className="flex flex-col md:flex-row gap-2 items-center">
-          <div className="relative flex-1 w-full flex flex-col md:flex-row gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
-              <input
-                type="text"
-                placeholder="Buscar proyectos..."
-                className="w-full pl-9 pr-4 py-2 bg-gray-50 border-transparent rounded-[18px] focus:ring-2 focus:ring-[#E3000F]/10 focus:bg-white border outline-none transition-all text-[10px] sm:text-xs font-black text-gray-900 placeholder:text-gray-400 placeholder:font-black placeholder:uppercase placeholder:text-[8px] placeholder:tracking-widest"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="w-full md:w-64 shrink-0 relative">
-              <select
-                value={procFilter}
-                onChange={(e) => setProcFilter(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-50 border-transparent rounded-[18px] focus:ring-2 focus:ring-[#E3000F]/10 focus:bg-white border outline-none transition-all text-[10px] sm:text-xs font-black text-gray-900 appearance-none pr-8 cursor-pointer truncate"
-                style={{ backgroundImage: "url(\"data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '8px auto' }}
-              >
-                <option value="Todos">SELECCIONAR TRÁMITE</option>
-                {procedures.map(p => (
-                  <option key={p.id} value={p.id}>{p.code} - {p.clientName || p.clientUsername}</option>
-                ))}
-              </select>
-            </div>
+      <div className="bg-white p-2 sm:p-3 rounded-[16px] sm:rounded-[24px] border border-gray-100 shadow-sm space-y-1.5">
+        <div className="flex flex-col sm:flex-row gap-1.5">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-3 h-3" />
+            <input
+              type="text"
+              placeholder="Buscar proyectos..."
+              className="w-full pl-8 pr-3 py-1.5 sm:py-2 bg-gray-50 border-transparent rounded-[10px] sm:rounded-[14px] focus:ring-2 focus:ring-[#E3000F]/10 focus:bg-white border outline-none transition-all text-[10px] sm:text-xs font-black text-gray-900 placeholder:text-gray-400 placeholder:font-black placeholder:uppercase placeholder:text-[8px] placeholder:tracking-widest"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <div className="flex items-center gap-2 text-[8px] font-black text-gray-400 uppercase tracking-widest px-3 py-1 shrink-0 self-end md:self-auto">
-            <span className="bg-[#1A1A1A] text-white px-2 py-0.5 rounded-md font-mono">{filtered.length}</span> Trámites filtrados
+          <div className="relative flex-1 sm:max-w-xs">
+            <select
+              value={procFilter}
+              onChange={(e) => setProcFilter(e.target.value)}
+              className="w-full px-3 py-1.5 sm:py-2 bg-gray-50 border-transparent rounded-[10px] sm:rounded-[14px] focus:ring-2 focus:ring-[#E3000F]/10 focus:bg-white border outline-none transition-all text-[9.5px] sm:text-[10px] font-black text-gray-900 appearance-none pr-7 cursor-pointer truncate"
+              style={{ backgroundImage: "url(\"data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: '7px auto' }}
+            >
+              <option value="Todos">TIPO DE TRÁMITE</option>
+              {procedures.map(p => (
+                <option key={p.id} value={p.id}>{p.code} - {p.clientName || p.clientUsername}</option>
+              ))}
+            </select>
           </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-gray-50">
-          <span className="text-[8px] font-black uppercase tracking-[0.1em] text-gray-400 mr-1 hidden sm:inline">Filtrar por Estado:</span>
+        <div className="flex flex-row overflow-x-auto items-center gap-1.5 pt-1.5 sm:pt-2 pb-0.5 sm:pb-0 border-t border-gray-50 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <span className="text-[8px] font-black uppercase tracking-[0.1em] text-gray-400 mr-1 hidden lg:inline shrink-0">Filtrar por Estado:</span>
           {(['Todos', 'En proceso', 'Suspendido', 'Finalizado'] as const).map((status) => {
             const isActive = statusFilter === status;
             const count = procedures.filter(p => status === 'Todos' || p.status === status).length;
@@ -414,7 +409,7 @@ export default function Procedures() {
                 type="button"
                 onClick={() => setStatusFilter(status)}
                 className={clsx(
-                  "px-2 px-2.5 sm:px-3 py-1 text-[8px] font-black uppercase tracking-widest transition-all duration-200 flex items-center gap-1.5 border active:scale-95 group rounded-xl",
+                  "px-2 sm:px-3 py-1 sm:py-1.5 text-[8.5px] sm:text-[9px] font-black uppercase tracking-widest transition-all duration-200 flex items-center gap-1.5 border active:scale-95 group rounded-[10px] sm:rounded-xl shrink-0 whitespace-nowrap",
                   isActive ? activeStyles : inactiveStyles
                 )}
               >
@@ -479,9 +474,14 @@ export default function Procedures() {
                   </div>
                 </td>
                 <td className="px-3 py-2 whitespace-normal break-words">
-                  <div className="flex flex-col min-w-0">
-                    <div className="text-[11px] font-black text-gray-700 leading-tight">{proc.clientName || 'Sin nombre'}</div>
-                    <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{proc.idNumber || 'N/A'}</div>
+                  <div className="flex items-center gap-1.5">
+                     <div className="w-6 h-6 bg-sky-50 rounded-md border border-sky-100 flex items-center justify-center shrink-0">
+                        <UserIcon className="w-3 h-3 text-sky-500" />
+                     </div>
+                     <div className="flex flex-col min-w-0">
+                       <div className="text-[10px] font-black text-sky-700 leading-tight break-words">{proc.clientName || 'Sin nombre'}</div>
+                       <div className="text-[7.5px] font-black text-sky-600/70 uppercase tracking-widest mt-0.5">{proc.idNumber || 'N/A'}</div>
+                     </div>
                   </div>
                 </td>
                 <td className="px-3 py-2 whitespace-normal" onClick={(e) => e.stopPropagation()}>
@@ -624,15 +624,15 @@ export default function Procedures() {
       </div>
 
       {/* Mobile Card View */}
-      <div className="md:hidden space-y-2">
+      <div className="md:hidden space-y-1.5">
         {filtered.map((proc) => (
           <div 
             key={proc.id} 
-            className="bg-white rounded-[20px] border border-gray-100 shadow-sm overflow-hidden group active:scale-[0.98] transition-all cursor-pointer"
+            className="bg-white rounded-[14px] border border-gray-100 shadow-sm overflow-hidden group active:scale-[0.98] transition-all cursor-pointer"
             onClick={() => navigate(`/dashboard/procedures/${proc.id}`)}
           >
-            <div className="p-3">
-              <div className="flex justify-between items-start mb-2">
+            <div className="p-2 sm:p-2.5">
+              <div className="flex justify-between items-center mb-1.5">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-1.5" onClick={(e) => user?.role === 'admin' && e.stopPropagation()}>
                     {user?.role === 'admin' ? (
@@ -676,11 +676,11 @@ export default function Procedures() {
                 </div>
               </div>
 
-              <h3 className="text-[11px] font-black text-gray-900 tracking-tight mb-2 leading-tight">
+              <h3 className="text-[11px] font-black text-gray-900 tracking-tight mb-1.5 leading-tight">
                 {proc.title}
               </h3>
 
-              <div className="flex flex-wrap gap-2 mb-3">
+              <div className="flex flex-wrap gap-1.5 mb-2">
                  <div className="flex items-center gap-1 text-[7px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-100 uppercase tracking-widest w-fit">
                     <Clock className="w-2.5 h-2.5" /> {calculateDaysElapsed(proc.createdAt, proc.completedAt)} d
                  </div>
@@ -697,53 +697,58 @@ export default function Procedures() {
                  )}
               </div>
 
-              <div className="space-y-2 pt-3 border-t border-gray-50">
-                <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5 pt-2 border-t border-gray-50">
+                <div className="flex flex-col gap-2">
                   {/* Cliente info */}
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <div className="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100 shrink-0">
-                      <UserIcon className="w-3 h-3 text-gray-400" />
+                  <div className="flex items-start gap-2 bg-sky-50 p-2 rounded-lg border border-sky-100">
+                    <div className="w-6 h-6 bg-white rounded flex items-center justify-center border border-sky-100 shadow-sm mt-0.5 shrink-0">
+                      <UserIcon className="w-3 h-3 text-sky-500" />
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[6px] font-black text-gray-400 uppercase tracking-widest">Cliente</span>
-                      <span className="text-[8px] font-black text-gray-700 truncate">{proc.clientName || 'Sin nombre'}</span>
+                      <span className="text-[6px] font-black text-sky-600/70 uppercase tracking-widest mb-0.5">Cliente</span>
+                      <span className="text-[9px] font-black text-sky-800 break-words leading-tight">{proc.clientName || 'Sin nombre'}</span>
                     </div>
                   </div>
 
                   {/* Técnico info */}
-                  <div className="flex flex-col min-w-0 justify-center">
-                    <span className="text-[6px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Técnico</span>
-                    {user?.role === 'admin' ? (
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <select
-                          value={proc.technicianUsername || ''}
-                          onChange={(e) => handleAssignTechnician(proc.id, e.target.value)}
-                          disabled={saving}
-                          className={clsx(
-                            "w-full text-[8px] font-black uppercase tracking-tight py-0.5 px-1 rounded border focus:outline-none cursor-pointer text-ellipsis overflow-hidden",
-                            proc.technicianUsername 
-                              ? "bg-emerald-50 border-emerald-100 text-emerald-700" 
-                              : "bg-red-50 border-red-100 text-red-700"
-                          )}
-                        >
-                          <option value="">-- Sin asignar --</option>
-                          {users
-                            .filter(u => {
-                              const r = (u.role || '').toLowerCase().trim();
-                              return r === 'tech' || r === 'tecnico' || r === 'admin';
-                            })
-                            .map(tech => (
-                              <option key={tech.username} value={tech.username}>
-                                {tech.name}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
-                    ) : (
-                      <span className="text-[8px] font-black text-gray-700 truncate">
-                        {proc.technicianName || proc.technicianUsername || 'Sin asignar'}
-                      </span>
-                    )}
+                  <div className="flex items-center gap-2 bg-emerald-50 p-2 rounded-lg border border-emerald-100">
+                    <div className="w-6 h-6 bg-white rounded flex items-center justify-center border border-emerald-100 shadow-sm shrink-0 lg:hidden">
+                      <Settings className="w-3 h-3 text-emerald-500" />
+                    </div>
+                    <div className="flex flex-col min-w-0 flex-1 justify-center">
+                      <span className="text-[6px] font-black text-emerald-600/70 uppercase tracking-widest mb-0.5 lg:hidden">Técnico Asignado</span>
+                      {user?.role === 'admin' ? (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <select
+                            value={proc.technicianUsername || ''}
+                            onChange={(e) => handleAssignTechnician(proc.id, e.target.value)}
+                            disabled={saving}
+                            className={clsx(
+                              "w-full text-[9px] font-black uppercase tracking-tight py-1 px-1.5 rounded-md border focus:outline-none bg-white shadow-sm cursor-pointer text-ellipsis overflow-hidden",
+                              proc.technicianUsername 
+                                ? "border-emerald-100 text-emerald-700" 
+                                : "border-red-100 text-red-700"
+                            )}
+                          >
+                            <option value="">-- Sin asignar --</option>
+                            {users
+                              .filter(u => {
+                                const r = (u.role || '').toLowerCase().trim();
+                                return r === 'tech' || r === 'tecnico' || r === 'admin';
+                              })
+                              .map(tech => (
+                                <option key={tech.username} value={tech.username}>
+                                  {tech.name}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <span className={clsx("text-[9px] font-black uppercase tracking-tight py-1 px-1.5 rounded-md border bg-white shadow-sm truncate", proc.technicianUsername ? "border-emerald-100 text-emerald-700": "border-red-100 text-red-700" )}>
+                          {proc.technicianName || proc.technicianUsername || 'Sin asignar'}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

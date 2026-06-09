@@ -17,7 +17,8 @@ export default function DashboardLayout() {
   };
 
   const navItems = [
-    { name: 'Trámites', href: '/dashboard', icon: FileText, roles: ['admin', 'tech', 'client'] },
+    { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'tech', 'client'] },
+    { name: 'Trámites', href: '/dashboard/procedures', icon: FileText, roles: ['admin', 'tech', 'client'] },
     { name: 'Simular Consulta', href: '/consulta', icon: Eye, roles: ['admin', 'tech'] },
     { name: 'Reportar Nota', href: '/dashboard/report-note', icon: MessageSquare, roles: ['admin', 'tech'] },
     { name: 'Seguimiento', href: '/dashboard/reports?view=tracking', icon: ClipboardList, roles: ['admin'] },

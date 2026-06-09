@@ -452,8 +452,10 @@ export default function Reports() {
               <div key={proc.id} className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
                 <div className="bg-gray-50/50 px-4 py-2 border-b border-gray-100 flex justify-between items-center">
                   <div>
-                    <h3 className="text-[10px] font-black text-gray-900 uppercase tracking-widest">{proc.title}</h3>
-                    <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest">Cliente: {proc.clientName || 'N/A'}</p>
+                    <h3 className="text-[10px] font-black text-gray-900 uppercase tracking-widest mb-1">{proc.title}</h3>
+                    <span className="bg-sky-50 text-sky-700 border border-sky-100 px-1.5 py-0.5 rounded text-[7.5px] font-black uppercase tracking-widest break-words inline-block">
+                        CL: {proc.clientName || 'N/A'}
+                    </span>
                   </div>
                   <div className="text-[8px] font-black px-2 py-0.5 bg-white border border-gray-100 rounded-full text-gray-400 uppercase tracking-widest">
                     {proc.logs.length} Actividades

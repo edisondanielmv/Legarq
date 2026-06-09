@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Setup from './pages/Setup';
 import PublicConsultation from './pages/PublicConsultation';
 import DashboardLayout from './pages/dashboard/Layout';
+import DashboardHome from './pages/dashboard/DashboardHome';
 import Procedures from './pages/dashboard/Procedures';
 import ProcedureDetails from './pages/dashboard/ProcedureDetails';
 import ProcedureTypes from './pages/dashboard/ProcedureTypes';
@@ -58,7 +59,8 @@ function AppRoutes() {
           <DashboardLayout />
         </ProtectedRoute>
       }>
-        <Route index element={<Procedures />} />
+        <Route index element={<DashboardHome />} />
+        <Route path="procedures" element={<Procedures />} />
         <Route path="procedures/:id" element={<ProcedureDetails />} />
         <Route path="report-note" element={
           <ProtectedRoute allowedRoles={['admin', 'tech']}>

@@ -56,7 +56,6 @@ export default function ReportNote() {
   
   const [noteText, setNoteText] = useState('');
   const [isExternal, setIsExternal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'form' | 'history'>('form');
   
   const [logs, setLogs] = useState<ProcedureLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -401,14 +400,14 @@ export default function ReportNote() {
                       setSelectedId(proc.id);
                       setStatusMessage(null);
                     }}
-                    className={`w-full text-left p-3.5 rounded-xl border transition-all flex flex-col gap-1.5 ${
+                    className={`w-full text-left p-2.5 sm:p-3.5 rounded-xl border transition-all flex flex-col gap-1 sm:gap-1.5 ${
                       isSelected 
                         ? 'border-gray-900 bg-gray-900 text-white shadow-md shadow-gray-900/10 scale-[0.99]' 
                         : 'border-gray-100 bg-gray-50/50 hover:bg-gray-100 text-gray-800'
                     }`}
                   >
                     <div className="flex items-center justify-between w-full">
-                      <span className={`font-mono text-[10px] font-black tracking-wider px-2 py-0.5 rounded ${
+                      <span className={`font-mono text-[8.5px] sm:text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded ${
                         isSelected ? 'bg-red-500 text-white' : 'bg-red-50 text-[#E3000F]'
                       }`}>
                         {proc.code}
@@ -425,7 +424,7 @@ export default function ReportNote() {
                     </div>
 
                     <div>
-                      <h4 className={`text-xs font-black truncate max-w-full ${isSelected ? 'text-white' : 'text-gray-900'}`}>
+                      <h4 className={`text-[11px] sm:text-xs font-black truncate max-w-full ${isSelected ? 'text-white' : 'text-gray-900'}`}>
                         {proc.title}
                       </h4>
                       <p className={`text-[9px] font-medium truncate ${isSelected ? 'text-stone-300' : 'text-gray-500'}`}>
@@ -529,7 +528,7 @@ export default function ReportNote() {
                         onChange={async (e) => {
                           const newStatus = e.target.value as 'En proceso' | 'Suspendido' | 'Finalizado';
                           try {
-                            await api.updateProcedure(selectedProcedure.id, { status: newStatus });
+                            await api.updateProcedure({ id: selectedProcedure.id, status: newStatus });
                             setProcedures(prev => prev.map(p => p.id === selectedProcedure.id ? { ...p, status: newStatus } : p));
                             setStatusMessage({ type: 'success', text: `Estado actualizado a ${newStatus}` });
                           } catch (err: any) {
@@ -553,12 +552,14 @@ export default function ReportNote() {
                       <FileText className="w-3.5 h-3.5 text-[#E3000F]" />
                       [{selectedProcedure.code}] {selectedProcedure.title}
                     </h3>
-                    <p className="text-[9px] text-gray-500 font-medium">
-                      Propietario: {selectedProcedure.clientName} ({selectedProcedure.idNumber}) | Correo: {selectedProcedure.clientEmail || 'No registrado'}
-                    </p>
-                    <p className="text-[9px] text-gray-500 font-medium">
-                      Técnico Asignado: <span className="font-bold text-gray-700">{selectedProcedure.technicianName || selectedProcedure.technicianUsername || 'Sin asignar'}</span>
-                    </p>
+                    <div className="flex flex-wrap gap-2 items-center mt-1.5">
+                      <span className="bg-sky-50 text-sky-700 border border-sky-100 px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase tracking-widest break-words flex-1 min-w-[200px]">
+                        CL: {selectedProcedure.clientName || 'Sin propietario'}
+                      </span>
+                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase tracking-widest flex-1 min-w-[100px]">
+                        TÉC: {selectedProcedure.technicianName || selectedProcedure.technicianUsername || 'Sin técnico'}
+                      </span>
+                    </div>
                   </div>
                   
                   {selectedProcedure.driveUrl && (
@@ -576,36 +577,11 @@ export default function ReportNote() {
                 </div>
 
                 {/* Pill Tab Bar for Mobile Devices */}
-                <div className="flex lg:hidden bg-gray-100 p-0.5 rounded-lg my-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('form')}
-                    className={`flex-1 py-1 text-center text-[8.5px] font-black uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1 ${
-                      activeTab === 'form' 
-                        ? "bg-white text-[#E3000F] shadow-sm" 
-                        : "text-gray-500 hover:text-gray-900"
-                    }`}
-                  >
-                    <MessageSquare className="w-3 h-3" />
-                    Nueva Nota
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('history')}
-                    className={`flex-1 py-1 text-center text-[8.5px] font-black uppercase tracking-wider rounded-md transition-all flex items-center justify-center gap-1 ${
-                      activeTab === 'history' 
-                        ? "bg-white text-[#E3000F] shadow-sm" 
-                        : "text-gray-500 hover:text-gray-900"
-                    }`}
-                  >
-                    <Clock className="w-3 h-3" />
-                    Historial ({logs.length})
-                  </button>
-                </div>
+
 
                 <form 
                   onSubmit={handleSubmit} 
-                  className={`space-y-3 ${activeTab === 'form' ? 'block' : 'hidden lg:block'}`}
+                  className="space-y-3 block mb-6"
                 >
                   {/* Text editor and layout */}
                   <div className="space-y-1">
@@ -762,7 +738,7 @@ export default function ReportNote() {
 
           {/* Historical timeline of log entries for the selected procedure */}
           {selectedId && (
-            <div className={`bg-white p-4 sm:p-5 rounded-[20px] border border-gray-100 shadow-sm ${activeTab === 'history' ? 'block' : 'hidden lg:block'}`}>
+            <div className="bg-white p-4 sm:p-5 rounded-[20px] border border-gray-100 shadow-sm block">
               <h3 className="text-[10px] font-black text-gray-900 uppercase tracking-widest mb-3 flex items-center justify-between border-b border-gray-100 pb-2">
                 <span className="flex items-center gap-1 text-[#C5B39A]">
                   <Clock className="w-3.5 h-3.5 text-[#C5B39A]" />

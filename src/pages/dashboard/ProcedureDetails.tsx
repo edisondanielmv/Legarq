@@ -649,12 +649,12 @@ export default function ProcedureDetails() {
           {/* Quick Info Cards */}
           <div className="bg-white p-4 sm:p-6 rounded-[28px] sm:rounded-[32px] border border-gray-100 shadow-sm space-y-3 sm:space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-50 rounded-xl flex items-center justify-center">
-                <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#E3000F]" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-sky-50 border border-sky-100 rounded-xl flex items-center justify-center">
+                <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-sky-500" />
               </div>
               <div className="overflow-hidden">
-                <p className="text-[7px] sm:text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Cliente</p>
-                <p className="text-xs sm:text-sm font-black mt-1 truncate">{draft.client.name || 'Cargando...'}</p>
+                <p className="text-[7px] sm:text-[8px] font-black text-sky-600/70 uppercase tracking-widest leading-none">Cliente</p>
+                <p className="text-xs sm:text-sm font-black text-sky-700 mt-1 truncate">{draft.client.name || 'Cargando...'}</p>
               </div>
             </div>
             
