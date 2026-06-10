@@ -376,20 +376,7 @@ export default function ProcedureDetails() {
     setActiveTab('bitacora');
   };
 
-  const addFinancialLocal = (type: 'Ingreso' | 'Egreso' | 'Cuenta por Cobrar') => {
-    if (!draft) return;
-    const newFin = {
-      id: `temp-${Date.now()}`,
-      type,
-      category: type === 'Ingreso' ? 'Abono Cliente' : (type === 'Cuenta por Cobrar' ? 'Monto Acordado' : 'Operativo'),
-      description: '',
-      amount: 0,
-      date: new Date().toISOString(),
-      isNew: true
-    };
-    setDraft({ ...draft, financials: [newFin, ...draft.financials] });
-    setActiveTab('finanzas');
-  };
+
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -462,29 +449,7 @@ export default function ProcedureDetails() {
     return 0;
   };
 
-  const getReceivable = () => {
-    return draft.financials
-      .filter(f => !f.isDeleted && (f.type === 'Cuenta por Cobrar' || f.type === 'por cobrar' || f.type === 'Valor Acordado' || f.category === 'Monto Acordado'))
-      .reduce((sum, f) => sum + parseAmount(f.amount), 0);
-  };
-  
-  const getExpectedVal = () => {
-    return typeof draft.procedure.expectedValue === 'number' 
-      ? draft.procedure.expectedValue 
-      : parseFloat(String(draft.procedure.expectedValue || '0'));
-  };
 
-  const agreedAmount = getReceivable() > 0 ? getReceivable() : getExpectedVal();
-  
-  const totalPaid = draft.financials
-    .filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono' || f.category === 'Abono Cliente'))
-    .reduce((sum, f) => sum + parseAmount(f.amount), 0);
-    
-  const totalExpenses = draft.financials
-    .filter(f => !f.isDeleted && (f.type === 'Egreso' || f.type === 'Gasto'))
-    .reduce((sum, f) => sum + parseAmount(f.amount), 0);
-    
-  const balanceDue = agreedAmount - totalPaid;
 
   return (
     <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 pb-20 sm:pb-32 px-3 sm:px-4">
@@ -658,33 +623,7 @@ export default function ProcedureDetails() {
               </div>
             </div>
             
-            <div className="h-px bg-gray-50 w-full" />
-            
-            <div className="space-y-3 sm:space-y-4">
-              <div className="bg-gray-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl space-y-2 sm:space-y-3">
-                <div className="flex justify-between items-center text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-gray-400">
-                  <span>Monto Acordado</span>
-                  <span className="text-gray-900">${draft.procedure.expectedValue || 0}</span>
-                </div>
-                <div className="flex justify-between items-center text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-gray-400">
-                  <span>Abonado</span>
-                  <span className="text-emerald-600">${draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-gray-400">
-                  <span>Gastos</span>
-                  <span className="text-red-500">${draft.financials.filter(f => !f.isDeleted && (f.type === 'Egreso' || f.type === 'Gasto')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0).toLocaleString()}</span>
-                </div>
-                <div className="h-px bg-gray-200 w-full" />
-                <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase tracking-widest">
-                  <span className="text-gray-400">Pendiente</span>
-                  <span className={clsx(
-                    (typeof draft.procedure.expectedValue === 'number' ? draft.procedure.expectedValue : parseFloat(String(draft.procedure.expectedValue || 0))) - draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0) > 0 ? "text-[#E3000F]" : "text-emerald-600"
-                  )}>
-                    ${((typeof draft.procedure.expectedValue === 'number' ? draft.procedure.expectedValue : parseFloat(String(draft.procedure.expectedValue || 0))) - draft.financials.filter(f => !f.isDeleted && (f.type === 'Ingreso' || f.type === 'Abono')).reduce((sum, f) => sum + (typeof f.amount === 'number' ? f.amount : parseFloat(String(f.amount || 0))), 0)).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </div>
+
           </div>
         </div>
 
