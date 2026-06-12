@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { Hourglass, FileText, User as UserIcon, Calendar, ClipboardList, Search, Download, Filter } from 'lucide-react';
+import { Hourglass, FileText, User as UserIcon, Calendar, ClipboardList, Search, Download, Filter, MessageSquare, X, RefreshCw } from 'lucide-react';
 import { ProcedureLog, Procedure } from '../../types';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -19,6 +19,7 @@ interface ReportData {
 
 export default function Reports() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,6 +31,9 @@ export default function Reports() {
   const [endDate, setEndDate] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   
+    const [quickNoteModal, setQuickNoteModal] = useState<{ isOpen: boolean; procedureId: string; title: string }>({ isOpen: false, procedureId: '', title: '' });
+  const [quickNoteText, setQuickNoteText] = useState('');
+  const [saving, setSaving] = useState(false);
   const viewMode = (searchParams.get('view') as 'list' | 'grouped' | 'tracking') || 'list';
 
   const setViewMode = (mode: string) => {
@@ -129,6 +133,29 @@ export default function Reports() {
       logs: procLogs
     };
   }).filter(Boolean) as (Procedure & { logs: ProcedureLog[] })[];
+
+  
+  const handleSaveQuickNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickNoteText.trim() || !quickNoteModal.procedureId) return;
+    setSaving(true);
+    try {
+      await api.addLog({
+        procedureId: quickNoteModal.procedureId,
+        date: new Date().toISOString(),
+        technicianUsername: user?.username,
+        note: quickNoteText,
+        isExternal: false
+      });
+      setQuickNoteModal({ isOpen: false, procedureId: '', title: '' });
+      setQuickNoteText('');
+      fetchReport(); // Reload data to show the new note
+    } catch (err: any) {
+      alert(`Error al guardar la nota: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
@@ -230,6 +257,67 @@ export default function Reports() {
   };
 
   return (
+    <>
+
+      {/* Quick Note Modal */}
+      {quickNoteModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 min-h-[100dvh]">
+          <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 sticky top-0 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#E3000F]/10 rounded-xl flex items-center justify-center shrink-0">
+                  <MessageSquare className="w-5 h-5 text-[#E3000F]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-gray-900 tracking-tight">Agregar Nota</h3>
+                  <p className="text-[10px] sm:text-[11px] font-bold text-gray-400 mt-0.5 line-clamp-1">{quickNoteModal.title}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setQuickNoteModal({ isOpen: false, procedureId: '', title: '' })}
+                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveQuickNote} className="p-4 sm:p-6 flex flex-col gap-4 overflow-y-auto">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-600">
+                  Contenido de la nota (Interna)
+                </label>
+                <textarea
+                  value={quickNoteText}
+                  onChange={(e) => setQuickNoteText(e.target.value)}
+                  placeholder="Escriba aquí el seguimiento, anotación técnica..."
+                  className="w-full h-32 px-4 py-3 bg-gray-50 border-transparent rounded-[14px] focus:bg-white focus:ring-2 focus:ring-[#E3000F]/10 focus:border-[#E3000F]/20 outline-none transition-all resize-none text-[13px] font-medium text-gray-900 placeholder:text-gray-400"
+                  required
+                />
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-2 mt-auto">
+                <button
+                  type="button"
+                  onClick={() => setQuickNoteModal({ isOpen: false, procedureId: '', title: '' })}
+                  className="px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest text-gray-500 hover:bg-gray-100 transition-colors"
+                  disabled={saving}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || !quickNoteText.trim()}
+                  className="px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest bg-[#E3000F] text-white hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95 disabled:opacity-50 disabled:active:scale-100 flex items-center gap-2"
+                >
+                  {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />}
+                  Guardar Nota
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     <div className="space-y-6 max-w-6xl mx-auto relative font-sans selection:bg-[#E3000F] selection:text-white">
       {fetching && <LoadingOverlay message="Actualizando reporte..." />}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -380,6 +468,7 @@ export default function Reports() {
                   <th className="px-6 py-3 text-[9px] font-black text-gray-400 uppercase tracking-widest">Cliente</th>
                   <th className="px-6 py-3 text-[9px] font-black text-gray-400 uppercase tracking-widest">Actividad / Nota</th>
                   <th className="px-6 py-3 text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Ver</th>
+                  <th className="px-6 py-3 text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Nota</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -438,7 +527,7 @@ export default function Reports() {
                 })}
                 {filteredLogs.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400 italic text-[10px] font-black uppercase tracking-widest">
+                    <td colSpan={8} className="px-6 py-12 text-center text-gray-400 italic text-[10px] font-black uppercase tracking-widest">
                       No se encontraron actividades registradas.
                     </td>
                   </tr>
@@ -520,10 +609,11 @@ export default function Reports() {
                   if (!matchesStatus) return false;
 
                   // If there are technician or date filters, only show procedures with matching logs
-                  const hasActiveFilters = selectedTech !== 'all' || startDate || endDate;
-                  if (hasActiveFilters) {
-                    return procLogs.length > 0 && matchesSearch;
+                  // For tracking view, if tech is filtered, match procedure technician instead of only logs
+                  if (selectedTech !== 'all' && p.technicianUsername !== selectedTech && p.technicianName !== selectedTech) {
+                    return false;
                   }
+                  return matchesSearch;
                   return matchesSearch;
                 }).map((proc) => {
                   const procLogs = filteredLogs.filter(l => l.procedureId === proc.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -575,6 +665,19 @@ export default function Reports() {
                           <FileText className="w-3.5 h-3.5" />
                         </a>
                       </td>
+                      <td className="px-6 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            navigate(`/dashboard/report-note?procedureId=${proc.id}`);
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-[#E3000F] hover:bg-red-50 rounded-lg transition-all inline-block"
+                          title="Reportar nota"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -584,5 +687,6 @@ export default function Reports() {
         )}
       </div>
     </div>
+    </>
   );
 }

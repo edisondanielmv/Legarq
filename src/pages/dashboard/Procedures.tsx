@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
-import { Plus, Search, Hourglass, FileText, User as UserIcon, Calendar, Briefcase, ExternalLink, CheckCircle2, Eye, Hash, ArrowRight, X, Clock, FolderOpen, Upload, Trash2, RefreshCw, AlertCircle, Settings } from 'lucide-react';
+import { Plus, Search, Hourglass, FileText, User as UserIcon, Calendar, Briefcase, ExternalLink, CheckCircle2, Eye, Hash, ArrowRight, X, Clock, FolderOpen, Upload, Trash2, RefreshCw, AlertCircle, Settings, MessageSquare } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 import clsx from 'clsx';
 import { Procedure, User, ProcedureType } from '../../types';
@@ -20,8 +20,11 @@ export default function Procedures() {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'Todos' | 'En proceso' | 'Suspendido' | 'Finalizado'>('Todos');
-  const [procFilter, setProcFilter] = useState('Todos');
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState('Todos');
+  const [techFilter, setTechFilter] = useState('Todos');
+    const [quickNoteModal, setQuickNoteModal] = useState<{ isOpen: boolean; procedureId: string; title: string }>({ isOpen: false, procedureId: '', title: '' });
+  const [quickNoteText, setQuickNoteText] = useState('');
+const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
 
   const [showNewModal, setShowNewModal] = useState(false);
@@ -181,6 +184,29 @@ export default function Procedures() {
     }
   };
 
+  
+  const handleSaveQuickNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickNoteText.trim() || !quickNoteModal.procedureId) return;
+    setSaving(true);
+    try {
+      await api.addLog({
+        procedureId: quickNoteModal.procedureId,
+        date: new Date().toISOString(),
+        technicianUsername: user?.username,
+        note: quickNoteText,
+        isExternal: false
+      });
+      showSuccess('Nota registrada correctamente.');
+      setQuickNoteModal({ isOpen: false, procedureId: '', title: '' });
+      setQuickNoteText('');
+    } catch (err: any) {
+      setError(`Error al guardar la nota: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDelete = async (e: React.MouseEvent, id: string, code: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -281,9 +307,15 @@ export default function Procedures() {
       String(p.idNumber || '').toLowerCase().includes(term)
     );
     const matchesStatus = statusFilter === 'Todos' || p.status === statusFilter;
-    const matchesProc = procFilter === 'Todos' || p.id === procFilter;
-    return matchesSearch && matchesStatus && matchesProc;
+    const matchesType = typeFilter === 'Todos' || p.procedureType === typeFilter;
+    const matchesTech = techFilter === 'Todos' || (!p.technicianUsername && techFilter === 'Sin asignar') || p.technicianUsername === techFilter;
+    return matchesSearch && matchesStatus && matchesType && matchesTech;
   });
+
+  
+  const uniqueTypes = Array.from(new Set(procedures.map(p => p.procedureType).filter(Boolean)));
+  const uniqueTechs = Array.from(new Set(procedures.map(p => p.technicianUsername).filter(Boolean)));
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -313,6 +345,66 @@ export default function Procedures() {
     <div className="space-y-4 max-w-6xl mx-auto py-2 sm:py-4 px-3 sm:px-4 relative font-sans selection:bg-[#E3000F] selection:text-white">
       {saving && <LoadingOverlay />}
       
+      
+      {/* Quick Note Modal */}
+      {quickNoteModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 min-h-[100dvh]">
+          <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 sticky top-0 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#E3000F]/10 rounded-xl flex items-center justify-center shrink-0">
+                  <MessageSquare className="w-5 h-5 text-[#E3000F]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-gray-900 tracking-tight">Agregar Nota</h3>
+                  <p className="text-[10px] sm:text-[11px] font-bold text-gray-400 mt-0.5 line-clamp-1">{quickNoteModal.title}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setQuickNoteModal({ isOpen: false, procedureId: '', title: '' })}
+                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveQuickNote} className="p-4 sm:p-6 flex flex-col gap-4 overflow-y-auto">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-600">
+                  Contenido de la nota (Interna)
+                </label>
+                <textarea
+                  value={quickNoteText}
+                  onChange={(e) => setQuickNoteText(e.target.value)}
+                  placeholder="Escriba aquí el seguimiento, anotación técnica..."
+                  className="w-full h-32 px-4 py-3 bg-gray-50 border-transparent rounded-[14px] focus:bg-white focus:ring-2 focus:ring-[#E3000F]/10 focus:border-[#E3000F]/20 outline-none transition-all resize-none text-[13px] font-medium text-gray-900 placeholder:text-gray-400"
+                  required
+                />
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-2 mt-auto">
+                <button
+                  type="button"
+                  onClick={() => setQuickNoteModal({ isOpen: false, procedureId: '', title: '' })}
+                  className="px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest text-gray-500 hover:bg-gray-100 transition-colors"
+                  disabled={saving}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || !quickNoteText.trim()}
+                  className="px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest bg-[#E3000F] text-white hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95 disabled:opacity-50 disabled:active:scale-100 flex items-center gap-2"
+                >
+                  {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />}
+                  Guardar Nota
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Success Message Toast */}
       {successMessage && (
         <div className="fixed bottom-4 right-4 bg-[#1A1A1A] text-white px-3 py-2.5 rounded-xl shadow-2xl z-[100] flex items-center gap-2 animate-in slide-in-from-bottom-4 duration-300 border border-white/10">
@@ -361,19 +453,36 @@ export default function Procedures() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="relative flex-1 sm:max-w-xs">
+          <div className="relative flex-1 sm:max-w-[180px]">
             <select
-              value={procFilter}
-              onChange={(e) => setProcFilter(e.target.value)}
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
               className="w-full px-3 py-1.5 sm:py-2 bg-gray-50 border-transparent rounded-[10px] sm:rounded-[14px] focus:ring-2 focus:ring-[#E3000F]/10 focus:bg-white border outline-none transition-all text-[9.5px] sm:text-[10px] font-black text-gray-900 appearance-none pr-7 cursor-pointer truncate"
               style={{ backgroundImage: "url(\"data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: '7px auto' }}
             >
               <option value="Todos">TIPO DE TRÁMITE</option>
-              {procedures.map(p => (
-                <option key={p.id} value={p.id}>{p.code} - {p.clientName || p.clientUsername}</option>
+              {uniqueTypes.map(t => (
+                <option key={t} value={t}>{t}</option>
               ))}
             </select>
           </div>
+          {user?.role === 'admin' && (
+            <div className="relative flex-1 sm:max-w-[180px]">
+              <select
+                value={techFilter}
+                onChange={(e) => setTechFilter(e.target.value)}
+                className="w-full px-3 py-1.5 sm:py-2 bg-gray-50 border-transparent rounded-[10px] sm:rounded-[14px] focus:ring-2 focus:ring-[#E3000F]/10 focus:bg-white border outline-none transition-all text-[9.5px] sm:text-[10px] font-black text-gray-900 appearance-none pr-7 cursor-pointer truncate"
+                style={{ backgroundImage: "url(\"data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: '7px auto' }}
+              >
+                <option value="Todos">TÉCNICOS</option>
+                <option value="Sin asignar">Sin asignar</option>
+                {uniqueTechs.map(t => {
+                  const techUser = users.find(u => u.username === t);
+                  return <option key={t} value={t}>{techUser?.name || t}</option>;
+                })}
+              </select>
+            </div>
+          )}
         </div>
         
         <div className="flex flex-row overflow-x-auto items-center gap-1.5 pt-1.5 sm:pt-2 pb-0.5 sm:pb-0 border-t border-gray-50 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -447,7 +556,7 @@ export default function Procedures() {
               <th className="px-3 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] whitespace-nowrap w-[8%]">Días</th>
               <th className="px-3 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] whitespace-nowrap w-[10%]">Estado</th>
               <th className="px-3 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] whitespace-nowrap w-[4%]">Carpeta</th>
-              {user?.role === 'admin' && <th className="px-3 py-3 text-left text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] whitespace-nowrap w-[4%]">Acciones</th>}
+              <th className="px-3 py-3 text-right text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] whitespace-nowrap w-[6%]">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -591,9 +700,22 @@ export default function Procedures() {
                     </div>
                   )}
                 </td>
-                {user?.role === 'admin' && (
+                
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <button
+                    <div className="flex items-center gap-1.5 justify-end">
+                      <button
+                        type="button"
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          navigate(`/dashboard/report-note?procedureId=${proc.id}`);
+                        }}
+                        className="h-8 min-w-[32px] px-2 rounded-lg flex items-center justify-center transition-all border shadow-sm group/note font-black text-[8px] uppercase tracking-tighter cursor-pointer bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-900 hover:text-white"
+                        title="Reportar nota"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5 group-hover/note:scale-110 transition-transform" />
+                      </button>
+                      {user?.role === 'admin' && (
+                        <button
                       type="button"
                       onClick={(e) => handleDelete(e, proc.id, proc.code || '')}
                       disabled={saving}
@@ -615,8 +737,10 @@ export default function Procedures() {
                         <Trash2 className="w-3.5 h-3.5 group-hover/delete:scale-110 transition-transform" />
                       )}
                     </button>
+                      )}
+                    </div>
                   </td>
-                )}
+
               </tr>
             ))}
           </tbody>
@@ -695,6 +819,14 @@ export default function Procedures() {
                       <FolderOpen className="w-2.5 h-2.5" /> Drive
                     </a>
                  )}
+              
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setQuickNoteModal({ isOpen: true, procedureId: proc.id, title: proc.title || proc.code || '' }); setQuickNoteText(''); }}
+                    className="flex items-center gap-1 text-[7px] font-black text-gray-600 bg-gray-50 px-1.5 py-0.5 rounded-md border border-gray-100 uppercase tracking-widest w-fit hover:bg-gray-900 hover:text-white transition-all"
+                  >
+                    <MessageSquare className="w-2.5 h-2.5" /> Nota
+                  </button>
               </div>
 
               <div className="space-y-1.5 pt-2 border-t border-gray-50">

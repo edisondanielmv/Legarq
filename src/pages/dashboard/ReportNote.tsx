@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../lib/api';
 import { 
@@ -43,6 +43,8 @@ const COMMON_PRESETS = [
 export default function ReportNote() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const defaultProcedureId = searchParams.get('procedureId') || '';
   
   // State variables
   const [procedures, setProcedures] = useState<Procedure[]>([]);
@@ -51,7 +53,7 @@ export default function ReportNote() {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
-  const [selectedId, setSelectedId] = useState<string>('');
+  const [selectedId, setSelectedId] = useState<string>(defaultProcedureId);
   const [isMobileSelectOpen, setIsMobileSelectOpen] = useState(false);
   
   const [noteText, setNoteText] = useState('');
@@ -135,7 +137,7 @@ export default function ReportNote() {
       setProcedures(data);
       
       // Auto-select first procedure if any exists
-      if (data.length > 0) {
+      if (!defaultProcedureId && data.length > 0) {
         setSelectedId(data[0].id);
       }
     } catch (err: any) {
